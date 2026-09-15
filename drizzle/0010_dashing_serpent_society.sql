@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `primary_page_id` integer REFERENCES pages(id);

@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `last_seen_app_version` text;

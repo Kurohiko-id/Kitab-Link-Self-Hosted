@@ -1,0 +1,139 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1789194089055,
+      "tag": "0000_odd_jackpot",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1789202150345,
+      "tag": "0001_slow_sharon_ventura",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1789203619575,
+      "tag": "0002_oval_demogoblin",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1789205087070,
+      "tag": "0003_wild_virginia_dare",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1789209345200,
+      "tag": "0004_unknown_jimmy_woo",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1789209369973,
+      "tag": "0005_goofy_sleepwalker",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1789217677542,
+      "tag": "0006_opposite_guardsmen",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1789218880102,
+      "tag": "0007_graceful_jack_murdock",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1789230487310,
+      "tag": "0008_jittery_vision",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1789278259385,
+      "tag": "0009_flimsy_loa",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1789317303639,
+      "tag": "0010_dashing_serpent_society",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1789317819766,
+      "tag": "0011_wild_mikhail_rasputin",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1789320500330,
+      "tag": "0012_fresh_loners",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1789321309790,
+      "tag": "0013_milky_mac_gargan",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1789327865864,
+      "tag": "0014_flippant_sandman",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1789328512633,
+      "tag": "0015_quick_bug",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1789329022338,
+      "tag": "0016_uneven_mach_iv",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1789362717473,
+      "tag": "0017_bright_fixer",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1789443700222,
+      "tag": "0018_clear_runaways",
+      "breakpoints": true
+    }
+  ]
+}
