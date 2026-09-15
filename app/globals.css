@@ -1,0 +1,479 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* Token diambil PERSIS dari referensi HTML/CSS user (linknest_dashboard.html):
+   sidebar #1e202c/#2d3040/#34384d, brand indigo #4f46e5/#4338ca, sisanya skala
+   gray Tailwind stok. Sengaja hex literal (bukan oklch) biar warnanya sama persis
+   dengan referensi, bukan hasil approksimasi konversi. */
+:root {
+  --background: #f9fafb;
+  --foreground: #111827;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --popover: #ffffff;
+  --popover-foreground: #111827;
+  --primary: #4f46e5;
+  --primary-foreground: #ffffff;
+  --secondary: #f3f4f6;
+  --secondary-foreground: #1f2937;
+  --muted: #f3f4f6;
+  --muted-foreground: #6b7280;
+  --accent: #f0f5ff;
+  --accent-foreground: #4338ca;
+  --destructive: #dc2626;
+  --border: #e5e7eb;
+  --input: #e5e7eb;
+  --ring: #4f46e5;
+  --chart-1: #4f46e5;
+  --chart-2: #10b981;
+  --chart-3: #3b82f6;
+  --chart-4: #f59e0b;
+  --chart-5: #6b7280;
+  --radius: 0.5rem;
+  --sidebar: #1e202c;
+  --sidebar-foreground: #9ca3af;
+  --sidebar-primary: #34384d;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #2d3040;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #4f46e5;
+}
+
+.dark {
+  --background: #111827;
+  --foreground: #f9fafb;
+  --card: #1f2937;
+  --card-foreground: #f9fafb;
+  --popover: #1f2937;
+  --popover-foreground: #f9fafb;
+  --primary: #4f46e5;
+  --primary-foreground: #ffffff;
+  --secondary: #374151;
+  --secondary-foreground: #f9fafb;
+  --muted: #374151;
+  --muted-foreground: #9ca3af;
+  --accent: #1e1b4b;
+  --accent-foreground: #a5b4fc;
+  --destructive: #ef4444;
+  --border: #374151;
+  --input: #374151;
+  --ring: #4f46e5;
+  --chart-1: #6366f1;
+  --chart-2: #34d399;
+  --chart-3: #60a5fa;
+  --chart-4: #fbbf24;
+  --chart-5: #9ca3af;
+  --sidebar: #1e202c;
+  --sidebar-foreground: #9ca3af;
+  --sidebar-primary: #34384d;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #2d3040;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #4f46e5;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    /* Default tap-highlight browser mobile (Android Chrome nge-flash biru keabuan ala
+       Material ripple, iOS nge-flash kotak abu-abu/hitam) gak ngikutin warna/bentuk
+       tombol theme sama sekali. Dipasang di "*" langsung (bukan cuma html/body) --
+       properti ini gak selalu ke-inherit konsisten ke elemen yang punya transform/
+       stacking context sendiri (tombol link kita banyak yang punya scale/shadow),
+       jadi paling aman di-set di semua elemen sekalian. Feedback tekan gantinya lewat
+       :active di tombol-tombol link (lihat kl-hover-* di bawah + sharedClassName di
+       link-card.tsx). rgba(0,0,0,0) eksplisit, BUKAN keyword "transparent" -- WebKit/
+       Safari punya bug lama di mana keyword "transparent" di properti ini kadang gak
+       bener-bener nge-null-in highlight-nya, rgba eksplisit lebih reliable. */
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  }
+  /* overflow-x: hidden di sini (bukan cuma di wrapper per-halaman) -- elemen dekoratif
+     yang posisinya absolute (blob aurora, dll) kadang bikin dokumen SEDIKIT lebih lebar
+     dari viewport tanpa keliatan ada gap, cukup buat HP ngizinin swipe kiri/kanan yang
+     "mantul" balik (iOS rubber-band). Nutup di html+body sekali nutup semua kasusnya,
+     bukan per-komponen yang gampang kelewat pas nambah elemen baru nanti. */
+  html {
+    @apply font-sans overflow-x-hidden;
+  }
+  body {
+    @apply bg-background text-foreground overflow-x-hidden;
+  }
+}
+
+/* Efek background "aurora" (tema publik) — satu-satunya bagian tema yang butuh
+   animasi, jadi gak bisa lewat inline style React biasa. Lihat lib/theme.ts. */
+@keyframes kl-aurora-drift-1 {
+  0%,
+  100% {
+    transform: translate(-10%, -10%) scale(1);
+  }
+  50% {
+    transform: translate(10%, 15%) scale(1.2);
+  }
+}
+@keyframes kl-aurora-drift-2 {
+  0%,
+  100% {
+    transform: translate(15%, 10%) scale(1.1);
+  }
+  50% {
+    transform: translate(-15%, -5%) scale(0.9);
+  }
+}
+.kl-aurora-blob-1 {
+  animation: kl-aurora-drift-1 18s ease-in-out infinite;
+}
+.kl-aurora-blob-2 {
+  animation: kl-aurora-drift-2 22s ease-in-out infinite;
+}
+
+/* Efek background "lines" — garis diagonal bergerak, murni CSS. */
+@keyframes kl-lines-move {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 200px 200px;
+  }
+}
+.kl-lines-move {
+  animation: kl-lines-move 12s linear infinite;
+}
+
+/* Hover effect tombol/card (dipilih per-theme, lihat getButtonHoverClass di lib/theme.ts).
+   SEMUA :hover di sini DIBUNGKUS @media (hover: hover) -- kalau enggak, di touchscreen
+   (iOS Safari khususnya) elemen yang punya :hover style + onClick lewat JS (bukan navigasi
+   <a> asli) butuh DUA tap: tap pertama cuma "mensimulasikan" hover, baru tap kedua beneran
+   nge-fire click-nya. Ini yang bikin tombol "copy" kerasa gak ngapa-ngapain pas di-tap
+   sekali di iPhone (link <a> biasa gak kena karena navigasinya native, bukan lewat JS
+   onClick). (hover: hover) scope efeknya cuma ke device yang beneran punya mouse/trackpad.*/
+@media (hover: hover) {
+  .kl-hover-scale {
+    transition: transform 0.15s ease;
+  }
+  .kl-hover-scale:hover {
+    transform: scale(1.03);
+  }
+
+  .kl-hover-lift {
+    transition:
+      transform 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+  .kl-hover-lift:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.16);
+  }
+
+  .kl-hover-glow {
+    transition: box-shadow 0.15s ease;
+  }
+  .kl-hover-glow:hover {
+    box-shadow: 0 0 20px var(--kl-glow-color, currentColor);
+  }
+
+  .kl-hover-shine::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.35) 50%, transparent 70%);
+    transform: translateX(-120%);
+    transition: transform 0.5s ease;
+  }
+  .kl-hover-shine:hover::after {
+    transform: translateX(120%);
+  }
+}
+
+.kl-hover-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Avatar "mengambang" pelan naik-turun -- opsional (theme.profileAvatarFloat), dipasang
+   di elemen avatar-nya sendiri (bukan wrapper) biar gak ganggu posisi elemen di sekitarnya. */
+@keyframes kl-avatar-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+.kl-avatar-float {
+  animation: kl-avatar-float 4s ease-in-out infinite;
+}
+
+/* Animasi kemunculan tiap link pas halaman pertama dibuka, stagger lewat CSS var
+   --kl-index yang di-set inline per kartu (lihat lib/theme.ts getEntranceClass). */
+@keyframes kl-entrance-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes kl-entrance-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes kl-entrance-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.kl-entrance-fade {
+  animation: kl-entrance-fade 0.4s ease both;
+  animation-delay: calc(var(--kl-index, 0) * 60ms);
+}
+.kl-entrance-slide-up {
+  animation: kl-entrance-slide-up 0.4s ease both;
+  animation-delay: calc(var(--kl-index, 0) * 60ms);
+}
+.kl-entrance-pop {
+  animation: kl-entrance-pop 0.35s ease both;
+  animation-delay: calc(var(--kl-index, 0) * 60ms);
+}
+
+/* Texture overlay "snow" — trik box-shadow klasik (banyak titik statis di satu
+   pseudo-element, lalu di-translate lewat keyframes), 2 lapis buat efek parallax,
+   murni CSS gak butuh JS/canvas. Posisi titik di-generate sekali (fixed), bukan
+   di-randomize tiap render. Lihat getTextureOverlayClass di lib/theme.ts. */
+.kl-snow-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  overflow: hidden;
+}
+.kl-snow-overlay::before,
+.kl-snow-overlay::after {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 0;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: transparent;
+}
+.kl-snow-overlay::before {
+  box-shadow: 36.4vw 60.9vh 0 #fff, 92.7vw 79.6vh 0 #fff, 43.5vw 7.2vh 0 #fff, 72.5vw 21.9vh 0 #fff,
+    40.3vw 98.3vh 0 #fff, 58.7vw 55.8vh 0 #fff, 14.1vw 42.9vh 0 #fff, 37.3vw 12.8vh 0 #fff, 35.6vw 1.1vh 0 #fff,
+    36.2vw 12.5vh 0 #fff, 8.6vw 0.8vh 0 #fff, 96.8vw 33vh 0 #fff, 51.6vw 41.8vh 0 #fff, 61.1vw 4vh 0 #fff,
+    47vw 12.7vh 0 #fff, 42vw 91.3vh 0 #fff, 23.3vw 21.5vh 0 #fff, 74.5vw 82.3vh 0 #fff, 31.3vw 63.2vh 0 #fff,
+    4.9vw 72.1vh 0 #fff, 83.4vw 72.9vh 0 #fff, 14.2vw 18.8vh 0 #fff, 77vw 50vh 0 #fff, 24.2vw 66.8vh 0 #fff,
+    17.2vw 22.5vh 0 #fff, 92vw 10.2vh 0 #fff, 36.7vw 27.1vh 0 #fff, 97.6vw 6.7vh 0 #fff, 62.3vw 37.1vh 0 #fff,
+    78.6vw 46.7vh 0 #fff, 95.8vw 54.1vh 0 #fff, 21.9vw 4.7vh 0 #fff, 46.8vw 20vh 0 #fff, 94vw 97.2vh 0 #fff,
+    77.3vw 91.2vh 0 #fff, 95.2vw 22.9vh 0 #fff, 92.8vw 75.7vh 0 #fff, 69.6vw 15.3vh 0 #fff, 75.9vw 73.8vh 0 #fff,
+    12.2vw 59.7vh 0 #fff, 82.6vw 51.2vh 0 #fff, 36.1vw 35vh 0 #fff, 21.3vw 73vh 0 #fff, 36.1vw 17.7vh 0 #fff,
+    62.1vw 91vh 0 #fff, 47.7vw 53vh 0 #fff, 96.1vw 96.4vh 0 #fff, 84.5vw 77.8vh 0 #fff, 40.3vw 41.5vh 0 #fff,
+    60.9vw 32.6vh 0 #fff;
+  animation: kl-snow-fall 11s linear infinite;
+}
+.kl-snow-overlay::after {
+  width: 5px;
+  height: 5px;
+  box-shadow: 77.4vw 41.5vh 0 #fff, 91.7vw 80.4vh 0 #fff, 8.8vw 78.8vh 0 #fff, 93.2vw 98.7vh 0 #fff,
+    30vw 85.8vh 0 #fff, 94.9vw 3.1vh 0 #fff, 35.3vw 9.2vh 0 #fff, 40.5vw 47.7vh 0 #fff, 39.9vw 95.4vh 0 #fff,
+    8.8vw 94.1vh 0 #fff, 18.8vw 20.1vh 0 #fff, 51.2vw 29vh 0 #fff, 88.6vw 74.9vh 0 #fff, 64.4vw 23.4vh 0 #fff,
+    7.5vw 43.3vh 0 #fff, 18vw 80.1vh 0 #fff, 75.1vw 20.4vh 0 #fff, 3.7vw 85.9vh 0 #fff, 0.7vw 94.8vh 0 #fff,
+    77.5vw 23.6vh 0 #fff, 29.3vw 6.8vh 0 #fff, 70.7vw 15.3vh 0 #fff, 26.5vw 39.7vh 0 #fff, 48.6vw 4.3vh 0 #fff,
+    32.5vw 43.5vh 0 #fff, 96.2vw 34.4vh 0 #fff, 72.4vw 16.9vh 0 #fff, 97.7vw 70.5vh 0 #fff, 86.9vw 15.7vh 0 #fff,
+    62.2vw 97vh 0 #fff, 55.6vw 96.5vh 0 #fff, 75.2vw 85vh 0 #fff, 46.1vw 89.7vh 0 #fff, 24.8vw 77.7vh 0 #fff,
+    59.6vw 41.3vh 0 #fff;
+  animation: kl-snow-fall 17s linear infinite;
+}
+@keyframes kl-snow-fall {
+  from {
+    transform: translateY(-10px);
+  }
+  to {
+    transform: translateY(110vh);
+  }
+}
+
+/* Texture "sakura" -- sama trik box-shadow kayak snow, bedanya warna pink + goyang
+   kiri-kanan pas jatuh (bukan lurus doang) biar kerasa kayak kelopak, bukan salju. */
+.kl-sakura-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  overflow: hidden;
+}
+.kl-sakura-overlay::before,
+.kl-sakura-overlay::after {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 40% 0 40% 0;
+  background: transparent;
+}
+.kl-sakura-overlay::before {
+  box-shadow: 84.6vw 49.9vh 0 #f9a8d4, 75.7vw 54.9vh 0 #f9a8d4, 81.5vw 85.8vh 0 #f9a8d4, 35.9vw 82.2vh 0 #f9a8d4,
+    6.2vw 68.5vh 0 #f9a8d4, 31.3vw 48.1vh 0 #f9a8d4, 64.5vw 92.2vh 0 #f9a8d4, 98vw 41.1vh 0 #f9a8d4,
+    23.3vw 5.7vh 0 #f9a8d4, 31.5vw 49.2vh 0 #f9a8d4, 69.4vw 86vh 0 #f9a8d4, 97.7vw 56vh 0 #f9a8d4,
+    57.8vw 42.1vh 0 #f9a8d4, 51.7vw 77.7vh 0 #f9a8d4, 50.7vw 67vh 0 #f9a8d4, 69vw 83.5vh 0 #f9a8d4,
+    23.5vw 70.3vh 0 #f9a8d4, 77vw 44.8vh 0 #f9a8d4, 36.9vw 93.3vh 0 #f9a8d4, 63vw 86.1vh 0 #f9a8d4,
+    10.2vw 65.4vh 0 #f9a8d4, 0.5vw 72.9vh 0 #f9a8d4, 95.3vw 4.6vh 0 #f9a8d4, 31vw 60.3vh 0 #f9a8d4,
+    13vw 4.9vh 0 #f9a8d4, 23.1vw 97.9vh 0 #f9a8d4, 93.3vw 12.2vh 0 #f9a8d4, 62.6vw 84.3vh 0 #f9a8d4;
+  animation: kl-sakura-fall 13s linear infinite;
+}
+.kl-sakura-overlay::after {
+  width: 8px;
+  height: 8px;
+  box-shadow: 7.6vw 95.9vh 0 #fbcfe8, 31.2vw 79.9vh 0 #fbcfe8, 50.7vw 51.5vh 0 #fbcfe8, 94.8vw 65.3vh 0 #fbcfe8,
+    83.6vw 61.5vh 0 #fbcfe8, 23vw 78.5vh 0 #fbcfe8, 7vw 40.3vh 0 #fbcfe8, 1.3vw 58.3vh 0 #fbcfe8,
+    61.8vw 22.3vh 0 #fbcfe8, 31.4vw 45.2vh 0 #fbcfe8, 62.2vw 38.1vh 0 #fbcfe8, 21.5vw 29.6vh 0 #fbcfe8,
+    21.2vw 16.3vh 0 #fbcfe8, 76.2vw 54.9vh 0 #fbcfe8, 82.6vw 85.8vh 0 #fbcfe8, 26vw 23.5vh 0 #fbcfe8,
+    17.2vw 14.2vh 0 #fbcfe8, 49.7vw 88.7vh 0 #fbcfe8, 86.9vw 15.9vh 0 #fbcfe8, 88.1vw 73.5vh 0 #fbcfe8,
+    50.4vw 33vh 0 #fbcfe8, 77.9vw 35.4vh 0 #fbcfe8;
+  animation: kl-sakura-fall 19s linear infinite;
+}
+@keyframes kl-sakura-fall {
+  0% {
+    transform: translate(0, -10px) rotate(0deg);
+  }
+  25% {
+    transform: translate(3vw, 27vh) rotate(90deg);
+  }
+  50% {
+    transform: translate(-3vw, 55vh) rotate(180deg);
+  }
+  75% {
+    transform: translate(3vw, 82vh) rotate(270deg);
+  }
+  100% {
+    transform: translate(0, 110vh) rotate(360deg);
+  }
+}
+
+/* Texture "particle" (magic particle) -- ngambang lambat ke atas + kedap-kedip
+   (twinkle), beda dari snow/sakura yang jatuh ke bawah. */
+.kl-particle-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  overflow: hidden;
+}
+.kl-particle-overlay::before,
+.kl-particle-overlay::after {
+  content: "";
+  position: absolute;
+  bottom: -10px;
+  left: 0;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: transparent;
+}
+.kl-particle-overlay::before {
+  box-shadow: 77.3vw 71.2vh 0 #fef08a, 42.9vw 88vh 0 #fef08a, 82.5vw 8.5vh 0 #fef08a, 93.3vw 26.6vh 0 #fef08a,
+    13.8vw 26.5vh 0 #fef08a, 65.7vw 25.3vh 0 #fef08a, 43vw 4.5vh 0 #fef08a, 74vw 50vh 0 #fef08a,
+    11.1vw 74.1vh 0 #fef08a, 3.2vw 75.6vh 0 #fef08a, 87.4vw 87.6vh 0 #fef08a, 38.9vw 91.1vh 0 #fef08a,
+    14vw 40vh 0 #fef08a, 57vw 22vh 0 #fef08a, 13.8vw 51.5vh 0 #fef08a, 68.7vw 39.9vh 0 #fef08a,
+    35.9vw 8.9vh 0 #fef08a, 89.2vw 93.8vh 0 #fef08a, 10.8vw 15.9vh 0 #fef08a, 9.4vw 19.6vh 0 #fef08a,
+    79.3vw 13.7vh 0 #fef08a, 21.2vw 97.6vh 0 #fef08a, 44.2vw 61.5vh 0 #fef08a, 66.4vw 3.5vh 0 #fef08a,
+    32.1vw 72.4vh 0 #fef08a, 78vw 45.7vh 0 #fef08a, 98.7vw 28.1vh 0 #fef08a, 38.6vw 69vh 0 #fef08a,
+    96.3vw 54.4vh 0 #fef08a, 87.6vw 28.6vh 0 #fef08a;
+  animation:
+    kl-particle-drift 14s linear infinite,
+    kl-particle-twinkle 2.2s ease-in-out infinite;
+}
+.kl-particle-overlay::after {
+  width: 4px;
+  height: 4px;
+  box-shadow: 46.2vw 35.5vh 0 #fde047, 19.4vw 91.1vh 0 #fde047, 11.9vw 11vh 0 #fde047, 15.3vw 39.1vh 0 #fde047,
+    8.2vw 13.6vh 0 #fde047, 0.8vw 45vh 0 #fde047, 84.2vw 42.2vh 0 #fde047, 7.4vw 95.8vh 0 #fde047,
+    61.1vw 75.1vh 0 #fde047, 14.2vw 97.8vh 0 #fde047, 88.8vw 34.9vh 0 #fde047, 13.2vw 79.6vh 0 #fde047,
+    50.6vw 72.6vh 0 #fde047, 21vw 64.6vh 0 #fde047, 19vw 45.4vh 0 #fde047, 15.9vw 62.7vh 0 #fde047,
+    33.1vw 48.6vh 0 #fde047, 56.6vw 21.1vh 0 #fde047, 82.5vw 37.1vh 0 #fde047, 1vw 35vh 0 #fde047,
+    47.7vw 79.7vh 0 #fde047, 27.3vw 69.8vh 0 #fde047, 90.3vw 62.9vh 0 #fde047, 81.3vw 19.8vh 0 #fde047;
+  animation:
+    kl-particle-drift 20s linear infinite,
+    kl-particle-twinkle 3s ease-in-out infinite reverse;
+}
+@keyframes kl-particle-drift {
+  from {
+    transform: translateY(10px);
+  }
+  to {
+    transform: translateY(-110vh);
+  }
+}
+@keyframes kl-particle-twinkle {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 1;
+  }
+}
