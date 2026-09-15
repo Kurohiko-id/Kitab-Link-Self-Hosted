@@ -1,0 +1,1 @@
+ALTER TABLE `live_badges` ADD `label` text;

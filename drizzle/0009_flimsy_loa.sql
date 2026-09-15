@@ -1,0 +1,1 @@
+ALTER TABLE `links` ADD `icon_position` text DEFAULT 'top' NOT NULL;
