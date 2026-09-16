@@ -26,6 +26,7 @@
     "qrcode": "^1.5.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "react-easy-crop": "^6.2.3",
     "recharts": "^3.10.1",
     "rss-parser": "^3.13.0",
     "sharp": "^0.35.4",
