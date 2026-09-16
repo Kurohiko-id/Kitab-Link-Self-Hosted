@@ -478,6 +478,7 @@ const dictionaries = {
       securityTabLabel: "Keamanan",
       cssTabLabel: "CSS kustom",
       backupTabLabel: "Backup",
+      aboutTabLabel: "Tentang",
       tempAccessTitle: "Akses Sementara",
       tempAccessDesc:
         "Password tambahan yang cuma valid sampai batas waktu tertentu — cocok buat kasih akses lihat page ke orang lain tanpa share password utama, otomatis gak bisa dipakai lagi setelah kedaluwarsa.",
@@ -1075,6 +1076,7 @@ const dictionaries = {
       securityTabLabel: "Security",
       cssTabLabel: "Custom CSS",
       backupTabLabel: "Backup",
+      aboutTabLabel: "About",
       tempAccessTitle: "Temporary Access",
       tempAccessDesc:
         "An extra password that only works until a set time — good for giving someone temporary access without sharing your main password. Automatically stops working once it expires.",

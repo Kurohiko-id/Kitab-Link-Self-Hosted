@@ -48,7 +48,6 @@ import { getSocialLinksForPage } from "./social-links-actions";
 import { getAccessCodesForPage } from "@/lib/db/page-access-codes";
 import { getAvailableUpdate } from "@/lib/update-check";
 import { CURRENT_VERSION } from "@/lib/version";
-import { AboutDialog } from "./about-dialog";
 import { getDeadLinksForUser } from "@/lib/db/dead-links";
 import { NotificationBell } from "./notification-bell";
 import { getContentFeedsForPage } from "@/lib/db/content-feeds";
@@ -306,7 +305,6 @@ export default async function DashboardPage({
               <p className="truncate text-xs text-sidebar-foreground">{user?.email}</p>
             </div>
             <div className="flex items-center gap-2.5">
-              <AboutDialog version={CURRENT_VERSION} availableUpdate={availableUpdate} t={t} />
               <form action={logout}>
                 <button
                   type="submit"
@@ -413,6 +411,8 @@ export default async function DashboardPage({
                   user?.totpBackupCodesJson ? (JSON.parse(user.totpBackupCodesJson) as string[]).length : 0
                 }
                 previewLinkActive={previewLinkActive}
+                version={CURRENT_VERSION}
+                availableUpdate={availableUpdate}
                 t={t}
                 locale={locale}
               />
