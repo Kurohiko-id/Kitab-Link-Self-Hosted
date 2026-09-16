@@ -2,17 +2,31 @@ export async function register() {
   // Guard runtime: node-cron cuma jalan di Node.js runtime, bukan edge.
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
+  // Auto-migrate SEBELUM apapun lain nyentuh DB (termasuk cek user di bawah) -- fresh
+  // volume/container gak punya tabel sama sekali sampai ini jalan. Next.js nge-await
+  // register() sampai selesai SEBELUM server mulai nerima request (dikonfirmasi langsung
+  // dari source-nya: next-server.js prepareImpl() -> runInstrumentationHookIfAvailable(),
+  // gak dibungkus try/catch di level Next-nya), jadi kalau ini throw, server GAGAL BOOT
+  // total -- bukan nyala dengan schema rusak. SENGAJA gak ditangkep di sini juga, biar
+  // container exit dengan jelas alih-alih diam-diam jalan tanpa tabel yang lengkap.
+  //
+  // Pakai drizzle-orm/.../migrator (bukan CLI drizzle-kit) -- drizzle-kit itu
+  // devDependency, gak ikut ke production install/image.
+  const { migrate } = await import("drizzle-orm/better-sqlite3/migrator");
+  const { db } = await import("@/lib/db");
+  const path = await import("path");
+  await migrate(db, { migrationsFolder: path.join(process.cwd(), "drizzle") });
+  console.log("[migrate] database schema is up to date");
+
   // Cetak setup token di sini (pas server BENERAN nyala, bukan pas `next build`) kalau
   // database masih kosong -- tanpa ini, token cuma ke-generate pas /setup pertama kali
   // diakses (lib/auth/setup-token.ts), jadi operator yang langsung ngecek `docker logs`
   // begitu container nyala bakal nemu log kosong dan bingung tokennya di mana.
   //
-  // WAJIB dibungkus try/catch: kalau query ini throw (mis. container nyala sebelum migration
-  // kelar -> "no such table: users"), register() berhenti di sini dan SEMUA cron di bawah
-  // gak pernah kedaftar -- webhook queue, live badge, scheduled rules, feeds, dead-link
-  // checker mati diam-diam tanpa error yang keliatan di UI.
+  // Tetep dibungkus try/catch walau migrate() di atas udah mastiin tabelnya ada -- ini
+  // cuma buat kenyamanan log startup, bukan jalur kritis, jadi error apapun di sini
+  // (bukan cuma "tabel belum ada") gak boleh sampai gagalin registrasi cron di bawah.
   try {
-    const { db } = await import("@/lib/db");
     const { users } = await import("@/lib/db/schema");
     const [existingUser] = await db.select({ id: users.id }).from(users).limit(1);
     if (!existingUser) {

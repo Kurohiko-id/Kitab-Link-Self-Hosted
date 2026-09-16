@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { createSession, destroySession } from "@/lib/auth/session";
-import { hashPassword, verifyPassword } from "@/lib/auth/password";
+import { verifyPassword } from "@/lib/auth/password";
 import { grantPending2fa, getPending2faUserId, clearPending2fa } from "@/lib/auth/pending-2fa";
 import { decryptTotpSecret } from "@/lib/auth/totp-crypto";
 import { verifyTotpCode, consumeBackupCode } from "@/lib/auth/totp";
@@ -35,17 +35,11 @@ export async function login(locale: Locale, _prevState: LoginState, formData: Fo
     recordFailedAttempt(rlKey);
     return { error: t.login.invalidCredentialsError };
   }
-  const { valid, needsRehash } = await verifyPassword(user.passwordHash, password);
-  if (!valid) {
+  if (!(await verifyPassword(user.passwordHash, password))) {
     recordFailedAttempt(rlKey);
     return { error: t.login.invalidCredentialsError };
   }
   clearAttempts(rlKey);
-  // Migrasi transparan bcrypt -> Argon2id: begitu login sukses pakai hash lama, langsung
-  // re-hash & update row-nya di sini, gak perlu batch migration terpisah.
-  if (needsRehash) {
-    await db.update(users).set({ passwordHash: await hashPassword(password) }).where(eq(users.id, user.id));
-  }
 
   if (user.totpEnabled) {
     // Password cocok tapi belum lolos 2FA -- session PENUH belum kebentuk, cuma state

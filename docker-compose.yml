@@ -1,0 +1,25 @@
+# Kitab Link — Docker Compose
+#
+# Pakai image prebuilt dari GitHub Container Registry. Ini cara paling cepat deploy:
+#   docker compose up -d
+#
+# Buat update ke versi baru: docker compose pull && docker compose up -d
+# (migration database jalan otomatis pas container nyala, gak perlu command tambahan)
+#
+# Buat build dari source sendiri (dev/kustomisasi):
+#   1. Comment baris "image" di bawah
+#   2. Uncomment baris "build"
+#   3. docker compose up -d --build
+
+services:
+  kitab-link:
+    image: ghcr.io/kurohiko-id/kitab-link-self-hosted:latest
+    # build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - kitab-link-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  kitab-link-data:

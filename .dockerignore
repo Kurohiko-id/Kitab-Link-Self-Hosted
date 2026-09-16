@@ -1,0 +1,18 @@
+# Data pribadi user (db asli, upload asli, secret file) -- JANGAN PERNAH masuk image,
+# baik lewat COPY builder maupun ke-bake ke layer manapun. Volume runtime yang isi ini.
+/data
+
+.git
+.gitignore
+node_modules
+.next
+npm-debug.log*
+
+.env*
+
+docs
+*.md
+!README.md
+
+.vscode
+.idea

@@ -37,11 +37,7 @@ export async function unlockPage(
   const [page] = await db.select().from(pages).where(eq(pages.id, pageId)).limit(1);
   let matched = false;
   if (page?.passwordHash) {
-    const result = await verifyPassword(page.passwordHash, password);
-    matched = result.valid;
-    if (result.valid && result.needsRehash) {
-      await db.update(pages).set({ passwordHash: await hashPassword(password) }).where(eq(pages.id, pageId));
-    }
+    matched = await verifyPassword(page.passwordHash, password);
   }
 
   if (!matched && password) {
@@ -52,7 +48,7 @@ export async function unlockPage(
       .from(pageAccessCodes)
       .where(and(eq(pageAccessCodes.pageId, pageId), gt(pageAccessCodes.expiresAt, new Date())));
     for (const code of activeCodes) {
-      if ((await verifyPassword(code.codeHash, password)).valid) {
+      if (await verifyPassword(code.codeHash, password)) {
         matched = true;
         break;
       }

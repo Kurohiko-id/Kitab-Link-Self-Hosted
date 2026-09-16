@@ -75,7 +75,7 @@ export async function disableTotpAction(
   const session = await requireSession();
   const [user] = await db.select().from(users).where(eq(users.id, session.userId)).limit(1);
   const password = String(formData.get("password") ?? "");
-  if (!user || !(await verifyPassword(user.passwordHash, password)).valid) {
+  if (!user || !(await verifyPassword(user.passwordHash, password))) {
     return { error: t.settings.currentPasswordWrong };
   }
 
@@ -102,7 +102,7 @@ export async function regenerateBackupCodesAction(
   const session = await requireSession();
   const [user] = await db.select().from(users).where(eq(users.id, session.userId)).limit(1);
   const password = String(formData.get("password") ?? "");
-  if (!user || !user.totpEnabled || !(await verifyPassword(user.passwordHash, password)).valid) {
+  if (!user || !user.totpEnabled || !(await verifyPassword(user.passwordHash, password))) {
     return { error: t.settings.currentPasswordWrong };
   }
 
