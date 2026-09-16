@@ -10,9 +10,10 @@ import type { PublicBoardData } from "@/lib/db/board";
 import { DashboardPreviewPanel } from "@/components/dashboard-preview-panel";
 import { ActionForm } from "@/components/action-form";
 import { SocialLinksManager } from "@/components/social-links-manager";
-import { saveProfileAction } from "./settings-actions";
+import { saveProfileAction, removeAvatarAction, removeBannerAction } from "./settings-actions";
 import type { SocialLinksByPosition } from "./social-links-actions";
 import { SectionCard } from "./section-card";
+import { RemoveImageButton } from "@/components/remove-image-button";
 
 // Dulu tab "Profile" di dalam Settings, dipindah jadi menu sendiri di sidebar (di bawah
 // Links & Groups) atas permintaan user -- form/action-nya sama persis, cuma lokasinya pindah
@@ -49,14 +50,10 @@ export function ProfileEditor({
               {/* Checkbox SEBELUM hidden fallback -- lihat komentar sama di settings-editor.tsx
                   (noIndex), bug & fix-nya identik. Urutan ini WAJIB (FormData.get() ambil
                   entry pertama yang match nama, dites langsung) -- kebalik = checkbox yang
-                  dicentang malah kebaca "0". */}
-              <input
-                type="checkbox"
-                name="verifiedBadge"
-                value="1"
-                key={`verifiedBadge-${profile.verifiedBadge}`}
-                defaultChecked={profile.verifiedBadge}
-              />
+                  dicentang malah kebaca "0". SENGAJA gak dikasih `key` juga (sama alasannya --
+                  remount abis save malah bikin kedip, checked state udah pasti bener dari
+                  klik user sendiri). */}
+              <input type="checkbox" name="verifiedBadge" value="1" defaultChecked={profile.verifiedBadge} />
               <input type="hidden" name="verifiedBadge" value="0" />
               {t.settings.verifiedBadgeLabel}
             </label>
@@ -72,10 +69,7 @@ export function ProfileEditor({
                 <div className="flex items-center gap-2">
                   {/* eslint-disable-next-line @next/next/no-img-element -- gambar upload sendiri, sudah diproses jadi webp */}
                   <img src={`/uploads/${profile.avatarPath}`} alt="" className="size-16 rounded-full border object-cover" />
-                  <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <input type="checkbox" name="removeAvatar" value="1" />
-                    {t.settings.removeAvatar}
-                  </label>
+                  <RemoveImageButton action={removeAvatarAction.bind(null, page.id)} label={t.settings.removeAvatar} />
                 </div>
               ) : null}
               <input id="avatar" name="avatar" type="file" accept="image/*" className={FILE_INPUT_CLASS} />
@@ -107,10 +101,7 @@ export function ProfileEditor({
                 <div className="flex items-center gap-2">
                   {/* eslint-disable-next-line @next/next/no-img-element -- gambar upload sendiri, sudah diproses jadi webp */}
                   <img src={`/uploads/${profile.bannerPath}`} alt="" className="h-16 w-32 rounded border object-cover" />
-                  <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <input type="checkbox" name="removeBanner" value="1" />
-                    {t.settings.removeBanner}
-                  </label>
+                  <RemoveImageButton action={removeBannerAction.bind(null, page.id)} label={t.settings.removeBanner} />
                 </div>
               ) : null}
               <input id="banner" name="banner" type="file" accept="image/*" className={FILE_INPUT_CLASS} />
