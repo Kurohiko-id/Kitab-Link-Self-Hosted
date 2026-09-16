@@ -124,7 +124,7 @@ export async function changePasswordAction(
   }
 
   const [user] = await db.select().from(users).where(eq(users.id, session.userId)).limit(1);
-  if (!user || !(await verifyPassword(user.passwordHash, currentPassword)).valid) {
+  if (!user || !(await verifyPassword(user.passwordHash, currentPassword))) {
     return { error: t.settings.currentPasswordWrong };
   }
 
