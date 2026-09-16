@@ -374,7 +374,22 @@ function SeoTab({
           </div>
 
           <label className="flex items-center gap-1.5 text-sm">
-            <input type="checkbox" name="noIndex" value="1" defaultChecked={profile.noIndex} />
+            {/* Checkbox SEBELUM hidden fallback -- FormData.get() ambil entry PERTAMA yang
+                match nama (dites langsung, bukan asumsi). Checked: browser kirim checkbox
+                ("1") + hidden ("0") dua-duanya, get() ambil punya checkbox duluan -> "1".
+                Unchecked: checkbox gak ikut kekirim SAMA SEKALI (bukan value="0", browser
+                emang gitu), tinggal hidden doang -> "0". Tanpa hidden ini, formData.has()
+                gak bisa bedain "field emang gak ada di form ini" (form lain di halaman
+                Settings/SEO) vs "user sengaja uncheck" -- settings-actions.ts butuh dua-duanya
+                kebedain. */}
+            <input
+              type="checkbox"
+              name="noIndex"
+              value="1"
+              key={`noIndex-${profile.noIndex}`}
+              defaultChecked={profile.noIndex}
+            />
+            <input type="hidden" name="noIndex" value="0" />
             {t.settings.noIndexLabel}
           </label>
           <p className="-mt-3 text-xs text-muted-foreground">{t.settings.noIndexHint}</p>

@@ -46,7 +46,18 @@ export function ProfileEditor({
             </div>
 
             <label className="flex items-center gap-1.5 text-sm">
-              <input type="checkbox" name="verifiedBadge" value="1" defaultChecked={profile.verifiedBadge} />
+              {/* Checkbox SEBELUM hidden fallback -- lihat komentar sama di settings-editor.tsx
+                  (noIndex), bug & fix-nya identik. Urutan ini WAJIB (FormData.get() ambil
+                  entry pertama yang match nama, dites langsung) -- kebalik = checkbox yang
+                  dicentang malah kebaca "0". */}
+              <input
+                type="checkbox"
+                name="verifiedBadge"
+                value="1"
+                key={`verifiedBadge-${profile.verifiedBadge}`}
+                defaultChecked={profile.verifiedBadge}
+              />
+              <input type="hidden" name="verifiedBadge" value="0" />
               {t.settings.verifiedBadgeLabel}
             </label>
 
