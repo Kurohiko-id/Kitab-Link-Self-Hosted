@@ -134,6 +134,13 @@
       "when": 1789443700222,
       "tag": "0018_clear_runaways",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1789541424348,
+      "tag": "0019_thick_tattoo",
+      "breakpoints": true
     }
   ]
 }
