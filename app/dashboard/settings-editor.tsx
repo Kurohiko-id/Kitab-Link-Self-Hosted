@@ -381,14 +381,13 @@ function SeoTab({
                 emang gitu), tinggal hidden doang -> "0". Tanpa hidden ini, formData.has()
                 gak bisa bedain "field emang gak ada di form ini" (form lain di halaman
                 Settings/SEO) vs "user sengaja uncheck" -- settings-actions.ts butuh dua-duanya
-                kebedain. */}
-            <input
-              type="checkbox"
-              name="noIndex"
-              value="1"
-              key={`noIndex-${profile.noIndex}`}
-              defaultChecked={profile.noIndex}
-            />
+                kebedain.
+
+                SENGAJA gak dikasih `key` biar gak remount abis save -- checked state yang
+                keliatan di layar itu udah PERSIS klik user sendiri, sama kayak yang kesimpen,
+                jadi gak butuh "refresh paksa" (pernah dicoba, malah bikin checkbox-nya kedip
+                bongkar-pasang pas revalidate). */}
+            <input type="checkbox" name="noIndex" value="1" defaultChecked={profile.noIndex} />
             <input type="hidden" name="noIndex" value="0" />
             {t.settings.noIndexLabel}
           </label>
