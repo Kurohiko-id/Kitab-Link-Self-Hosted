@@ -8,6 +8,12 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LoginForm } from "./login-form";
 
+// Query DB (cek ada user apa belum) sebelum render sama sekali -- tanpa ini, Next.js
+// coba static-prerender halaman ini pas `next build`, dan crash ("no such table: users")
+// soalnya database build-time kosong belum di-migrate. Sama kasusnya kayak app/page.tsx
+// & app/setup/page.tsx.
+export const dynamic = "force-dynamic";
+
 export default async function LoginPage() {
   // Belum ada akun admin sama sekali (fresh install) -> gak ada gunanya nampilin form
   // login yang gak akan pernah bisa diisi, lempar ke wizard setup duluan.
