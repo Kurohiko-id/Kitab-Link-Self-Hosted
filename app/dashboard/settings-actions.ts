@@ -22,28 +22,24 @@ export async function saveProfileAction(pageId: number, formData: FormData) {
   const page = await requireOwnedPage(pageId);
   const current = parseProfileData(page.profileJson);
 
-  const removeAvatar = formData.get("removeAvatar") === "1";
-  let avatarPath = removeAvatar ? null : current.avatarPath;
+  // Hapus avatar/banner sekarang aksi instan sendiri (removeAvatarAction/removeBannerAction
+  // di bawah), bukan checkbox di form ini -- di sini cuma urus upload file baru.
+  let avatarPath = current.avatarPath;
   const avatarFile = formData.get("avatar");
   if (avatarFile instanceof File && avatarFile.size > 0 && avatarFile.type.startsWith("image/")) {
     const buffer = Buffer.from(await avatarFile.arrayBuffer());
     const webp = await processImage(buffer, MAX_AVATAR_WIDTH);
     avatarPath = await saveImage(webp, "profile-avatars");
     if (current.avatarPath) await deleteImage(current.avatarPath);
-  } else if (removeAvatar && current.avatarPath) {
-    await deleteImage(current.avatarPath);
   }
 
-  const removeBanner = formData.get("removeBanner") === "1";
-  let bannerPath = removeBanner ? null : current.bannerPath;
+  let bannerPath = current.bannerPath;
   const bannerFile = formData.get("banner");
   if (bannerFile instanceof File && bannerFile.size > 0 && bannerFile.type.startsWith("image/")) {
     const buffer = Buffer.from(await bannerFile.arrayBuffer());
     const webp = await processImage(buffer, MAX_BANNER_WIDTH);
     bannerPath = await saveImage(webp, "profile-banners");
     if (current.bannerPath) await deleteImage(current.bannerPath);
-  } else if (removeBanner && current.bannerPath) {
-    await deleteImage(current.bannerPath);
   }
 
   // OG image custom (opsional) -> kosong berarti tetep pakai yang auto-generate
@@ -103,6 +99,28 @@ export async function saveProfileAction(pageId: number, formData: FormData) {
   };
 
   await db.update(pages).set({ profileJson: JSON.stringify(next) }).where(eq(pages.id, pageId));
+  revalidatePath("/dashboard");
+  revalidatePath("/[slug]", "page");
+}
+
+// Instant-delete (bukan checkbox+nunggu tombol Save utama) -- klik langsung hapus, gak
+// perlu 2 langkah yang membingungkan buat aksi yang sifatnya destruktif kayak gini.
+export async function removeAvatarAction(pageId: number) {
+  const page = await requireOwnedPage(pageId);
+  const current = parseProfileData(page.profileJson);
+  if (!current.avatarPath) return;
+  await deleteImage(current.avatarPath);
+  await db.update(pages).set({ profileJson: JSON.stringify({ ...current, avatarPath: null }) }).where(eq(pages.id, pageId));
+  revalidatePath("/dashboard");
+  revalidatePath("/[slug]", "page");
+}
+
+export async function removeBannerAction(pageId: number) {
+  const page = await requireOwnedPage(pageId);
+  const current = parseProfileData(page.profileJson);
+  if (!current.bannerPath) return;
+  await deleteImage(current.bannerPath);
+  await db.update(pages).set({ profileJson: JSON.stringify({ ...current, bannerPath: null }) }).where(eq(pages.id, pageId));
   revalidatePath("/dashboard");
   revalidatePath("/[slug]", "page");
 }
