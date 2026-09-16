@@ -6,7 +6,21 @@ function normalizePhoneDigits(raw: string): string {
   return raw.replace(/[^0-9]/g, "");
 }
 
-function applyUtmParams(url: string, link: PublicLink): string {
+// User sering ngetik domain doang ("facebook.com") tanpa "https://" -- new URL() bakal
+// nganggep itu bukan URL absolut sama sekali (throw), jadi kepake mentah-mentah sebagai
+// href RELATIF. Itu yang bikin /r/[linkId] (lihat route-nya) nge-resolve-in ke path lokal
+// server sendiri ("http://host/r/facebook.com") alih-alih beneran redirect keluar.
+function ensureAbsoluteUrl(url: string): string {
+  try {
+    new URL(url);
+    return url;
+  } catch {
+    return `https://${url}`;
+  }
+}
+
+function applyUtmParams(rawUrl: string, link: PublicLink): string {
+  const url = ensureAbsoluteUrl(rawUrl);
   if (!link.utmSource && !link.utmMedium && !link.utmCampaign) return url;
   try {
     const parsed = new URL(url);
@@ -15,7 +29,7 @@ function applyUtmParams(url: string, link: PublicLink): string {
     if (link.utmCampaign) parsed.searchParams.set("utm_campaign", link.utmCampaign);
     return parsed.toString();
   } catch {
-    // URL gak valid (jarang, form udah validasi) -> biarin apa adanya daripada crash.
+    // Masih gak valid walau udah dipaksa https:// (jarang) -> biarin apa adanya daripada crash.
     return url;
   }
 }
