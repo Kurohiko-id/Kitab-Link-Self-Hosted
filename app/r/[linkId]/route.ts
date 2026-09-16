@@ -5,6 +5,7 @@ import { links } from "@/lib/db/schema";
 import { recordLinkClick } from "@/lib/db/analytics";
 import { getReferrerHost, getDeviceType, getCountryFromHeaders } from "@/lib/analytics-capture";
 import { getLinkHref } from "@/lib/link-render";
+import { getBaseUrl } from "@/lib/public-page-meta";
 import type { PublicLink } from "@/lib/db/board";
 
 // Semua klik link di halaman publik lewat sini dulu (bukan langsung ke URL asli) ->
@@ -44,7 +45,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ link
     iconPosition: link.iconPosition,
   };
   const { href } = getLinkHref(publicLink);
-  // href bisa relatif ("/uploads/...") buat file upload sendiri -> resolve ke absolute
-  // pakai origin request-nya, mailto:/tel: juga tetep valid lewat new URL().
-  return NextResponse.redirect(new URL(href, req.url), { status: 302 });
+  // href bisa relatif ("/uploads/...") buat file upload sendiri -> resolve ke absolute.
+  // getBaseUrl() (bukan req.url) -- di belakang reverse proxy (Caddy), req.url standalone
+  // server bisa balik ke HOSTNAME/PORT container sendiri (0.0.0.0:3000) alih-alih domain
+  // asli, sama kayak bug yang udah diperbaiki di app/dashboard/preview/[token]/route.ts.
+  const base = await getBaseUrl();
+  return NextResponse.redirect(new URL(href, base), { status: 302 });
 }
