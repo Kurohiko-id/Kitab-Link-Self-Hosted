@@ -48,6 +48,8 @@ const dictionaries = {
       done: "Selesai",
       copy: "Salin",
       saveFailed: "Gagal menyimpan, coba lagi.",
+      cropImageTitle: "Sesuaikan Gambar",
+      cropApply: "Terapkan",
     },
     login: {
       title: "Masuk ke Kitab Link",
@@ -648,6 +650,8 @@ const dictionaries = {
       done: "Done",
       copy: "Copy",
       saveFailed: "Failed to save, please try again.",
+      cropImageTitle: "Adjust Image",
+      cropApply: "Apply",
     },
     login: {
       title: "Sign in to Kitab Link",

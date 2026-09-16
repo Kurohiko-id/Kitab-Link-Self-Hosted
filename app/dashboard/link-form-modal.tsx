@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { SelectField } from "@/components/ui/select-field";
 import { IconPicker, EmojiPicker } from "@/components/icon-picker";
+import { CropFileInput } from "@/components/crop-file-input";
 import { cn } from "@/lib/utils";
 import type { BoardLink, LinkType } from "@/lib/db/board";
 import type { Dictionary } from "@/lib/i18n";
@@ -278,7 +279,7 @@ export function LinkFormModal({
                     </button>
                   </div>
                 ) : null}
-                <input id="thumbnail" name="thumbnail" type="file" accept="image/*" className={FILE_INPUT_CLASS} />
+                <CropFileInput id="thumbnail" name="thumbnail" aspect={16 / 9} className={FILE_INPUT_CLASS} t={t} />
               </div>
             ) : null}
 

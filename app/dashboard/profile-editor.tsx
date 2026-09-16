@@ -14,6 +14,7 @@ import { saveProfileAction, removeAvatarAction, removeBannerAction } from "./set
 import type { SocialLinksByPosition } from "./social-links-actions";
 import { SectionCard } from "./section-card";
 import { RemoveImageButton } from "@/components/remove-image-button";
+import { CropFileInput } from "@/components/crop-file-input";
 
 // Dulu tab "Profile" di dalam Settings, dipindah jadi menu sendiri di sidebar (di bawah
 // Links & Groups) atas permintaan user -- form/action-nya sama persis, cuma lokasinya pindah
@@ -72,7 +73,7 @@ export function ProfileEditor({
                   <RemoveImageButton action={removeAvatarAction.bind(null, page.id)} label={t.settings.removeAvatar} />
                 </div>
               ) : null}
-              <input id="avatar" name="avatar" type="file" accept="image/*" className={FILE_INPUT_CLASS} />
+              <CropFileInput id="avatar" name="avatar" aspect={1} round className={FILE_INPUT_CLASS} t={t} />
             </div>
 
             <div className="flex flex-col gap-1.5">
