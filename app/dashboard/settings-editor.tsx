@@ -2,16 +2,19 @@
 
 import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Heart, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { SelectField } from "@/components/ui/select-field";
 import { Badge } from "@/components/ui/badge";
+import { LinkIconRenderer } from "@/components/link-icon";
 import { cn } from "@/lib/utils";
 import { parseProfileData } from "@/lib/profile";
 import type { Dictionary } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
+import type { LatestRelease } from "@/lib/update-check";
 import { saveProfileAction, changePasswordAction, type ChangePasswordState } from "./settings-actions";
 import { ActionForm } from "@/components/action-form";
 import { exportPageDataAction, importPageDataAction } from "./backup-actions";
@@ -21,12 +24,15 @@ import { SectionCard } from "./section-card";
 import { TotpSettings } from "./totp-settings";
 import { PreviewLinkManager } from "@/components/preview-link-manager";
 
+const GITHUB_URL = "https://github.com/Kurohiko-id/Kitab-Link-Self-Hosted";
+const SAWERIA_URL = "https://saweria.co/Kurohiko";
+
 // Sama kayak file input di link-form-modal.tsx/theme-editor.tsx -- default browser buat
 // tombol "Choose file" nyaru sama background, jadi selalu dikasih file: classes ini.
 const FILE_INPUT_CLASS =
   "text-xs text-muted-foreground file:mr-2 file:rounded-lg file:border-0 file:bg-muted file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-foreground";
 
-type Tab = "page" | "seo" | "security" | "css" | "backup" | "danger";
+type Tab = "page" | "seo" | "security" | "css" | "backup" | "danger" | "about";
 export type AccessCode = { id: number; label: string | null; expiresAt: Date; createdAt: Date; expired: boolean };
 
 export function SettingsEditor({
@@ -36,6 +42,8 @@ export function SettingsEditor({
   totpEnabled,
   totpBackupCodesRemaining,
   previewLinkActive,
+  version,
+  availableUpdate,
   t,
   locale,
 }: {
@@ -45,6 +53,8 @@ export function SettingsEditor({
   totpEnabled: boolean;
   totpBackupCodesRemaining: number;
   previewLinkActive: boolean;
+  version: string;
+  availableUpdate: LatestRelease | null;
   t: Dictionary;
   locale: Locale;
 }) {
@@ -58,12 +68,13 @@ export function SettingsEditor({
     css: t.settings.cssTabLabel,
     backup: t.settings.backupTabLabel,
     danger: t.settings.dangerTabLabel,
+    about: t.settings.aboutTabLabel,
   };
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap gap-1 rounded-xl border bg-card p-1.5 shadow-sm">
-        {(["page", "seo", "security", "css", "backup", "danger"] as Tab[]).map((tabKey) => (
+        {(["page", "seo", "security", "css", "backup", "danger", "about"] as Tab[]).map((tabKey) => (
           <button
             key={tabKey}
             type="button"
@@ -100,6 +111,7 @@ export function SettingsEditor({
       {tab === "css" ? <CustomCssTab page={page} profile={profile} t={t} /> : null}
       {tab === "backup" ? <BackupTab page={page} t={t} /> : null}
       {tab === "danger" ? <DangerZoneTab page={page} t={t} locale={locale} /> : null}
+      {tab === "about" ? <AboutTab version={version} availableUpdate={availableUpdate} t={t} /> : null}
     </div>
   );
 }
@@ -647,5 +659,72 @@ function DangerZoneTab({
         </Button>
       </div>
     </div>
+  );
+}
+
+// Dulu modal terpisah (about-dialog.tsx, tombol di footer sidebar) -- dipindah jadi tab di
+// sini atas permintaan user, biar nyatu sama Settings lain (bukan aksi level aplikasi yang
+// nyelip sendirian di footer).
+function AboutTab({ version, availableUpdate, t }: { version: string; availableUpdate: LatestRelease | null; t: Dictionary }) {
+  return (
+    <Card title={t.about.title}>
+      <div className="flex flex-col items-center gap-2 pb-2 text-center">
+        {/* eslint-disable-next-line @next/next/no-img-element -- logo statis kecil, bukan kandidat next/image */}
+        <img src="/logo.png" alt="" className="size-14 rounded-2xl shadow-sm" />
+        <h2 className="text-base font-semibold">Kitab Link</h2>
+        <p className="text-sm text-muted-foreground">{t.about.tagline}</p>
+      </div>
+
+      <div className="flex flex-col gap-3 text-sm">
+        <div className="flex items-center justify-between rounded-lg border px-3 py-2.5">
+          <span className="text-muted-foreground">{t.about.version}</span>
+          <div className="flex items-center gap-2">
+            <span className="font-mono">v{version}</span>
+            {availableUpdate ? (
+              <Badge variant="amber">{t.about.updateAvailable}</Badge>
+            ) : (
+              <Badge variant="sage">{t.about.upToDate}</Badge>
+            )}
+          </div>
+        </div>
+
+        {availableUpdate ? (
+          <a
+            href={availableUpdate.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="-mt-1 text-xs text-primary hover:underline"
+          >
+            v{availableUpdate.version} -- {t.about.viewChangelog}
+          </a>
+        ) : null}
+
+        <a
+          href={GITHUB_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-between rounded-lg border px-3 py-2.5 transition-colors hover:bg-muted"
+        >
+          <span className="flex items-center gap-2">
+            <LinkIconRenderer value="brand:github" className="size-4" /> {t.about.sourceCode}
+          </span>
+          <ExternalLink className="size-3.5 text-muted-foreground" />
+        </a>
+
+        <div className="rounded-lg border px-3 py-2.5">
+          <p className="text-xs text-muted-foreground">{t.about.owner}</p>
+          <p className="font-medium">Kurohiko</p>
+        </div>
+
+        <a
+          href={SAWERIA_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex w-fit items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2.5 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          <Heart className="size-4" /> {t.about.donate}
+        </a>
+      </div>
+    </Card>
   );
 }
