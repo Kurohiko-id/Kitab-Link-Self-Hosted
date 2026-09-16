@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { createSession, destroySession } from "@/lib/auth/session";
+import { createSession, destroySession, destroyPreviewSession } from "@/lib/auth/session";
 import { verifyPassword } from "@/lib/auth/password";
 import { grantPending2fa, getPending2faUserId, clearPending2fa } from "@/lib/auth/pending-2fa";
 import { decryptTotpSecret } from "@/lib/auth/totp-crypto";
@@ -112,5 +112,10 @@ export async function verifyTotpLoginAction(
 
 export async function logout() {
   await destroySession();
+  redirect("/login");
+}
+
+export async function exitPreview() {
+  await destroyPreviewSession();
   redirect("/login");
 }

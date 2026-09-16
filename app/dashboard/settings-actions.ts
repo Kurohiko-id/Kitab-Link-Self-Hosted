@@ -11,6 +11,7 @@ import { parseProfileData } from "@/lib/profile";
 import { getDictionary, type Locale } from "@/lib/i18n";
 import { processImage, processFavicon } from "@/lib/images/process-image";
 import { deleteImage, saveImage, saveFile } from "@/lib/images/storage";
+import { regeneratePreviewToken, revokePreviewToken } from "@/lib/auth/preview-token";
 
 const MAX_AVATAR_WIDTH = 512;
 const MAX_BANNER_WIDTH = 1600;
@@ -123,6 +124,23 @@ export async function removeBannerAction(pageId: number) {
   await db.update(pages).set({ profileJson: JSON.stringify({ ...current, bannerPath: null }) }).where(eq(pages.id, pageId));
   revalidatePath("/dashboard");
   revalidatePath("/[slug]", "page");
+}
+
+// requireSession() (bukan requireOwnedPage) -- link preview ini scope-nya seluruh akun
+// (semua page admin), bukan per-page. Otomatis nolak dipanggil dari session preview itu
+// sendiri (requireSession throw kalau readOnly), jadi tamu yang lagi liat-liat gak bisa
+// generate/revoke link buat dirinya sendiri.
+export async function generatePreviewLinkAction(): Promise<string> {
+  const session = await requireSession();
+  const token = await regeneratePreviewToken(session.userId);
+  revalidatePath("/dashboard");
+  return token;
+}
+
+export async function revokePreviewLinkAction(): Promise<void> {
+  const session = await requireSession();
+  await revokePreviewToken(session.userId);
+  revalidatePath("/dashboard");
 }
 
 export type ChangePasswordState = { error?: string; success?: boolean } | undefined;
