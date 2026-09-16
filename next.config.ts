@@ -5,6 +5,16 @@ const nextConfig: NextConfig = {
   // penuh atau source TS-nya.
   output: "standalone",
 
+  // Default Next.js buat body Server Action cuma 1MB -- foto profil/banner asli (dari HP)
+  // gampang lebih gede dari itu, request-nya ditolak duluan sebelum sempet ke validasi
+  // ukuran kita sendiri (MAX_OG_IMAGE_BYTES dst di settings-actions.ts, sampai 5MB).
+  // 8MB kasih headroom buat overhead multipart + upload avatar&banner bareng di 1 form.
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "8mb",
+    },
+  },
+
   // Migration files (.sql + meta/_journal.json) dibaca via fs.readFileSync di runtime
   // (instrumentation.ts), BUKAN di-import kayak modul JS -- file tracing standalone
   // Next.js gak otomatis nangkep ini, jadi harus dipaksa ikut biar gak ketinggalan
