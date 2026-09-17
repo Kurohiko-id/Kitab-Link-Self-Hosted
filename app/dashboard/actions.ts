@@ -51,7 +51,11 @@ export async function renameGroup(pageId: number, groupId: number, name: string)
   await requireOwnedPage(pageId);
   const trimmed = name.trim();
   if (!trimmed) return;
+  const [existing] = await db.select().from(linkGroups).where(eq(linkGroups.id, groupId)).limit(1);
   await db.update(linkGroups).set({ name: trimmed }).where(eq(linkGroups.id, groupId));
+  if (existing && existing.name !== trimmed) {
+    logActivity(pageId, "group_renamed", `${existing.name} -> ${trimmed}`);
+  }
   revalidatePath("/dashboard");
 }
 
@@ -180,6 +184,7 @@ export async function saveLinkAction(
       await deleteImage(existing.url);
     }
     await maybeFetchOgImage(linkId, displayStyle, url, finalThumbnailPath);
+    logActivity(pageId, "link_updated", title);
   } else {
     const existingLinks = await db.select().from(links).where(eq(links.pageId, pageId));
     const [created] = await db

@@ -12,6 +12,7 @@ import { getDictionary, type Locale } from "@/lib/i18n";
 import { processImage, processFavicon } from "@/lib/images/process-image";
 import { deleteImage, saveImage, saveFile } from "@/lib/images/storage";
 import { regeneratePreviewToken, revokePreviewToken } from "@/lib/auth/preview-token";
+import { logActivity } from "@/lib/db/activity-log";
 
 const MAX_AVATAR_WIDTH = 512;
 const MAX_BANNER_WIDTH = 1600;
@@ -101,6 +102,11 @@ export async function saveProfileAction(pageId: number, formData: FormData) {
   };
 
   await db.update(pages).set({ profileJson: JSON.stringify(next) }).where(eq(pages.id, pageId));
+  if (JSON.stringify(next) !== JSON.stringify(current)) {
+    // formData.has("customCss") reliably nunjukin submit ini dari tab Custom CSS --
+    // form tab itu SATU-SATUNYA yang punya field bernama ini (lihat CustomCssTab).
+    logActivity(pageId, formData.has("customCss") ? "css_updated" : "profile_updated", null);
+  }
   revalidatePath("/dashboard");
   revalidatePath("/[slug]", "page");
 }

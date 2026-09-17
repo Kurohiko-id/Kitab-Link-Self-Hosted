@@ -4,14 +4,19 @@ import { activityLogs } from "./schema";
 
 export type ActivityAction =
   | "link_created"
+  | "link_updated"
   | "link_deleted"
   | "link_shown"
   | "link_hidden"
   | "group_created"
+  | "group_renamed"
   | "group_deleted"
   | "group_shown"
   | "group_hidden"
-  | "theme_changed";
+  | "theme_changed"
+  | "theme_edited"
+  | "css_updated"
+  | "profile_updated";
 
 // Fire-and-forget kayak recordPageView/recordLinkClick di lib/db/analytics.ts -- gagal
 // nyatet log gak boleh sampe bikin aksi utamanya (hide/show/tambah link, dst) gagal.
