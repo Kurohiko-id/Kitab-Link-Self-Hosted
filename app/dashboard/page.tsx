@@ -73,6 +73,7 @@ import { SelectField } from "@/components/ui/select-field";
 import { AnalyticsChart } from "@/components/analytics-chart";
 import { OverviewLinksTable } from "./overview-links-table";
 import { DashboardSearch } from "@/components/dashboard-search";
+import { LocalTime } from "@/components/local-time";
 import { cn } from "@/lib/utils";
 
 const NAV_KEYS = [
@@ -345,7 +346,7 @@ export default async function DashboardPage({
           <div>
             {activeTab !== "overview" ? <EditingPageBadge slug={activePage.slug} label={t.board.editingPage} /> : null}
 
-          <div className="mt-6">
+          <div key={`${activePage.id}-${activeTab}`} className="mt-6 animate-in fade-in-0 duration-300">
             {activeTab === "overview" && crossPageAnalytics ? (
               <OverviewSection
                 pageId={activePage.id}
@@ -742,7 +743,7 @@ function IntegrationsSection({
                       <span className="text-xs text-muted-foreground">—</span>
                     )}
                     <span className="text-xs text-muted-foreground">
-                      {token.createdAt.toLocaleDateString(dateLocale)}
+                      <LocalTime date={token.createdAt} locale={dateLocale} variant="date" />
                     </span>
                   </div>
                 </div>
@@ -960,9 +961,12 @@ function AutomationSection({
                 <span className="font-mono">
                   {liveBadge.lastCheckedAt ? (liveBadge.isLive ? "live" : "offline") : t.automation.notCheckedYet}
                 </span>
-                {liveBadge.lastCheckedAt
-                  ? ` — ${t.automation.lastChecked} ${liveBadge.lastCheckedAt.toLocaleTimeString(dateLocale)}`
-                  : ""}
+                {liveBadge.lastCheckedAt ? (
+                  <>
+                    {" — "}
+                    {t.automation.lastChecked} <LocalTime date={liveBadge.lastCheckedAt} locale={dateLocale} variant="time" />
+                  </>
+                ) : null}
               </span>
               <form action={deleteLiveBadgeAction.bind(null, pageId)}>
                 <Button type="submit" size="sm" variant="outline">
@@ -1015,9 +1019,12 @@ function AutomationSection({
                 <div className="mt-0.5 text-xs text-muted-foreground">
                   {t.automation.status}:{" "}
                   <span className="font-mono">{rule.lastState ?? t.automation.notCheckedYet}</span>
-                  {rule.lastCheckedAt
-                    ? ` — ${t.automation.lastChecked} ${rule.lastCheckedAt.toLocaleTimeString(dateLocale)}`
-                    : ""}
+                  {rule.lastCheckedAt ? (
+                    <>
+                      {" — "}
+                      {t.automation.lastChecked} <LocalTime date={rule.lastCheckedAt} locale={dateLocale} variant="time" />
+                    </>
+                  ) : null}
                 </div>
               </div>
               <form action={deleteScheduledRule.bind(null, pageId, rule.id)}>
