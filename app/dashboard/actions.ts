@@ -184,7 +184,7 @@ export async function saveLinkAction(
       await deleteImage(existing.url);
     }
     await maybeFetchOgImage(linkId, displayStyle, url, finalThumbnailPath);
-    logActivity(pageId, "link_updated", title);
+    logActivity(pageId, "link_updated", describeLinkChange(existing, { title, url, icon }));
   } else {
     const existingLinks = await db.select().from(links).where(eq(links.pageId, pageId));
     const [created] = await db
@@ -196,6 +196,20 @@ export async function saveLinkAction(
   }
 
   revalidatePath("/dashboard");
+}
+
+// Log 3 field paling signifikan doang (judul/URL/icon) buat activity log -- diff penuh semua
+// field (deskripsi, UTM, display style, dst) kebanyakan noise buat "apa yang berubah" sekilas.
+function describeLinkChange(
+  existing: { title: string; url: string; icon: string | null } | undefined,
+  next: { title: string; url: string; icon: string | null },
+): string {
+  if (!existing) return next.title;
+  const changes: string[] = [];
+  if (existing.title !== next.title) changes.push(`Judul: "${existing.title}" -> "${next.title}"`);
+  if (existing.url !== next.url) changes.push(`URL: ${existing.url} -> ${next.url}`);
+  if (existing.icon !== next.icon) changes.push(`Icon diganti`);
+  return changes.length > 0 ? changes.join("; ") : next.title;
 }
 
 async function maybeFetchOgImage(
