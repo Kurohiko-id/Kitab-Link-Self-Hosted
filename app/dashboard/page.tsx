@@ -346,7 +346,7 @@ export default async function DashboardPage({
           <div>
             {activeTab !== "overview" ? <EditingPageBadge slug={activePage.slug} label={t.board.editingPage} /> : null}
 
-          <div key={`${activePage.id}-${activeTab}`} className="mt-6 animate-in fade-in-0 duration-300">
+          <div key={activePage.id} className="mt-6 animate-in fade-in-0 duration-300">
             {activeTab === "overview" && crossPageAnalytics ? (
               <OverviewSection
                 pageId={activePage.id}
