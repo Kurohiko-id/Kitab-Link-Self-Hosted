@@ -199,6 +199,9 @@ export function LinkFormModal({
                   <input name="file" type="file" className={FILE_INPUT_CLASS} />
                 </>
               ) : null}
+              {linkType === "whatsapp" ? (
+                <p className="text-xs text-muted-foreground">{t.linkModal.whatsappFormatHint}</p>
+              ) : null}
             </div>
           )}
 
