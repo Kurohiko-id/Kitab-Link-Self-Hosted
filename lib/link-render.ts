@@ -6,6 +6,15 @@ function normalizePhoneDigits(raw: string): string {
   return raw.replace(/[^0-9]/g, "");
 }
 
+// wa.me WAJIB format internasional (kode negara di depan, TANPA "0" trunk prefix) -- nomor
+// lokal Indonesia yang diketik apa adanya ("0878...") jadi link yang gak valid ("wa.me/0878...",
+// muncul "user not found"). App ini buat user Indonesia (lihat CLAUDE.md) -> "0" di depan
+// otomatis diganti "62", biar user gak perlu inget ngetik ulang formatnya sendiri.
+function normalizeWhatsappDigits(raw: string): string {
+  const digits = normalizePhoneDigits(raw);
+  return digits.startsWith("0") ? `62${digits.slice(1)}` : digits;
+}
+
 // User sering ngetik domain doang ("facebook.com") tanpa "https://" -- new URL() bakal
 // nganggep itu bukan URL absolut sama sekali (throw), jadi kepake mentah-mentah sebagai
 // href RELATIF. Itu yang bikin /r/[linkId] (lihat route-nya) nge-resolve-in ke path lokal
@@ -70,7 +79,7 @@ export function getLinkHref(link: PublicLink): LinkHref {
     case "phone":
       return { href: `tel:${normalizePhoneDigits(link.url)}`, isDownload: false };
     case "whatsapp":
-      return { href: `https://wa.me/${normalizePhoneDigits(link.url)}`, isDownload: false };
+      return { href: `https://wa.me/${normalizeWhatsappDigits(link.url)}`, isDownload: false };
     case "file":
       return {
         href: isExternalUrl(link.url) ? link.url : `/uploads/${link.url}`,
