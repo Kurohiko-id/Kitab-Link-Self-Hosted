@@ -379,6 +379,15 @@ function SeoTab({
             <Input id="footerText" name="footerText" defaultValue={profile.footerText} maxLength={200} />
           </div>
 
+          <label className="flex items-center gap-1.5 text-sm">
+            {/* Checkbox SEBELUM hidden fallback, TANPA `key` -- pola sama persis kayak
+                noIndex/verifiedBadge di bawah, lihat komentar lengkapnya di situ. */}
+            <input type="checkbox" name="watermarkEnabled" value="1" defaultChecked={profile.watermarkEnabled} />
+            <input type="hidden" name="watermarkEnabled" value="0" />
+            {t.settings.watermarkLabel}
+          </label>
+          <p className="-mt-3 text-xs text-muted-foreground">{t.settings.watermarkHint}</p>
+
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="privacyPolicyContent">{t.settings.privacyPolicyLabel}</Label>
             <p className="text-xs text-muted-foreground">

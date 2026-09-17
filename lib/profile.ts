@@ -10,8 +10,7 @@ export type ProfileData = {
   ogImagePath: string | null;
   // null = pakai favicon default Next.js, gak ada favicon custom per-page.
   faviconPath: string | null;
-  // Default-nya "Powered by Kitab Link" (attribution buat instalasi baru) -- page owner
-  // bebas ganti atau kosongin sendiri lewat Settings, cuma nilai awal doang.
+  // Kosong secara default -- page owner bebas isi sendiri lewat Settings kalau mau.
   footerText: string;
   // Isi kebijakan privasi APA ADANYA (ditulis sendiri sama page owner, bukan link ke luar) --
   // kosong = link "Privacy Policy" gak dimunculin di footer & rute /[slug]/privacy 404.
@@ -30,6 +29,10 @@ export type ProfileData = {
   // Badge centang biru di sebelah displayName -- murni visual/self-declared (bukan
   // verifikasi identitas asli kayak Twitter/Instagram), page owner yang nyalain sendiri.
   verifiedBadge: boolean;
+  // Badge "Powered by Kitab Link" (link ke KITABLINK_SITE_URL) -- TERPISAH dari footerText
+  // (itu teks bebas punya page owner sendiri). Default NYALA buat instalasi baru, page
+  // owner boleh matiin sendiri lewat Settings kalau mau halaman full white-label.
+  watermarkEnabled: boolean;
 };
 
 export const DEFAULT_PROFILE: ProfileData = {
@@ -41,13 +44,14 @@ export const DEFAULT_PROFILE: ProfileData = {
   seoDescription: "",
   ogImagePath: null,
   faviconPath: null,
-  footerText: "Powered by Kitab Link",
+  footerText: "",
   privacyPolicyContent: "",
   customCss: "",
   socialIconsShowTop: true,
   socialIconsShowBottom: false,
   noIndex: false,
   verifiedBadge: false,
+  watermarkEnabled: true,
 };
 
 export function parseProfileData(profileJson: string | null | undefined): ProfileData {
