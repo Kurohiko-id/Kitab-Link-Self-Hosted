@@ -170,7 +170,7 @@ export async function PublicPageBody({
               </a>
             ) : null}
             {profile.watermarkEnabled ? (
-              <a href={KITABLINK_SITE_URL} target="_blank" rel="noopener noreferrer" className="underline">
+              <a href={KITABLINK_SITE_URL} target="_blank" rel="noopener noreferrer">
                 {pt.poweredBy}
               </a>
             ) : null}
