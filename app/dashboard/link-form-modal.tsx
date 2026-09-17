@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { SelectField } from "@/components/ui/select-field";
 import { IconPicker, EmojiPicker } from "@/components/icon-picker";
 import { CropFileInput } from "@/components/crop-file-input";
+import { GroupFormModal, type GroupModalState } from "./group-form-modal";
 import { cn } from "@/lib/utils";
 import type { BoardLink, LinkType } from "@/lib/db/board";
 import type { Dictionary } from "@/lib/i18n";
@@ -56,6 +57,7 @@ export function LinkFormModal({
   state,
   t,
   onClose,
+  onCreateGroup,
   onSaved,
 }: {
   pageId: number;
@@ -63,6 +65,11 @@ export function LinkFormModal({
   state: LinkModalState | null;
   t: Dictionary;
   onClose: () => void;
+  // Buat tombol "+ tambah group" di dalam form ini (lihat quick-add group di bawah) --
+  // WAJIB async & balikin data grup barunya, beda dari onSubmit GroupFormModal yang
+  // biasa (fire-and-forget), soalnya di sini butuh id-nya buat auto-select ke dropdown
+  // target tanpa nutup modal Link ini.
+  onCreateGroup: (name: string) => Promise<{ id: number; name: string } | null>;
   onSaved: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
@@ -72,6 +79,12 @@ export function LinkFormModal({
   const [linkType, setLinkType] = useState<LinkType>(state?.mode === "edit" ? state.link.linkType : "url");
   const [featured, setFeatured] = useState(state?.mode === "edit" ? state.link.featured : false);
   const [mediaTab, setMediaTab] = useState<MediaTab>("thumbnail");
+  const [target, setTarget] = useState(() => {
+    if (state?.mode === "edit") return state.link.groupId ? `group:${state.link.groupId}` : "ungrouped";
+    if (state?.mode === "create" && state.groupId) return `group:${state.groupId}`;
+    return "ungrouped";
+  });
+  const [quickAddGroupOpen, setQuickAddGroupOpen] = useState(false);
   const [accordionItems, setAccordionItems] = useState<AccordionItem[]>(() => {
     if (state?.mode === "edit" && state.link.linkType === "accordion") {
       const parsed = parseAccordionItems(state.link.url);
@@ -93,14 +106,12 @@ export function LinkFormModal({
   if (!state) return null;
 
   const linkId = state.mode === "edit" ? state.link.id : null;
-  const defaultTarget =
-    state.mode === "edit"
-      ? state.link.groupId
-        ? `group:${state.link.groupId}`
-        : "ungrouped"
-      : state.groupId
-        ? `group:${state.groupId}`
-        : "ungrouped";
+
+  async function handleQuickCreateGroup(name: string) {
+    const created = await onCreateGroup(name);
+    setQuickAddGroupOpen(false);
+    if (created) setTarget(`group:${created.id}`);
+  }
 
   async function handleSubmit(formData: FormData) {
     setPending(true);
@@ -115,6 +126,7 @@ export function LinkFormModal({
   }
 
   return (
+    <>
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-h-[85vh] overflow-y-auto p-6 sm:max-w-lg">
         <DialogHeader>
@@ -218,14 +230,33 @@ export function LinkFormModal({
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="target">{t.linkModal.groupLabel}</Label>
-              <SelectField id="target" name="target" defaultValue={defaultTarget}>
-                <option value="ungrouped">{t.board.noGroup}</option>
-                {groups.map((g) => (
-                  <option key={g.id} value={`group:${g.id}`}>
-                    {g.name}
-                  </option>
-                ))}
-              </SelectField>
+              <div className="flex items-center gap-1.5">
+                <SelectField
+                  id="target"
+                  name="target"
+                  value={target}
+                  onChange={(e) => setTarget(e.target.value)}
+                  className="flex-1"
+                >
+                  <option value="ungrouped">{t.board.noGroup}</option>
+                  {groups.map((g) => (
+                    <option key={g.id} value={`group:${g.id}`}>
+                      {g.name}
+                    </option>
+                  ))}
+                </SelectField>
+                {/* Bikin group baru tanpa nutup form Link ini -- klik buka dialog nama group
+                    kecil di ATAS modal ini, abis submit langsung ke-pilih di dropdown atas. */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  title={t.board.addGroup}
+                  onClick={() => setQuickAddGroupOpen(true)}
+                >
+                  <Plus className="size-4" />
+                </Button>
+              </div>
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -340,5 +371,13 @@ export function LinkFormModal({
         </form>
       </DialogContent>
     </Dialog>
+
+    <GroupFormModal
+      state={quickAddGroupOpen ? ({ mode: "create" } satisfies GroupModalState) : null}
+      t={t}
+      onClose={() => setQuickAddGroupOpen(false)}
+      onSubmit={(name) => handleQuickCreateGroup(name)}
+    />
+    </>
   );
 }
