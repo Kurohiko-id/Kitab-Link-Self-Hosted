@@ -224,6 +224,10 @@ export const scheduledRules = sqliteTable("scheduled_rules", {
   lastCheckedAt: integer("last_checked_at", { mode: "timestamp" }),
   // Dipakai generik buat semua trigger type: "live" = target lagi ditampilkan, "offline" = disembunyikan.
   lastState: text("last_state", { enum: ["live", "offline"] }),
+  // Beda sama lastCheckedAt (di-update TIAP tick polling) -- ini cuma keisi pas lastState
+  // beneran BERUBAH (mis. dari offline ke live), jadi user bisa liat "terakhir kali rule
+  // ini beneran ngetrigger show/hide", bukan cuma "terakhir kali dicoba dicek".
+  lastTriggeredAt: integer("last_triggered_at", { mode: "timestamp" }),
 });
 
 // Badge "sedang live" di halaman publik -- SENGAJA dipisah total dari scheduledRules
@@ -244,6 +248,9 @@ export const liveBadges = sqliteTable("live_badges", {
   // URL video live-nya sendiri (bukan URL channel) -- null kalau isLive false.
   videoUrl: text("video_url"),
   lastCheckedAt: integer("last_checked_at", { mode: "timestamp" }),
+  // Kapan TERAKHIR KALI berhasil mendeteksi channel-nya lagi live (edge dari offline ->
+  // live) -- beda sama lastCheckedAt yang keupdate tiap tick polling walau statusnya sama.
+  lastLiveAt: integer("last_live_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
@@ -292,6 +299,22 @@ export const analyticsEvents = sqliteTable("analytics_events", {
   // Cuma keisi kalau reverse proxy di depan ngirim header geo (cf-ipcountry dll) --
   // self-hosted tanpa proxy kayak gitu bakal selalu null, lihat lib/geo.ts.
   country: text("country"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+// Log aktivitas per-page buat tab "Log" di Settings -- action itu key generik (link_created,
+// link_shown, group_hidden, theme_changed, dst), detail itu judul link/nama grup/nama theme
+// yang relevan. Pesan tampilnya di-compose dari kamus i18n (lihat lib/i18n.ts), BUKAN disimpan
+// sebagai kalimat jadi, biar tetep bener kalau user ganti bahasa dashboard ID<->EN.
+export const activityLogs = sqliteTable("activity_logs", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  pageId: integer("page_id")
+    .notNull()
+    .references(() => pages.id, { onDelete: "cascade" }),
+  action: text("action").notNull(),
+  detail: text("detail"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
