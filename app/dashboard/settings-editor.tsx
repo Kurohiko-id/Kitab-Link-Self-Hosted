@@ -24,6 +24,7 @@ import { createTempAccessAction, revokeTempAccessAction } from "../[slug]/passwo
 import { SectionCard } from "./section-card";
 import { TotpSettings } from "./totp-settings";
 import { PreviewLinkManager } from "@/components/preview-link-manager";
+import type { getActivityLogForPage, ActivityAction } from "@/lib/db/activity-log";
 
 const GITHUB_URL = "https://github.com/Kurohiko-id/Kitab-Link-Self-Hosted";
 const SAWERIA_URL = "https://saweria.co/Kurohiko";
@@ -33,13 +34,17 @@ const SAWERIA_URL = "https://saweria.co/Kurohiko";
 const FILE_INPUT_CLASS =
   "text-xs text-muted-foreground file:mr-2 file:rounded-lg file:border-0 file:bg-muted file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-foreground";
 
-type Tab = "page" | "seo" | "security" | "css" | "backup" | "danger" | "about";
+// "danger" SENGAJA paling akhir -- tombol hapus page gak boleh jadi tab pertama yang
+// keliatan mata, atas permintaan user.
+type Tab = "page" | "seo" | "security" | "css" | "backup" | "about" | "log" | "danger";
 export type AccessCode = { id: number; label: string | null; expiresAt: Date; createdAt: Date; expired: boolean };
+type ActivityLogRow = Awaited<ReturnType<typeof getActivityLogForPage>>[number];
 
 export function SettingsEditor({
   page,
   isPrimaryPage,
   accessCodes,
+  activityLog,
   totpEnabled,
   totpBackupCodesRemaining,
   previewLinkActive,
@@ -51,6 +56,7 @@ export function SettingsEditor({
   page: { id: number; slug: string; profileJson: string; passwordHash: string | null };
   isPrimaryPage: boolean;
   accessCodes: AccessCode[];
+  activityLog: ActivityLogRow[];
   totpEnabled: boolean;
   totpBackupCodesRemaining: number;
   previewLinkActive: boolean;
@@ -68,14 +74,15 @@ export function SettingsEditor({
     security: t.settings.securityTabLabel,
     css: t.settings.cssTabLabel,
     backup: t.settings.backupTabLabel,
-    danger: t.settings.dangerTabLabel,
     about: t.settings.aboutTabLabel,
+    log: t.settings.logTabLabel,
+    danger: t.settings.dangerTabLabel,
   };
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap gap-1 rounded-xl border bg-card p-1.5 shadow-sm">
-        {(["page", "seo", "security", "css", "backup", "danger", "about"] as Tab[]).map((tabKey) => (
+        {(["page", "seo", "security", "css", "backup", "about", "log", "danger"] as Tab[]).map((tabKey) => (
           <button
             key={tabKey}
             type="button"
@@ -111,8 +118,9 @@ export function SettingsEditor({
       ) : null}
       {tab === "css" ? <CustomCssTab page={page} profile={profile} t={t} /> : null}
       {tab === "backup" ? <BackupTab page={page} t={t} /> : null}
-      {tab === "danger" ? <DangerZoneTab page={page} t={t} locale={locale} /> : null}
       {tab === "about" ? <AboutTab version={version} availableUpdate={availableUpdate} t={t} /> : null}
+      {tab === "log" ? <ActivityLogTab entries={activityLog} t={t} locale={locale} /> : null}
+      {tab === "danger" ? <DangerZoneTab page={page} t={t} locale={locale} /> : null}
     </div>
   );
 }
@@ -127,7 +135,10 @@ function Card({ title, desc, children }: { title: string; desc?: string; childre
   );
 }
 
-const DURATION_OPTIONS: { hours: number; labelKey: keyof Dictionary["settings"] }[] = [
+const DURATION_OPTIONS: {
+  hours: number;
+  labelKey: "tempAccessDuration3h" | "tempAccessDuration12h" | "tempAccessDuration1d" | "tempAccessDuration3d" | "tempAccessDuration7d" | "tempAccessDuration30d";
+}[] = [
   { hours: 3, labelKey: "tempAccessDuration3h" },
   { hours: 12, labelKey: "tempAccessDuration12h" },
   { hours: 24, labelKey: "tempAccessDuration1d" },
@@ -669,6 +680,33 @@ function DangerZoneTab({
         </Button>
       </div>
     </div>
+  );
+}
+
+function ActivityLogTab({ entries, t, locale }: { entries: ActivityLogRow[]; t: Dictionary; locale: Locale }) {
+  const dateLocale = locale === "en" ? "en-US" : "id-ID";
+
+  return (
+    <Card title={t.settings.activityLogTitle} desc={t.settings.activityLogDesc}>
+      {entries.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{t.settings.activityLogEmpty}</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {entries.map((entry) => {
+            const template = t.settings.activityLogActions[entry.action as ActivityAction] ?? entry.action;
+            const message = template.replace("{detail}", entry.detail ?? "—");
+            return (
+              <li key={entry.id} className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm">
+                <span>{message}</span>
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  <LocalTime date={entry.createdAt} locale={dateLocale} />
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Card>
   );
 }
 

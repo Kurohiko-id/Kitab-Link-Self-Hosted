@@ -9,6 +9,7 @@ import { requireOwnedTheme } from "@/lib/db/theme";
 import { requireSession } from "@/lib/auth/require-session";
 import { parseThemeTokens, type ThemeTokens } from "@/lib/theme";
 import { buildThemeTokensFromForm } from "@/lib/theme-form";
+import { logActivity } from "@/lib/db/activity-log";
 
 async function uniqueThemeName(userId: number, base: string): Promise<string> {
   const existing = await db.select({ name: themes.name }).from(themes).where(eq(themes.userId, userId));
@@ -29,6 +30,7 @@ export async function duplicateThemeAction(pageId: number, sourceTokens: ThemeTo
     .values({ userId: page.userId, name, tokensJson: JSON.stringify(sourceTokens) })
     .returning();
   await db.update(pages).set({ themeId: created.id }).where(eq(pages.id, pageId));
+  logActivity(pageId, "theme_changed", created.name);
   revalidatePath("/dashboard");
   revalidatePath("/[slug]", "page");
   return created;
@@ -36,8 +38,9 @@ export async function duplicateThemeAction(pageId: number, sourceTokens: ThemeTo
 
 export async function setActiveThemeAction(pageId: number, themeId: number) {
   const page = await requireOwnedPage(pageId);
-  await requireOwnedTheme(page.userId, themeId);
+  const theme = await requireOwnedTheme(page.userId, themeId);
   await db.update(pages).set({ themeId }).where(eq(pages.id, pageId));
+  logActivity(pageId, "theme_changed", theme.name);
   revalidatePath("/dashboard");
   revalidatePath("/[slug]", "page");
 }
@@ -90,6 +93,7 @@ export async function importThemeAction(pageId: number, formData: FormData): Pro
     .values({ userId: page.userId, name, tokensJson: JSON.stringify(next) })
     .returning();
   await db.update(pages).set({ themeId: created.id }).where(eq(pages.id, pageId));
+  logActivity(pageId, "theme_changed", created.name);
 
   revalidatePath("/dashboard");
   revalidatePath("/[slug]", "page");

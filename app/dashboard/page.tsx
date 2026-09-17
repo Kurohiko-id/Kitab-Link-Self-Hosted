@@ -46,6 +46,7 @@ import { DomainForm } from "./domain-form";
 import { ProfileEditor } from "./profile-editor";
 import { getSocialLinksForPage } from "./social-links-actions";
 import { getAccessCodesForPage } from "@/lib/db/page-access-codes";
+import { getActivityLogForPage } from "@/lib/db/activity-log";
 import { getAvailableUpdate } from "@/lib/update-check";
 import { CURRENT_VERSION } from "@/lib/version";
 import { getDeadLinksForUser } from "@/lib/db/dead-links";
@@ -205,6 +206,7 @@ export default async function DashboardPage({
   const profilePreviewBoard = activeTab === "profile" ? await getPublicBoardData(activePage.id) : null;
   const profileSocialLinks = activeTab === "profile" ? await getSocialLinksForPage(activePage.id) : null;
   const pageAccessCodes = activeTab === "settings" ? await getAccessCodesForPage(activePage.id) : null;
+  const activityLog = activeTab === "settings" ? await getActivityLogForPage(activePage.id) : null;
 
   const mainNav = NAV_GROUPS.filter((n) => n.group === "main");
   const toolsNav = NAV_GROUPS.filter((n) => n.group === "tools");
@@ -402,11 +404,12 @@ export default async function DashboardPage({
               />
             ) : null}
             {activeTab === "domain" ? <DomainAccessSection page={activePage} t={t} locale={locale} /> : null}
-            {activeTab === "settings" && pageAccessCodes ? (
+            {activeTab === "settings" && pageAccessCodes && activityLog ? (
               <SettingsEditor
                 page={activePage}
                 isPrimaryPage={user?.primaryPageId === activePage.id}
                 accessCodes={pageAccessCodes}
+                activityLog={activityLog}
                 totpEnabled={user?.totpEnabled ?? false}
                 totpBackupCodesRemaining={
                   user?.totpBackupCodesJson ? (JSON.parse(user.totpBackupCodesJson) as string[]).length : 0
@@ -956,18 +959,25 @@ function AutomationSection({
           </ActionForm>
           {liveBadge ? (
             <div className="flex items-center justify-between rounded-lg border bg-muted/50 px-3 py-2.5 text-xs text-muted-foreground">
-              <span>
-                {t.automation.status}:{" "}
-                <span className="font-mono">
-                  {liveBadge.lastCheckedAt ? (liveBadge.isLive ? "live" : "offline") : t.automation.notCheckedYet}
+              <div className="flex flex-col gap-0.5">
+                <span>
+                  {t.automation.status}:{" "}
+                  <span className="font-mono">
+                    {liveBadge.lastCheckedAt ? (liveBadge.isLive ? "live" : "offline") : t.automation.notCheckedYet}
+                  </span>
+                  {liveBadge.lastCheckedAt ? (
+                    <>
+                      {" — "}
+                      {t.automation.lastChecked} <LocalTime date={liveBadge.lastCheckedAt} locale={dateLocale} variant="time" />
+                    </>
+                  ) : null}
                 </span>
-                {liveBadge.lastCheckedAt ? (
-                  <>
-                    {" — "}
-                    {t.automation.lastChecked} <LocalTime date={liveBadge.lastCheckedAt} locale={dateLocale} variant="time" />
-                  </>
+                {liveBadge.lastLiveAt ? (
+                  <span>
+                    {t.automation.lastDetectedLive} <LocalTime date={liveBadge.lastLiveAt} locale={dateLocale} />
+                  </span>
                 ) : null}
-              </span>
+              </div>
               <form action={deleteLiveBadgeAction.bind(null, pageId)}>
                 <Button type="submit" size="sm" variant="outline">
                   {t.common.delete}
@@ -1026,6 +1036,11 @@ function AutomationSection({
                     </>
                   ) : null}
                 </div>
+                {rule.lastTriggeredAt ? (
+                  <div className="mt-0.5 text-xs text-muted-foreground">
+                    {t.automation.lastTriggered} <LocalTime date={rule.lastTriggeredAt} locale={dateLocale} />
+                  </div>
+                ) : null}
               </div>
               <form action={deleteScheduledRule.bind(null, pageId, rule.id)}>
                 <Button type="submit" size="sm" variant="outline">
