@@ -591,12 +591,11 @@ export function Board({
     // KIRI yang scroll sendiri di dalamnya, sama persis pola yang dipakai tab Theme.
     <div className="flex flex-col gap-8 lg:flex-row">
       <div className="min-w-0 flex-1 pb-12">
-        {/* sticky (bukan cuma statis di atas) -- kalau udah scroll jauh ke bawah buat nambah
-            link, balik ke atas dulu ngerepotin. -mx/-mt negate padding parent (p-4 md:p-8 di
-            app/dashboard/page.tsx) biar toolbar-nya nempel flush + full-width pas nyangkut,
-            bg-background biar konten yang lewat di bawahnya gak numpuk transparan. */}
-        <div className="sticky top-0 z-20 -mx-4 -mt-4 mb-6 flex items-center justify-end bg-background px-4 py-4 md:-mx-8 md:-mt-8 md:px-8">
-          <div className="flex gap-3">
+        {/* Cuma tombolnya doang yang floating/sticky (pill kecil + shadow), BUKAN bar
+            full-width -- kalau seluruh bar ikut sticky+opaque, dia nutupin link-link lain
+            yang lewat di bawahnya pas discroll. */}
+        <div className="sticky top-4 z-20 mb-6 flex justify-end">
+          <div className="flex gap-3 rounded-lg border bg-background p-2 shadow-md">
             <Button type="button" variant="outline" onClick={() => setGroupModalState({ mode: "create" })}>
               <FolderPlus className="text-primary" /> {t.board.addGroup}
             </Button>
