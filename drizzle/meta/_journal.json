@@ -141,6 +141,20 @@
       "when": 1789541424348,
       "tag": "0019_thick_tattoo",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1789655606316,
+      "tag": "0020_majestic_dust",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1789655778795,
+      "tag": "0021_nappy_vision",
+      "breakpoints": true
     }
   ]
 }
