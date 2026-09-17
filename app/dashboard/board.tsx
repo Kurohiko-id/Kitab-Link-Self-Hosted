@@ -34,7 +34,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { LinkIconRenderer } from "@/components/link-icon";
+import { LinkGlyph } from "@/components/link-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -151,8 +151,11 @@ function SortableLinkRow({
           // eslint-disable-next-line @next/next/no-img-element -- preview thumbnail hasil upload sendiri, bukan kandidat next/image
           <img src={`/uploads/${link.thumbnailPath}`} alt="" className="size-8 shrink-0 rounded-lg object-cover" />
         ) : (
+          // LinkGlyph (bukan cuma link.icon ? ... : null) -- reuse fallback-nya link-card.tsx
+          // (default per linkType, lalu favicon) biar list drag-drop ini KONSISTEN sama
+          // halaman publik/live preview, bukan nampilin kotak kosong pas user gak set icon manual.
           <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-foreground text-background">
-            {link.icon ? <LinkIconRenderer value={link.icon} className="size-4" /> : null}
+            <LinkGlyph link={link} className="size-4" />
           </div>
         )}
         <div className="min-w-0">
@@ -195,6 +198,7 @@ function SortableGroupCard({
   group,
   links,
   clickCounts,
+  forceCollapsed,
   onToggleVisibility,
   onRenameGroup,
   onDeleteGroup,
@@ -209,6 +213,10 @@ function SortableGroupCard({
   group: GroupMeta;
   links: BoardLink[];
   clickCounts: Record<number, number>;
+  // true selama drag REORDER GROUP lagi jalan (lihat Board) -- card grup laen numpuk
+  // panjang bikin drag target susah dijangkau, jadi dipaksa collapse sementara biar
+  // gampang, balik ke state expand/collapse `expanded` masing-masing abis drag selesai.
+  forceCollapsed: boolean;
   onToggleVisibility: (isVisible: boolean) => void;
   onRenameGroup: () => void;
   onDeleteGroup: () => void;
@@ -224,6 +232,7 @@ function SortableGroupCard({
   });
   const style = { transform: CSS.Transform.toString(transform), transition };
   const [expanded, setExpanded] = useState(true);
+  const isExpanded = expanded && !forceCollapsed;
 
   return (
     <div
@@ -234,7 +243,7 @@ function SortableGroupCard({
         isDragging && "opacity-60",
       )}
     >
-      <div className={cn("flex items-center justify-between", expanded && "border-b pb-3")}>
+      <div className={cn("flex items-center justify-between", isExpanded && "border-b pb-3")}>
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -248,9 +257,9 @@ function SortableGroupCard({
             type="button"
             onClick={() => setExpanded((v) => !v)}
             className="text-muted-foreground hover:text-foreground"
-            title={expanded ? t.board.collapse : t.board.expand}
+            title={isExpanded ? t.board.collapse : t.board.expand}
           >
-            {expanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+            {isExpanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
           </button>
           <Folder className="size-4 text-primary" />
           <span className="text-sm font-semibold">{group.name}</span>
@@ -274,7 +283,7 @@ function SortableGroupCard({
         </div>
       </div>
 
-      {expanded ? (
+      {isExpanded ? (
         <>
           <SortableContext items={links.map((link) => toLinkDragId(link.id))} strategy={verticalListSortingStrategy}>
             <DroppableContainer id={toDropZoneId(containerId)}>
@@ -528,6 +537,9 @@ export function Board({
         .find((link) => toLinkDragId(link.id) === activeId)
     : undefined;
   const activeGroup = activeId && groupMeta[activeId] ? groupMeta[activeId] : undefined;
+  // Cuma pas nge-drag GROUP (bukan link) -- reorder link antar-group justru butuh grup
+  // tujuannya tetap kebuka biar drop zone-nya keliatan.
+  const isDraggingGroup = activeId?.startsWith(GROUP_PREFIX) ?? false;
   const groupOptions = groupOrder.map((id) => groupMeta[id]);
 
   // Baris icon sosmed gak ada di containerLinks sama sekali (getBoardData nge-skip-nya),
@@ -623,6 +635,7 @@ export function Board({
                       group={meta}
                       links={containerLinks[containerId] ?? []}
                       clickCounts={clickCounts}
+                      forceCollapsed={isDraggingGroup}
                       onToggleVisibility={(checked) => handleToggleVisibility(meta.id, checked)}
                       onRenameGroup={() => setGroupModalState({ mode: "rename", groupId: meta.id, currentName: meta.name })}
                       onDeleteGroup={() => runAction(deleteGroup(pageId, meta.id))}
