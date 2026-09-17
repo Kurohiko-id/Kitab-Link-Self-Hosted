@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LinkIconRenderer } from "@/components/link-icon";
+import { LinkGlyph } from "@/components/link-card";
 import type { LinkRankRow } from "@/lib/db/analytics";
 
 // Ranking klik lintas SEMUA page milik user, udah diurutin desc dari server
@@ -16,7 +16,7 @@ export function OverviewLinksTable({ rows }: { rows: LinkRankRow[] }) {
           <div className="flex min-w-0 items-center gap-3">
             <span className="w-4 shrink-0 text-xs font-medium text-muted-foreground">{index + 1}</span>
             <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-foreground text-background">
-              {row.icon ? <LinkIconRenderer value={row.icon} className="size-4" /> : null}
+              <LinkGlyph link={row} className="size-4" />
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-medium">{row.title}</p>
