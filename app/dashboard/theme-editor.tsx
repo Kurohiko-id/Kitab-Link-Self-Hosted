@@ -431,7 +431,7 @@ export function ThemeEditor({
     e.preventDefault();
     if (!editingId) return;
     const formData = new FormData(e.currentTarget);
-    await saveThemeAction(editingId, formData);
+    await saveThemeAction(pageId, editingId, formData);
     router.refresh();
   }
 

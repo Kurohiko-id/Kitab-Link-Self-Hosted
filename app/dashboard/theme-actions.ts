@@ -45,7 +45,7 @@ export async function setActiveThemeAction(pageId: number, themeId: number) {
   revalidatePath("/[slug]", "page");
 }
 
-export async function saveThemeAction(themeId: number, formData: FormData) {
+export async function saveThemeAction(pageId: number, themeId: number, formData: FormData) {
   const session = await requireSession();
   const existing = await requireOwnedTheme(session.userId, themeId);
   const current = parseThemeTokens(existing.tokensJson);
@@ -54,6 +54,7 @@ export async function saveThemeAction(themeId: number, formData: FormData) {
   const name = String(formData.get("name") ?? "").trim() || existing.name;
 
   await db.update(themes).set({ name, tokensJson: JSON.stringify(next) }).where(eq(themes.id, themeId));
+  logActivity(pageId, "theme_edited", name);
   revalidatePath("/dashboard");
   revalidatePath("/[slug]", "page");
 }
