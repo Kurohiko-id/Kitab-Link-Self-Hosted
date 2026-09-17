@@ -1,6 +1,7 @@
 import { and, count, eq, gte, inArray } from "drizzle-orm";
 import { db } from "./index";
 import { analyticsEvents, links, pages } from "./schema";
+import type { LinkType } from "./board";
 
 type EventMeta = { referrer?: string | null; deviceType?: "mobile" | "tablet" | "desktop"; country?: string | null };
 
@@ -38,6 +39,9 @@ export type LinkRankRow = {
   linkId: number;
   title: string;
   icon: string | null;
+  thumbnailPath: string | null;
+  linkType: LinkType;
+  url: string;
   pageId: number;
   pageSlug: string;
   clicks: number;
@@ -203,7 +207,15 @@ async function getAnalyticsForPages(
       .from(analyticsEvents)
       .where(and(inArray(analyticsEvents.pageId, pageIds), gte(analyticsEvents.createdAt, sinceLookback))),
     db
-      .select({ id: links.id, title: links.title, icon: links.icon, pageId: links.pageId })
+      .select({
+        id: links.id,
+        title: links.title,
+        icon: links.icon,
+        thumbnailPath: links.thumbnailPath,
+        linkType: links.linkType,
+        url: links.url,
+        pageId: links.pageId,
+      })
       .from(links)
       .where(inArray(links.pageId, pageIds)),
   ]);
@@ -214,7 +226,15 @@ async function getAnalyticsForPages(
   const linkMeta = new Map(
     linkRows.map((l) => [
       l.id,
-      { title: l.title, icon: l.icon, pageId: l.pageId, pageSlug: slugByPageId.get(l.pageId) ?? "?" },
+      {
+        title: l.title,
+        icon: l.icon,
+        thumbnailPath: l.thumbnailPath,
+        linkType: l.linkType,
+        url: l.url,
+        pageId: l.pageId,
+        pageSlug: slugByPageId.get(l.pageId) ?? "?",
+      },
     ]),
   );
   const linksStart = periodStart(linksPeriod, now);
@@ -227,7 +247,17 @@ async function getAnalyticsForPages(
     .map(([linkId, clicks]) => {
       const meta = linkMeta.get(linkId);
       return meta
-        ? { linkId, clicks, title: meta.title, icon: meta.icon, pageId: meta.pageId, pageSlug: meta.pageSlug }
+        ? {
+            linkId,
+            clicks,
+            title: meta.title,
+            icon: meta.icon,
+            thumbnailPath: meta.thumbnailPath,
+            linkType: meta.linkType,
+            url: meta.url,
+            pageId: meta.pageId,
+            pageSlug: meta.pageSlug,
+          }
         : null;
     })
     .filter((row): row is LinkRankRow => row !== null)

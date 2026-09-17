@@ -44,7 +44,12 @@ function faviconUrl(pageUrl: string): string | null {
 // Icon manual (kalau di-set di dashboard) diprioritaskan; abis itu thumbnail (kalau ada,
 // dipake versi kecil sebagai glyph di posisi icon -- BUKAN cuma buat displayStyle "rich"
 // lagi); baru fallback ke default per-type, terakhir favicon otomatis buat link "url" biasa.
-export function LinkGlyph({ link, className = "size-5 shrink-0" }: { link: PublicLink; className?: string }) {
+//
+// Cuma minta 4 field ini (bukan PublicLink penuh) -- dipakai juga di tempat yang gak punya
+// data link SELENGKAP itu (board.tsx list drag-drop, overview-links-table.tsx ranking klik),
+// biar gak perlu ngarang field kosong yang gak relevan cuma buat cocokin tipe.
+type GlyphSource = Pick<PublicLink, "icon" | "thumbnailPath" | "linkType" | "url">;
+export function LinkGlyph({ link, className = "size-5 shrink-0" }: { link: GlyphSource; className?: string }) {
   if (link.icon) {
     return <LinkIconRenderer value={link.icon} className={className} />;
   }
