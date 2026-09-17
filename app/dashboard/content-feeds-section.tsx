@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import type { Dictionary, Locale } from "@/lib/i18n";
 import { createContentFeedAction, deleteContentFeedAction, toggleContentFeedAction } from "./content-feed-actions";
 import type { getContentFeedsForPage } from "@/lib/db/content-feeds";
+import { LocalTime } from "@/components/local-time";
 
 type ContentFeed = Awaited<ReturnType<typeof getContentFeedsForPage>>[number];
 
@@ -124,9 +125,13 @@ function ContentFeedList({ pageId, feeds, t, locale }: { pageId: number; feeds: 
               {t.automation.feedTargetGroup}: {feed.groupName}
             </div>
             <div className="mt-0.5 text-xs text-muted-foreground">
-              {feed.lastCheckedAt
-                ? `${t.automation.lastChecked} ${feed.lastCheckedAt.toLocaleString(dateLocale)}`
-                : t.automation.notCheckedYet}
+              {feed.lastCheckedAt ? (
+                <>
+                  {t.automation.lastChecked} <LocalTime date={feed.lastCheckedAt} locale={dateLocale} />
+                </>
+              ) : (
+                t.automation.notCheckedYet
+              )}
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">

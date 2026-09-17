@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { SelectField } from "@/components/ui/select-field";
 import { Badge } from "@/components/ui/badge";
 import { LinkIconRenderer } from "@/components/link-icon";
+import { LocalTime } from "@/components/local-time";
 import { cn } from "@/lib/utils";
 import { parseProfileData } from "@/lib/profile";
 import type { Dictionary } from "@/lib/i18n";
@@ -235,7 +236,7 @@ function TempAccessList({ pageId, codes, t, locale }: { pageId: number; codes: A
                   <Badge variant="sage">{t.settings.tempAccessActive}</Badge>
                 )}
                 <span>
-                  {t.settings.tempAccessExpiresAt} {accessCode.expiresAt.toLocaleString(dateLocale)}
+                  {t.settings.tempAccessExpiresAt} <LocalTime date={accessCode.expiresAt} locale={dateLocale} />
                 </span>
               </div>
             </div>
