@@ -16,6 +16,7 @@ import { getReferrerHost, getDeviceType, getCountryFromHeaders } from "@/lib/ana
 import { hasPageAccess } from "@/lib/auth/page-session";
 import { getActiveLiveStatus } from "@/lib/db/live-status";
 import { detectVisitorLocale, getPublicDictionary } from "@/lib/public-i18n";
+import { KITABLINK_SITE_URL } from "@/lib/version";
 import { LinkCard } from "@/components/link-card";
 import { GroupContainer } from "@/components/group-container";
 import { SocialIconRow } from "@/components/social-icon-row";
@@ -160,12 +161,17 @@ export async function PublicPageBody({
           </div>
         ) : null}
 
-        {profile.footerText || profile.privacyPolicyContent ? (
+        {profile.footerText || profile.privacyPolicyContent || profile.watermarkEnabled ? (
           <div className="mt-8 flex flex-col items-center gap-1 text-center text-xs opacity-60">
             {profile.footerText ? <p className="whitespace-pre-line">{profile.footerText}</p> : null}
             {profile.privacyPolicyContent ? (
               <a href={`/${page.slug}/privacy`} className="underline">
                 {pt.privacyPolicy}
+              </a>
+            ) : null}
+            {profile.watermarkEnabled ? (
+              <a href={KITABLINK_SITE_URL} target="_blank" rel="noopener noreferrer" className="underline">
+                {pt.poweredBy}
               </a>
             ) : null}
           </div>

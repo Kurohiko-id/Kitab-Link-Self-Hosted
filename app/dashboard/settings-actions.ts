@@ -97,6 +97,7 @@ export async function saveProfileAction(pageId: number, formData: FormData) {
       : current.socialIconsShowBottom,
     noIndex: formData.has("noIndex") ? formData.get("noIndex") === "1" : current.noIndex,
     verifiedBadge: formData.has("verifiedBadge") ? formData.get("verifiedBadge") === "1" : current.verifiedBadge,
+    watermarkEnabled: formData.has("watermarkEnabled") ? formData.get("watermarkEnabled") === "1" : current.watermarkEnabled,
   };
 
   await db.update(pages).set({ profileJson: JSON.stringify(next) }).where(eq(pages.id, pageId));
