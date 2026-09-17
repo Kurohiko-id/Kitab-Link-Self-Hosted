@@ -519,6 +519,26 @@ export function Board({
     runAction(toggleLinkFeatured(pageId, linkId, featured));
   }
 
+  // Dipanggil dari tombol "+ tambah group" di dalam modal Link (link-form-modal.tsx) --
+  // beda dari handleGroupModalSubmit di bawah (itu fire-and-forget, dipakai tombol "Add
+  // Group" utama), ini WAJIB nunggu balikan id-nya biar langsung bisa di-select di
+  // dropdown target tanpa nutup/reset modal Link-nya. Update groupOrder/groupMeta/
+  // containerLinks lokal langsung (bukan nunggu router.refresh()) biar group barunya juga
+  // langsung muncul sebagai opsi di dropdown itu sendiri.
+  async function handleQuickCreateGroup(name: string): Promise<{ id: number; name: string } | null> {
+    const created = await createGroup(pageId, name);
+    if (!created) return null;
+    const containerId = toGroupContainerId(created.id);
+    setState((prev) => ({
+      ...prev,
+      groupOrder: [...prev.groupOrder, containerId],
+      groupMeta: { ...prev.groupMeta, [containerId]: { id: created.id, name: created.name, isVisible: true } },
+      containerLinks: { ...prev.containerLinks, [containerId]: [] },
+    }));
+    router.refresh();
+    return created;
+  }
+
   function handleGroupModalSubmit(name: string, groupId: number | null) {
     if (groupId === null) {
       runAction(createGroup(pageId, name));
@@ -571,7 +591,11 @@ export function Board({
     // KIRI yang scroll sendiri di dalamnya, sama persis pola yang dipakai tab Theme.
     <div className="flex flex-col gap-8 lg:flex-row">
       <div className="min-w-0 flex-1 pb-12">
-        <div className="mb-6 flex items-center justify-end">
+        {/* sticky (bukan cuma statis di atas) -- kalau udah scroll jauh ke bawah buat nambah
+            link, balik ke atas dulu ngerepotin. -mx/-mt negate padding parent (p-4 md:p-8 di
+            app/dashboard/page.tsx) biar toolbar-nya nempel flush + full-width pas nyangkut,
+            bg-background biar konten yang lewat di bawahnya gak numpuk transparan. */}
+        <div className="sticky top-0 z-20 -mx-4 -mt-4 mb-6 flex items-center justify-end bg-background px-4 py-4 md:-mx-8 md:-mt-8 md:px-8">
           <div className="flex gap-3">
             <Button type="button" variant="outline" onClick={() => setGroupModalState({ mode: "create" })}>
               <FolderPlus className="text-primary" /> {t.board.addGroup}
@@ -671,6 +695,7 @@ export function Board({
         state={modalState}
         t={t}
         onClose={() => setModalState(null)}
+        onCreateGroup={handleQuickCreateGroup}
         onSaved={() => {
           setModalState(null);
           router.refresh();

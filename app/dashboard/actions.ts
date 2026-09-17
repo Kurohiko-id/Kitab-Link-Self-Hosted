@@ -27,19 +27,22 @@ export type PersistBoardInput = {
   ungrouped: number[];
 };
 
-export async function createGroup(pageId: number, name: string) {
+// Balikin { id, name } (bukan void) -- dipakai buat "tambah group" instan dari dalam
+// modal Link (link-form-modal.tsx) tanpa nutup modal-nya, biar group baru bisa langsung
+// ke-pilih di dropdown target tanpa nunggu round-trip revalidatePath.
+export async function createGroup(pageId: number, name: string): Promise<{ id: number; name: string } | null> {
   await requireOwnedPage(pageId);
   const trimmed = name.trim();
-  if (!trimmed) return;
+  if (!trimmed) return null;
 
   const existingGroups = await db.select().from(linkGroups).where(eq(linkGroups.pageId, pageId));
-  await db.insert(linkGroups).values({
-    pageId,
-    name: trimmed,
-    orderIndex: existingGroups.length,
-  });
+  const [created] = await db
+    .insert(linkGroups)
+    .values({ pageId, name: trimmed, orderIndex: existingGroups.length })
+    .returning({ id: linkGroups.id, name: linkGroups.name });
 
   revalidatePath("/dashboard");
+  return created;
 }
 
 export async function renameGroup(pageId: number, groupId: number, name: string) {
