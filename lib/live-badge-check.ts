@@ -13,9 +13,16 @@ export async function processLiveBadges(): Promise<void> {
     const status = await checkYoutubeLive(row.channelUrl);
     if (status === null) continue; // gagal cek (network error dll) — coba lagi tick berikutnya
 
+    const wentLive = status.isLive && !row.isLive;
+    const now = new Date();
     await db
       .update(liveBadges)
-      .set({ isLive: status.isLive, videoUrl: status.videoUrl, lastCheckedAt: new Date() })
+      .set({
+        isLive: status.isLive,
+        videoUrl: status.videoUrl,
+        lastCheckedAt: now,
+        ...(wentLive ? { lastLiveAt: now } : {}),
+      })
       .where(eq(liveBadges.id, row.id));
   }
 }

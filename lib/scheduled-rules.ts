@@ -10,8 +10,9 @@ type ScheduledRuleRow = typeof scheduledRules.$inferSelect;
 // beneran berubah, lastState dipakai generik ("live" = tampil, "offline" = sembunyi).
 async function applyRuleState(rule: ScheduledRuleRow, desiredVisible: boolean) {
   const newState = desiredVisible ? "live" : "offline";
+  const changed = newState !== rule.lastState;
 
-  if (newState !== rule.lastState) {
+  if (changed) {
     if (rule.targetType === "group") {
       await db.update(linkGroups).set({ isVisible: desiredVisible }).where(eq(linkGroups.id, rule.targetId));
     } else {
@@ -19,9 +20,10 @@ async function applyRuleState(rule: ScheduledRuleRow, desiredVisible: boolean) {
     }
   }
 
+  const now = new Date();
   await db
     .update(scheduledRules)
-    .set({ lastState: newState, lastCheckedAt: new Date() })
+    .set({ lastState: newState, lastCheckedAt: now, ...(changed ? { lastTriggeredAt: now } : {}) })
     .where(eq(scheduledRules.id, rule.id));
 }
 

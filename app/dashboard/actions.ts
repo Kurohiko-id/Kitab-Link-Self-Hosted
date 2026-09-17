@@ -9,6 +9,7 @@ import type { DisplayStyle, LinkType } from "@/lib/db/board";
 import { processImage } from "@/lib/images/process-image";
 import { deleteImage, saveFile, saveImage } from "@/lib/images/storage";
 import { fetchOgImageBuffer } from "@/lib/images/og-image";
+import { logActivity } from "@/lib/db/activity-log";
 
 const MAX_THUMBNAIL_WIDTH = 800;
 const MAX_LINK_FILE_BYTES = 20 * 1024 * 1024; // 20MB, cukup buat PDF/dokumen umum
@@ -41,6 +42,7 @@ export async function createGroup(pageId: number, name: string): Promise<{ id: n
     .values({ pageId, name: trimmed, orderIndex: existingGroups.length })
     .returning({ id: linkGroups.id, name: linkGroups.name });
 
+  logActivity(pageId, "group_created", created.name);
   revalidatePath("/dashboard");
   return created;
 }
@@ -55,13 +57,20 @@ export async function renameGroup(pageId: number, groupId: number, name: string)
 
 export async function deleteGroup(pageId: number, groupId: number) {
   await requireOwnedPage(pageId);
+  const [existing] = await db.select().from(linkGroups).where(eq(linkGroups.id, groupId)).limit(1);
   await db.delete(linkGroups).where(eq(linkGroups.id, groupId));
+  logActivity(pageId, "group_deleted", existing?.name ?? null);
   revalidatePath("/dashboard");
 }
 
 export async function toggleGroupVisibility(pageId: number, groupId: number, isVisible: boolean) {
   await requireOwnedPage(pageId);
-  await db.update(linkGroups).set({ isVisible }).where(eq(linkGroups.id, groupId));
+  const [updated] = await db
+    .update(linkGroups)
+    .set({ isVisible })
+    .where(eq(linkGroups.id, groupId))
+    .returning({ name: linkGroups.name });
+  logActivity(pageId, isVisible ? "group_shown" : "group_hidden", updated?.name ?? null);
   revalidatePath("/dashboard");
 }
 
@@ -73,12 +82,18 @@ export async function deleteLink(pageId: number, linkId: number) {
   if (existing?.linkType === "file" && isLocalUploadPath(existing.url)) {
     await deleteImage(existing.url);
   }
+  logActivity(pageId, "link_deleted", existing?.title ?? null);
   revalidatePath("/dashboard");
 }
 
 export async function toggleLinkActive(pageId: number, linkId: number, isActive: boolean) {
   await requireOwnedPage(pageId);
-  await db.update(links).set({ isActive }).where(eq(links.id, linkId));
+  const [updated] = await db
+    .update(links)
+    .set({ isActive })
+    .where(eq(links.id, linkId))
+    .returning({ title: links.title });
+  logActivity(pageId, isActive ? "link_shown" : "link_hidden", updated?.title ?? null);
   revalidatePath("/dashboard");
 }
 
@@ -172,6 +187,7 @@ export async function saveLinkAction(
       .values({ pageId, ...values, thumbnailPath: newThumbnailPath, orderIndex: existingLinks.length })
       .returning();
     await maybeFetchOgImage(created.id, displayStyle, url, newThumbnailPath);
+    logActivity(pageId, "link_created", created.title);
   }
 
   revalidatePath("/dashboard");
