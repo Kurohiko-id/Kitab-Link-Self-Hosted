@@ -16,6 +16,7 @@ import {
   BarChart3,
   Layers,
   Download,
+  EyeOff,
   type LucideIcon,
 } from "lucide-react";
 import { eq } from "drizzle-orm";
@@ -60,6 +61,8 @@ import { Board } from "./board";
 import { PageSwitcher } from "./page-switcher";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { StreamerModeToggle } from "@/components/streamer-mode-toggle";
+import { isStreamerModeOn } from "@/lib/streamer-mode";
 import { EditingPageBadge } from "@/components/editing-page-badge";
 import { TokenCreator } from "./token-creator";
 import { createWebhookAction, deleteWebhook, revokeApiToken, sendTestWebhookEvent } from "./integrations-actions";
@@ -124,6 +127,23 @@ const NATIVE_FIELD_CLASS =
 const CHART_PERIODS: Period[] = ["today", "week", "month", "year"];
 const LINKS_PERIODS: Period[] = ["today", "week", "month"];
 
+// Streamer mode -- mask di SUMBER data (bukan nge-thread prop ke tiap komponen kecil kayak
+// chart/breakdown card/tabel), jadi semua angka/chart di bawahnya otomatis kosong tanpa
+// nyentuh render logic satu-satu.
+function maskAnalyticsIfStreamerMode(analytics: CrossPageAnalytics, streamerMode: boolean): CrossPageAnalytics {
+  if (!streamerMode) return analytics;
+  return {
+    totalViews: 0,
+    totalClicks: 0,
+    chartSeries: analytics.chartSeries.map((p) => ({ ...p, views: 0, clicks: 0 })),
+    topLinks: [],
+    topPages: [],
+    referrers: [],
+    devices: [],
+    countries: [],
+  };
+}
+
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -145,6 +165,7 @@ export default async function DashboardPage({
   const session = await requireSession();
   const locale = await getLocale();
   const t = getDictionary(locale);
+  const streamerMode = await isStreamerModeOn();
 
   const [user, pagesList, allLinksForSearch] = await Promise.all([
     db.select().from(users).where(eq(users.id, session.userId)).limit(1).then((rows) => rows[0]),
@@ -168,7 +189,7 @@ export default async function DashboardPage({
   const boardData =
     activeTab === "links" || activeTab === "automation" ? await getBoardData(activePage.id) : null;
 
-  const linkClickCounts = activeTab === "links" ? await getLinkClickCounts(activePage.id) : null;
+  const linkClickCounts = activeTab === "links" && !streamerMode ? await getLinkClickCounts(activePage.id) : null;
   // getBoardData SENGAJA nge-skip link displayStyle "icon" (baris sosmed, dikelola di tab
   // Profile) -- tapi preview HP di tab Links & Groups butuh nampilin baris sosmed itu juga
   // biar preview-nya beneran representatif, jadi ambil sekali lagi lewat getPublicBoardData
@@ -176,11 +197,16 @@ export default async function DashboardPage({
   const linksSocialBoard = activeTab === "links" ? await getPublicBoardData(activePage.id) : null;
 
   const crossPageAnalytics =
-    activeTab === "overview" ? await getCrossPageAnalytics(session.userId, chartPeriod, linksPeriod) : null;
+    activeTab === "overview"
+      ? maskAnalyticsIfStreamerMode(await getCrossPageAnalytics(session.userId, chartPeriod, linksPeriod), streamerMode)
+      : null;
 
   const pageAnalytics =
     activeTab === "analytics"
-      ? await getPageAnalytics(activePage.id, activePage.slug, chartPeriod, linksPeriod)
+      ? maskAnalyticsIfStreamerMode(
+          await getPageAnalytics(activePage.id, activePage.slug, chartPeriod, linksPeriod),
+          streamerMode,
+        )
       : null;
 
   const [apiTokens, webhookList] =
@@ -293,11 +319,20 @@ export default async function DashboardPage({
         <div className="space-y-3 border-t border-sidebar-border p-4">
           <div className="flex items-center justify-between rounded-lg border border-sidebar-border bg-sidebar-accent/50 p-2 px-2">
             <LanguageSwitcher locale={locale} variant="sidebar" />
-            <ThemeToggle variant="sidebar" />
+            <div className="flex items-center gap-1">
+              <StreamerModeToggle initialOn={streamerMode} t={t} />
+              <ThemeToggle variant="sidebar" />
+            </div>
           </div>
 
           <div className="flex items-center rounded-lg px-2 py-1 hover:bg-sidebar-accent">
-            <SidebarAccount displayName={user?.displayName ?? null} username={user?.username ?? ""} t={t} />
+            <SidebarAccount
+              displayName={user?.displayName ?? null}
+              username={user?.username ?? ""}
+              avatarPath={user?.avatarPath ?? null}
+              locale={locale}
+              t={t}
+            />
             <div className="flex items-center gap-2.5">
               <form action={logout}>
                 <button
@@ -337,6 +372,7 @@ export default async function DashboardPage({
                 analytics={crossPageAnalytics}
                 chartPeriod={chartPeriod}
                 linksPeriod={linksPeriod}
+                streamerMode={streamerMode}
                 t={t}
               />
             ) : null}
@@ -348,6 +384,7 @@ export default async function DashboardPage({
                 analytics={pageAnalytics}
                 chartPeriod={chartPeriod}
                 linksPeriod={linksPeriod}
+                streamerMode={streamerMode}
                 t={t}
               />
             ) : null}
@@ -500,6 +537,7 @@ function OverviewSection({
   analytics,
   chartPeriod,
   linksPeriod,
+  streamerMode,
   t,
 }: {
   pageId: number;
@@ -508,6 +546,7 @@ function OverviewSection({
   analytics: CrossPageAnalytics;
   chartPeriod: Period;
   linksPeriod: Period;
+  streamerMode: boolean;
   t: Dictionary;
 }) {
   const overviewHref = (chart: Period, links: Period) =>
@@ -539,19 +578,31 @@ function OverviewSection({
           </div>
         </div>
 
+        {streamerMode ? (
+          <div className="mt-4 flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-medium text-primary">
+            <EyeOff className="size-3.5 shrink-0" /> {t.overview.streamerModeBanner}
+          </div>
+        ) : null}
+
         <div className="mt-5 flex items-baseline gap-8">
           <div>
-            <div className="text-2xl font-bold">{analytics.totalViews}</div>
+            <div className="text-2xl font-bold">{streamerMode ? "•••" : analytics.totalViews}</div>
             <div className="text-xs text-muted-foreground">{t.overview.totalViews}</div>
           </div>
           <div>
-            <div className="text-2xl font-bold">{analytics.totalClicks}</div>
+            <div className="text-2xl font-bold">{streamerMode ? "•••" : analytics.totalClicks}</div>
             <div className="text-xs text-muted-foreground">{t.overview.totalClicks}</div>
           </div>
         </div>
 
         <div className="mt-4">
-          <AnalyticsChart data={analytics.chartSeries} />
+          {streamerMode ? (
+            <div className="flex h-64 w-full items-center justify-center rounded-lg bg-muted text-xs text-muted-foreground">
+              {t.overview.streamerModeChartHidden}
+            </div>
+          ) : (
+            <AnalyticsChart data={analytics.chartSeries} />
+          )}
         </div>
       </div>
 

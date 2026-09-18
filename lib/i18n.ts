@@ -86,8 +86,6 @@ const dictionaries = {
     },
     forgotPassword: {
       title: "Lupa Password",
-      description:
-        "App ini gak pake email, jadi reset password dilakuin lewat server tempat Kitab Link kamu jalan. Masukin username akun kamu, terus cek log container buat lihat token reset-nya.",
       username: "Username",
       submit: "Kirim Token Reset",
       submitting: "Memproses...",
@@ -116,8 +114,17 @@ const dictionaries = {
     dashboard: {
       greeting: "Halo",
       activePage: "page aktif",
+      accountDialogTitle: "Akun",
+      displayNameLabel: "Nama",
+      usernameLabel: "Username",
       revealUsernameHint: "Klik buat lihat username",
-      renameLabel: "Ganti nama tampilan",
+      usernameRequiredError: "Username gak boleh kosong.",
+      usernameTakenError: "Username udah dipakai.",
+      currentPasswordWrongError: "Password sekarang salah -- wajib bener buat ganti username.",
+      currentPasswordLabel: "Password sekarang",
+      confirmPasswordDesc: "Masukin password kamu buat konfirmasi ganti username.",
+      streamerModeLabel: "Mode streamer",
+      streamerModeHint: "Sembunyiin semua angka analytics (views, klik, chart) di dashboard -- buat live streaming/screen-share.",
     },
     pageSwitcher: {
       activePage: "Halaman Aktif",
@@ -134,6 +141,8 @@ const dictionaries = {
       analyticsDesc: "Kunjungan halaman dan klik link 30 hari terakhir.",
       totalViews: "Total kunjungan",
       totalClicks: "Total klik",
+      streamerModeBanner: "Mode streamer aktif -- semua angka analytics disembunyikan.",
+      streamerModeChartHidden: "Chart disembunyikan (mode streamer aktif)",
       exportCsv: "Export CSV",
       ctr: "Rasio klik",
       topLinks: "Link terpopuler",
@@ -738,8 +747,6 @@ const dictionaries = {
     },
     forgotPassword: {
       title: "Forgot Password",
-      description:
-        "This app doesn't use email, so password reset happens on the server where your Kitab Link runs. Enter your account username, then check the container logs for the reset token.",
       username: "Username",
       submit: "Send Reset Token",
       submitting: "Processing...",
@@ -768,8 +775,17 @@ const dictionaries = {
     dashboard: {
       greeting: "Hi",
       activePage: "active page",
+      accountDialogTitle: "Account",
+      displayNameLabel: "Name",
+      usernameLabel: "Username",
       revealUsernameHint: "Click to reveal username",
-      renameLabel: "Rename display name",
+      usernameRequiredError: "Username can't be empty.",
+      usernameTakenError: "Username is already taken.",
+      currentPasswordWrongError: "Current password is wrong -- required to change your username.",
+      currentPasswordLabel: "Current password",
+      confirmPasswordDesc: "Enter your password to confirm the username change.",
+      streamerModeLabel: "Streamer mode",
+      streamerModeHint: "Hide all analytics numbers (views, clicks, charts) on the dashboard -- for live streaming/screen-sharing.",
     },
     pageSwitcher: {
       activePage: "Active Page",
@@ -786,6 +802,8 @@ const dictionaries = {
       analyticsDesc: "Page views and link clicks over the last 30 days.",
       totalViews: "Total views",
       totalClicks: "Total clicks",
+      streamerModeBanner: "Streamer mode is on -- all analytics numbers are hidden.",
+      streamerModeChartHidden: "Chart hidden (streamer mode is on)",
       exportCsv: "Export CSV",
       ctr: "Click rate",
       topLinks: "Top links",

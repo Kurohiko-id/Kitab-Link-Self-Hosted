@@ -39,7 +39,6 @@ export function ForgotPasswordForm({ locale, t }: { locale: Locale; t: Dictionar
     <Card className="w-full max-w-sm">
       <CardHeader>
         <CardTitle>{t.forgotPassword.title}</CardTitle>
-        <CardDescription>{t.forgotPassword.description}</CardDescription>
       </CardHeader>
       <CardContent>
         <form action={formAction} className="flex flex-col gap-4">
