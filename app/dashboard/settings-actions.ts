@@ -12,6 +12,7 @@ import { getDictionary, type Locale } from "@/lib/i18n";
 import { processImage, processFavicon } from "@/lib/images/process-image";
 import { deleteImage, saveImage, saveFile } from "@/lib/images/storage";
 import { logActivity } from "@/lib/db/activity-log";
+import { toggleStreamerMode } from "@/lib/streamer-mode";
 
 const MAX_AVATAR_WIDTH = 512;
 const MAX_BANNER_WIDTH = 1600;
@@ -159,11 +160,66 @@ export async function changePasswordAction(
   return { success: true };
 }
 
-// Nama tampilan sidebar -- MURNI kosmetik, terpisah dari username (login credential).
-// Null/kosong -> UI fallback nampilin username-nya (lihat components/sidebar-account.tsx).
-export async function renameDisplayNameAction(name: string): Promise<void> {
+export type UpdateAccountState = { error?: string; success?: boolean } | undefined;
+
+// Dipanggil dari popup account di sidebar (components/sidebar-account.tsx) -- urus avatar
+// akun (BEDA dari avatar profil per-page), displayName (kosmetik), dan username (login
+// credential, jadi wajib dicek unik) sekaligus dalam 1 form.
+export async function updateAccountAction(
+  locale: Locale,
+  _prevState: UpdateAccountState,
+  formData: FormData,
+): Promise<UpdateAccountState> {
+  const t = getDictionary(locale);
   const session = await requireSession();
-  const trimmed = name.trim().slice(0, 50);
-  await db.update(users).set({ displayName: trimmed || null }).where(eq(users.id, session.userId));
+
+  const username = String(formData.get("username") ?? "").trim().toLowerCase();
+  const displayName = String(formData.get("displayName") ?? "").trim().slice(0, 50);
+  const currentPassword = String(formData.get("currentPassword") ?? "");
+
+  if (!username) {
+    return { error: t.dashboard.usernameRequiredError };
+  }
+
+  const [current] = await db.select().from(users).where(eq(users.id, session.userId)).limit(1);
+  if (!current) {
+    return { error: t.dashboard.usernameRequiredError };
+  }
+
+  // Ganti username (credential login) WAJIB konfirmasi password dulu -- biar session yang
+  // ke-tinggal kebuka gak bisa diem-diem dipake ganti kredensial login tanpa tau password-nya.
+  // Avatar/nama doang (username sama kayak semula) gak perlu ini.
+  if (username !== current.username) {
+    if (!currentPassword || !(await verifyPassword(current.passwordHash, currentPassword))) {
+      return { error: t.dashboard.currentPasswordWrongError };
+    }
+    const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.username, username)).limit(1);
+    if (existing && existing.id !== session.userId) {
+      return { error: t.dashboard.usernameTakenError };
+    }
+  }
+
+  let avatarPath = current.avatarPath ?? null;
+  const avatarFile = formData.get("avatar");
+  if (avatarFile instanceof File && avatarFile.size > 0 && avatarFile.type.startsWith("image/")) {
+    const buffer = Buffer.from(await avatarFile.arrayBuffer());
+    const webp = await processImage(buffer, MAX_AVATAR_WIDTH);
+    avatarPath = await saveImage(webp, "account-avatars");
+    if (current?.avatarPath) await deleteImage(current.avatarPath);
+  }
+
+  await db
+    .update(users)
+    .set({ username, displayName: displayName || null, avatarPath })
+    .where(eq(users.id, session.userId));
+
   revalidatePath("/dashboard");
+  return { success: true };
+}
+
+export async function toggleStreamerModeAction(): Promise<boolean> {
+  await requireSession();
+  const next = await toggleStreamerMode();
+  revalidatePath("/dashboard");
+  return next;
 }

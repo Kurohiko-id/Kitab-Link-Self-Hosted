@@ -8,9 +8,12 @@ export const users = sqliteTable("users", {
   // cukup identifier bebas buat login.
   username: text("username").notNull().unique(),
   // Nama yang tampil di sidebar dashboard -- SENGAJA terpisah dari username (yang dipakai
-  // login). Null default -> UI fallback ke username kalau belum di-set. Murni kosmetik,
-  // klik nama di sidebar buat reveal username asli (components/sidebar-account.tsx).
+  // login). Null default -> UI fallback ke username kalau belum di-set. Diedit bareng
+  // avatarPath lewat popup account (components/sidebar-account.tsx), bukan inline lagi.
   displayName: text("display_name"),
+  // Avatar akun/sidebar -- BEDA dari avatar profil per-page (profileJson.avatarPath).
+  // Ini identitas si operator dashboard-nya sendiri, bukan konten halaman publik.
+  avatarPath: text("avatar_path"),
   passwordHash: text("password_hash").notNull(),
   // Page yang dipilih buat nampil di domain root ("/", tanpa slug di URL) -- null berarti
   // "/" tetep redirect ke /dashboard kayak biasa (lihat app/page.tsx).
