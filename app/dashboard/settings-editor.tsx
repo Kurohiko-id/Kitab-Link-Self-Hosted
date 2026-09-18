@@ -23,7 +23,6 @@ import { deletePageAction, setPrimaryPageAction, setPagePassword } from "./page-
 import { createTempAccessAction, revokeTempAccessAction } from "../[slug]/password-actions";
 import { SectionCard } from "./section-card";
 import { TotpSettings } from "./totp-settings";
-import { PreviewLinkManager } from "@/components/preview-link-manager";
 import type { getActivityLogForPage, ActivityAction } from "@/lib/db/activity-log";
 
 const GITHUB_URL = "https://github.com/Kurohiko-id/Kitab-Link-Self-Hosted";
@@ -47,7 +46,6 @@ export function SettingsEditor({
   activityLog,
   totpEnabled,
   totpBackupCodesRemaining,
-  previewLinkActive,
   version,
   availableUpdate,
   t,
@@ -59,7 +57,6 @@ export function SettingsEditor({
   activityLog: ActivityLogRow[];
   totpEnabled: boolean;
   totpBackupCodesRemaining: number;
-  previewLinkActive: boolean;
   version: string;
   availableUpdate: LatestRelease | null;
   t: Dictionary;
@@ -111,7 +108,6 @@ export function SettingsEditor({
         <SecurityTab
           totpEnabled={totpEnabled}
           totpBackupCodesRemaining={totpBackupCodesRemaining}
-          previewLinkActive={previewLinkActive}
           t={t}
           locale={locale}
         />
@@ -470,13 +466,11 @@ function SeoTab({
 function SecurityTab({
   totpEnabled,
   totpBackupCodesRemaining,
-  previewLinkActive,
   t,
   locale,
 }: {
   totpEnabled: boolean;
   totpBackupCodesRemaining: number;
-  previewLinkActive: boolean;
   t: Dictionary;
   locale: Locale;
 }) {
@@ -506,9 +500,6 @@ function SecurityTab({
       </Card>
       <Card title={t.settings.totpTitle} desc={t.settings.totpDesc}>
         <TotpSettings enabled={totpEnabled} backupCodesRemaining={totpBackupCodesRemaining} t={t} locale={locale} />
-      </Card>
-      <Card title={t.settings.previewLinkTitle} desc={t.settings.previewLinkDesc}>
-        <PreviewLinkManager initialActive={previewLinkActive} t={t} />
       </Card>
     </div>
   );
