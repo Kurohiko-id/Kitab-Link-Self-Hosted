@@ -293,6 +293,7 @@ function PageAccessTab({
               id="password"
               name="password"
               type="password"
+              required
               minLength={4}
               autoComplete="new-password"
               placeholder={t.domain.passwordPlaceholder}
@@ -300,6 +301,19 @@ function PageAccessTab({
           </div>
           <Button type="submit">{isProtected ? t.domain.update : t.domain.activate}</Button>
         </form>
+        {isProtected ? (
+          <form
+            action={setPagePassword.bind(null, page.id)}
+            className="mt-2"
+            onSubmit={(e) => {
+              if (!confirm(t.domain.removePasswordConfirm)) e.preventDefault();
+            }}
+          >
+            <Button type="submit" variant="outline" className="text-destructive hover:bg-destructive/10">
+              {t.domain.removePasswordButton}
+            </Button>
+          </form>
+        ) : null}
       </Card>
 
       <Card title={t.settings.tempAccessTitle} desc={t.settings.tempAccessDesc}>
