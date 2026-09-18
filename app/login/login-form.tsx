@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
 import { login, verifyTotpLoginAction } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -77,6 +78,12 @@ export function LoginForm({ locale, t }: { locale: Locale; t: Dictionary }) {
           <Button type="submit" disabled={pending}>
             {pending ? t.login.submitting : t.login.submit}
           </Button>
+          <Link
+            href="/login/forgot-password"
+            className="text-center text-sm text-muted-foreground underline hover:text-foreground"
+          >
+            {t.login.forgotPasswordLink}
+          </Link>
         </form>
       </CardContent>
     </Card>
