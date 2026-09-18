@@ -155,22 +155,6 @@ export const apiTokens = sqliteTable("api_tokens", {
     .default(sql`(unixepoch())`),
 });
 
-// Cuma 1 baris per userId (dashboard "Generate Preview Link" replace token lama, bukan
-// nambah row baru) -- share link tunggal buat ngasih orang lain akses baca-doang ke
-// dashboard, bukan sistem multi-akun. Revoke = hapus row ini, session preview yang lagi
-// aktif langsung invalid pas request berikutnya (dicek ulang ke DB, gak cuma dari cookie).
-export const previewTokens = sqliteTable("preview_tokens", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id")
-    .notNull()
-    .unique()
-    .references(() => users.id, { onDelete: "cascade" }),
-  tokenHash: text("token_hash").notNull().unique(),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
-});
-
 export const webhooks = sqliteTable("webhooks", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   userId: integer("user_id")

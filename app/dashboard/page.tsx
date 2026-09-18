@@ -21,8 +21,7 @@ import {
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { requireSessionAllowReadOnly } from "@/lib/auth/require-session";
-import { hasActivePreviewToken } from "@/lib/auth/preview-token";
+import { requireSession } from "@/lib/auth/require-session";
 import { getOrCreateDefaultPage, getPagesForUser } from "@/lib/db/pages";
 import { getAllLinksForUser, getBoardData, getPublicBoardData } from "@/lib/db/board";
 import {
@@ -53,7 +52,7 @@ import { getDeadLinksForUser } from "@/lib/db/dead-links";
 import { NotificationBell } from "./notification-bell";
 import { getContentFeedsForPage } from "@/lib/db/content-feeds";
 import { ContentFeedsSection } from "./content-feeds-section";
-import { logout, exitPreview } from "../login/actions";
+import { logout } from "../login/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -142,15 +141,14 @@ export default async function DashboardPage({
     linksPeriod: linksPeriodParam,
     openLink: openLinkParam,
   } = await searchParams;
-  const session = await requireSessionAllowReadOnly();
+  const session = await requireSession();
   const locale = await getLocale();
   const t = getDictionary(locale);
 
-  const [user, pagesList, allLinksForSearch, previewLinkActive] = await Promise.all([
+  const [user, pagesList, allLinksForSearch] = await Promise.all([
     db.select().from(users).where(eq(users.id, session.userId)).limit(1).then((rows) => rows[0]),
     getPagesForUser(session.userId),
     getAllLinksForUser(session.userId),
-    hasActivePreviewToken(session.userId),
   ]);
 
   const activePage =
@@ -333,17 +331,6 @@ export default async function DashboardPage({
           </div>
         </header>
 
-        {session.readOnly ? (
-          <div className="flex flex-shrink-0 items-center justify-between gap-3 border-b bg-amber-50 px-4 py-2 text-sm text-amber-900 md:px-8 dark:bg-amber-950 dark:text-amber-200">
-            <span className="font-medium">{t.settings.previewModeBanner}</span>
-            <form action={exitPreview}>
-              <button type="submit" className="underline hover:no-underline">
-                {t.settings.previewModeExit}
-              </button>
-            </form>
-          </div>
-        ) : null}
-
         <div className="relative flex-1 overflow-auto p-4 md:p-8">
           <div>
             {activeTab !== "overview" ? <EditingPageBadge slug={activePage.slug} label={t.board.editingPage} /> : null}
@@ -414,7 +401,6 @@ export default async function DashboardPage({
                 totpBackupCodesRemaining={
                   user?.totpBackupCodesJson ? (JSON.parse(user.totpBackupCodesJson) as string[]).length : 0
                 }
-                previewLinkActive={previewLinkActive}
                 version={CURRENT_VERSION}
                 availableUpdate={availableUpdate}
                 t={t}
