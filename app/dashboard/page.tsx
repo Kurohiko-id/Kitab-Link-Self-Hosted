@@ -74,6 +74,7 @@ import { AnalyticsChart } from "@/components/analytics-chart";
 import { OverviewLinksTable } from "./overview-links-table";
 import { DashboardSearch } from "@/components/dashboard-search";
 import { LocalTime } from "@/components/local-time";
+import { SidebarAccount } from "@/components/sidebar-account";
 import { cn } from "@/lib/utils";
 
 const NAV_KEYS = [
@@ -296,15 +297,7 @@ export default async function DashboardPage({
           </div>
 
           <div className="flex items-center rounded-lg px-2 py-1 hover:bg-sidebar-accent">
-            <div className="mr-3 flex size-8 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-xs font-semibold text-sidebar-primary-foreground">
-              {(user?.email?.[0] ?? "?").toUpperCase()}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-sidebar-primary-foreground">
-                {user?.email?.split("@")[0]}
-              </p>
-              <p className="truncate text-xs text-sidebar-foreground">{user?.email}</p>
-            </div>
+            <SidebarAccount displayName={user?.displayName ?? null} username={user?.username ?? ""} t={t} />
             <div className="flex items-center gap-2.5">
               <form action={logout}>
                 <button

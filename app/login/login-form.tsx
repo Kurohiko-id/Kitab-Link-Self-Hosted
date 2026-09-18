@@ -67,8 +67,8 @@ export function LoginForm({ locale, t }: { locale: Locale; t: Dictionary }) {
       <CardContent>
         <form action={formAction} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="email">{t.login.email}</Label>
-            <Input id="email" name="email" type="email" required autoComplete="email" />
+            <Label htmlFor="username">{t.login.username}</Label>
+            <Input id="username" name="username" type="text" required autoComplete="username" />
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="password">{t.login.password}</Label>

@@ -37,8 +37,8 @@ export function SetupForm({ locale, t }: { locale: Locale; t: Dictionary }) {
             <p className="text-xs text-muted-foreground">{t.setup.tokenHint}</p>
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="email">{t.setup.email}</Label>
-            <Input id="email" name="email" type="email" required autoComplete="email" />
+            <Label htmlFor="username">{t.setup.username}</Label>
+            <Input id="username" name="username" type="text" required autoComplete="username" />
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="password">{t.setup.password}</Label>

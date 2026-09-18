@@ -162,6 +162,13 @@
       "when": 1789710692774,
       "tag": "0022_smart_night_nurse",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1789722672060,
+      "tag": "0023_rename_email_to_username",
+      "breakpoints": true
     }
   ]
 }

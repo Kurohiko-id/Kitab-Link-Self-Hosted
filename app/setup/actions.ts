@@ -21,13 +21,13 @@ export async function setupFirstAdmin(locale: Locale, _prevState: SetupState, fo
     return { error: t.setup.alreadySetupError };
   }
 
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const username = String(formData.get("username") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
   // .toLowerCase() -- token-nya hex huruf kecil; normalisasi di server biar autocapitalize
   // keyboard HP (atau user yang ngetik kapital) gak bikin token yang bener jadi ditolak.
   const submittedToken = String(formData.get("token") ?? "").trim().toLowerCase();
 
-  if (!email || !password || !submittedToken) {
+  if (!username || !password || !submittedToken) {
     return { error: t.setup.requiredError };
   }
   // minLength={8} di HTML gampang di-bypass (curl/devtools) -- wajib dicek ulang di server,
@@ -44,7 +44,7 @@ export async function setupFirstAdmin(locale: Locale, _prevState: SetupState, fo
   }
 
   const passwordHash = await hashPassword(password);
-  const [user] = await db.insert(users).values({ email, passwordHash }).returning();
+  const [user] = await db.insert(users).values({ username, passwordHash }).returning();
 
   await getOrCreateDefaultPage(user.id);
   await createSession(user.id);
