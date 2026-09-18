@@ -19,12 +19,12 @@ import { getDictionary, type Locale } from "@/lib/i18n";
 // secret sembarangan buat di-approve server (lihat lib/auth/pending-totp-enrollment.ts).
 export async function startTotpEnrollment(): Promise<{ secret: string; qrDataUrl: string }> {
   const session = await requireSession();
-  const [user] = await db.select({ email: users.email }).from(users).where(eq(users.id, session.userId)).limit(1);
+  const [user] = await db.select({ username: users.username }).from(users).where(eq(users.id, session.userId)).limit(1);
   if (!user) throw new Error("User tidak ditemukan.");
 
   const secret = generateTotpSecret();
   await savePendingTotpSecret(session.userId, secret);
-  const uri = buildTotpUri(secret, user.email);
+  const uri = buildTotpUri(secret, user.username);
   const qrDataUrl = await QRCode.toDataURL(uri);
   return { secret, qrDataUrl };
 }

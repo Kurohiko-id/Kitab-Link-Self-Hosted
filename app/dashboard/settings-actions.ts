@@ -158,3 +158,12 @@ export async function changePasswordAction(
   await db.update(users).set({ passwordHash }).where(eq(users.id, session.userId));
   return { success: true };
 }
+
+// Nama tampilan sidebar -- MURNI kosmetik, terpisah dari username (login credential).
+// Null/kosong -> UI fallback nampilin username-nya (lihat components/sidebar-account.tsx).
+export async function renameDisplayNameAction(name: string): Promise<void> {
+  const session = await requireSession();
+  const trimmed = name.trim().slice(0, 50);
+  await db.update(users).set({ displayName: trimmed || null }).where(eq(users.id, session.userId));
+  revalidatePath("/dashboard");
+}

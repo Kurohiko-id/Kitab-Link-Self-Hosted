@@ -44,8 +44,8 @@ export function ForgotPasswordForm({ locale, t }: { locale: Locale; t: Dictionar
       <CardContent>
         <form action={formAction} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="email">{t.forgotPassword.email}</Label>
-            <Input id="email" name="email" type="email" required autoFocus autoComplete="email" />
+            <Label htmlFor="username">{t.forgotPassword.username}</Label>
+            <Input id="username" name="username" type="text" required autoFocus autoComplete="username" />
           </div>
           <Button type="submit" disabled={pending}>
             {pending ? t.forgotPassword.submitting : t.forgotPassword.submit}

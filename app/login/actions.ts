@@ -17,21 +17,21 @@ export type LoginState = { error?: string; needsTotp?: boolean } | undefined;
 
 export async function login(locale: Locale, _prevState: LoginState, formData: FormData): Promise<LoginState> {
   const t = getDictionary(locale);
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const username = String(formData.get("username") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
 
-  if (!email || !password) {
-    return { error: t.login.emailRequiredError };
+  if (!username || !password) {
+    return { error: t.login.usernameRequiredError };
   }
 
-  // Key di-namespace "login:" + email -- email jumlahnya kebatas sama akun yang beneran
+  // Key di-namespace "login:" + username -- username jumlahnya kebatas sama akun yang beneran
   // ada (single-user app ini paling cuma segelintir), bukan input attacker bebas kayak IP.
-  const rlKey = `login:${email}`;
+  const rlKey = `login:${username}`;
   if (isLockedOut(rlKey)) {
     return { error: t.login.tooManyAttemptsError };
   }
 
-  const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1);
   if (!user) {
     recordFailedAttempt(rlKey);
     return { error: t.login.invalidCredentialsError };
@@ -118,22 +118,22 @@ export async function logout() {
 
 export type RequestResetState = { sent?: boolean } | undefined;
 
-// Selalu balikin { sent: true } apapun hasilnya (email ada apa nggak di DB) -- kalau
-// pesannya beda-beda, orang luar bisa dipakai buat nebak email admin yang valid.
+// Selalu balikin { sent: true } apapun hasilnya (username ada apa nggak di DB) -- kalau
+// pesannya beda-beda, orang luar bisa dipakai buat nebak username admin yang valid.
 export async function requestPasswordReset(
   locale: Locale,
   _prevState: RequestResetState,
   formData: FormData,
 ): Promise<RequestResetState> {
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  if (!email) return { sent: true };
+  const username = String(formData.get("username") ?? "").trim().toLowerCase();
+  if (!username) return { sent: true };
 
-  const rlKey = `reset-request:${email}`;
+  const rlKey = `reset-request:${username}`;
   if (isLockedOut(rlKey)) return { sent: true };
   recordFailedAttempt(rlKey); // rate-limit generic -- cegah spam generate token/log, bukan soal salah/benar
 
-  const [user] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
-  if (user) generateResetToken(email);
+  const [user] = await db.select({ id: users.id }).from(users).where(eq(users.username, username)).limit(1);
+  if (user) generateResetToken(username);
 
   return { sent: true };
 }
@@ -146,11 +146,11 @@ export async function resetPasswordAction(
   formData: FormData,
 ): Promise<ResetPasswordState> {
   const t = getDictionary(locale);
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const username = String(formData.get("username") ?? "").trim().toLowerCase();
   const token = String(formData.get("token") ?? "").trim();
   const password = String(formData.get("password") ?? "");
 
-  if (!email || !token || !password) {
+  if (!username || !token || !password) {
     return { error: t.resetPassword.requiredError };
   }
   if (password.length < 8) {
@@ -159,18 +159,18 @@ export async function resetPasswordAction(
   if (password.length > 200) {
     return { error: t.resetPassword.passwordTooLong };
   }
-  if (!verifyResetToken(email, token)) {
+  if (!verifyResetToken(username, token)) {
     return { error: t.resetPassword.invalidTokenError };
   }
 
-  const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1);
   if (!user) {
     return { error: t.resetPassword.invalidTokenError };
   }
 
   const passwordHash = await hashPassword(password);
   await db.update(users).set({ passwordHash }).where(eq(users.id, user.id));
-  consumeResetToken(email);
+  consumeResetToken(username);
 
   redirect("/login");
 }

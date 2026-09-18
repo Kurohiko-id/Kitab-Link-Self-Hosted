@@ -3,7 +3,14 @@ import { sqliteTable, integer, text, type AnySQLiteColumn } from "drizzle-orm/sq
 
 export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  email: text("email").notNull().unique(),
+  // Dulu "email" -- diganti username karena app ini gak pernah beneran kirim email (gak
+  // ada SMTP, lihat lib/auth/reset-password-token.ts), jadi format email gak relevan,
+  // cukup identifier bebas buat login.
+  username: text("username").notNull().unique(),
+  // Nama yang tampil di sidebar dashboard -- SENGAJA terpisah dari username (yang dipakai
+  // login). Null default -> UI fallback ke username kalau belum di-set. Murni kosmetik,
+  // klik nama di sidebar buat reveal username asli (components/sidebar-account.tsx).
+  displayName: text("display_name"),
   passwordHash: text("password_hash").notNull(),
   // Page yang dipilih buat nampil di domain root ("/", tanpa slug di URL) -- null berarti
   // "/" tetep redirect ke /dashboard kayak biasa (lihat app/page.tsx).

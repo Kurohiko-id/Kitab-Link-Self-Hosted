@@ -21,8 +21,8 @@ export function ResetPasswordForm({ locale, t }: { locale: Locale; t: Dictionary
       <CardContent>
         <form action={formAction} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="email">{t.resetPassword.email}</Label>
-            <Input id="email" name="email" type="email" required autoFocus autoComplete="email" />
+            <Label htmlFor="username">{t.resetPassword.username}</Label>
+            <Input id="username" name="username" type="text" required autoFocus autoComplete="username" />
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="token">{t.resetPassword.tokenLabel}</Label>
