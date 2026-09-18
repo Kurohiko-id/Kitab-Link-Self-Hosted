@@ -33,6 +33,18 @@ Migration database jalan otomatis pas container start. Buka `http://localhost:30
 docker compose pull && docker compose up -d
 ```
 
+**Lupa password?**
+
+Aplikasi ini gak pakai email/SMTP (single-user self-hosted, sengaja tanpa infra tambahan), jadi reset password dilakuin lewat log container, bukan lewat email:
+
+1. Buka `/login/forgot-password`, masukin email akun kamu.
+2. Cek log container buat lihat token reset-nya (berlaku 15 menit):
+   ```bash
+   docker logs <nama-container>
+   ```
+   Cari baris `Password reset token buat ...`.
+3. Buka `/login/reset-password`, masukin email, token, dan password baru.
+
 ## Tech Stack
 
 - **Framework:** Next.js (App Router, React Server Components)

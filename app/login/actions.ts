@@ -5,11 +5,12 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { createSession, destroySession } from "@/lib/auth/session";
-import { verifyPassword } from "@/lib/auth/password";
+import { verifyPassword, hashPassword } from "@/lib/auth/password";
 import { grantPending2fa, getPending2faUserId, clearPending2fa } from "@/lib/auth/pending-2fa";
 import { decryptTotpSecret } from "@/lib/auth/totp-crypto";
 import { verifyTotpCode, consumeBackupCode } from "@/lib/auth/totp";
 import { isLockedOut, recordFailedAttempt, clearAttempts } from "@/lib/auth/unlock-rate-limit";
+import { generateResetToken, verifyResetToken, consumeResetToken } from "@/lib/auth/reset-password-token";
 import { getDictionary, type Locale } from "@/lib/i18n";
 
 export type LoginState = { error?: string; needsTotp?: boolean } | undefined;
@@ -112,5 +113,64 @@ export async function verifyTotpLoginAction(
 
 export async function logout() {
   await destroySession();
+  redirect("/login");
+}
+
+export type RequestResetState = { sent?: boolean } | undefined;
+
+// Selalu balikin { sent: true } apapun hasilnya (email ada apa nggak di DB) -- kalau
+// pesannya beda-beda, orang luar bisa dipakai buat nebak email admin yang valid.
+export async function requestPasswordReset(
+  locale: Locale,
+  _prevState: RequestResetState,
+  formData: FormData,
+): Promise<RequestResetState> {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  if (!email) return { sent: true };
+
+  const rlKey = `reset-request:${email}`;
+  if (isLockedOut(rlKey)) return { sent: true };
+  recordFailedAttempt(rlKey); // rate-limit generic -- cegah spam generate token/log, bukan soal salah/benar
+
+  const [user] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+  if (user) generateResetToken(email);
+
+  return { sent: true };
+}
+
+export type ResetPasswordState = { error?: string } | undefined;
+
+export async function resetPasswordAction(
+  locale: Locale,
+  _prevState: ResetPasswordState,
+  formData: FormData,
+): Promise<ResetPasswordState> {
+  const t = getDictionary(locale);
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const token = String(formData.get("token") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+
+  if (!email || !token || !password) {
+    return { error: t.resetPassword.requiredError };
+  }
+  if (password.length < 8) {
+    return { error: t.resetPassword.passwordTooShort };
+  }
+  if (password.length > 200) {
+    return { error: t.resetPassword.passwordTooLong };
+  }
+  if (!verifyResetToken(email, token)) {
+    return { error: t.resetPassword.invalidTokenError };
+  }
+
+  const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  if (!user) {
+    return { error: t.resetPassword.invalidTokenError };
+  }
+
+  const passwordHash = await hashPassword(password);
+  await db.update(users).set({ passwordHash }).where(eq(users.id, user.id));
+  consumeResetToken(email);
+
   redirect("/login");
 }
