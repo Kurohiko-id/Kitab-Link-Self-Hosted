@@ -178,7 +178,7 @@ export default async function DashboardPage({
     pagesList[0] ??
     (await getOrCreateDefaultPage(session.userId));
 
-  const rawUpdate = getAvailableUpdate();
+  const rawUpdate = await getAvailableUpdate();
   const availableUpdate = rawUpdate && rawUpdate.version !== user?.lastSeenAppVersion ? rawUpdate : null;
   const deadLinks = await getDeadLinksForUser(session.userId);
 
