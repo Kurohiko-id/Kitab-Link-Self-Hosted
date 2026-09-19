@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `latest_release_json` text;

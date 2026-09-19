@@ -21,6 +21,14 @@ export const users = sqliteTable("users", {
   // Versi rilis GitHub terakhir yang udah "dilihat"/di-dismiss user dari notif bell icon
   // (lihat lib/update-check.ts) -- null berarti belum pernah dismiss apa-apa.
   lastSeenAppVersion: text("last_seen_app_version"),
+  // Hasil cek GitHub Releases terakhir (JSON dari LatestRelease, lihat lib/update-check.ts)
+  // -- DULU disimpen di variable module-level (`let cache`), tapi itu gak reliable: Next.js
+  // standalone build bisa nge-bundle instrumentation.ts (yang nulis cache) dan Server
+  // Component page.tsx (yang baca cache) jadi 2 chunk KOMPILASI TERPISAH, masing-masing
+  // punya module instance sendiri -- nulis di satu sisi gak kebaca di sisi lain, notif
+  // update jadi gak pernah muncul walau fetch-nya sendiri sukses. Simpen di DB (row tunggal,
+  // app ini single-user) biar SATU sumber kebenaran yang reliable dibaca dari mana pun.
+  latestReleaseJson: text("latest_release_json"),
   // TOTP 2FA (lihat lib/auth/totp.ts + lib/auth/totp-crypto.ts) -- totpSecret di-ENCRYPT
   // (AES-256-GCM, key di-derive dari master secret), BUKAN plaintext, karena beda dari
   // password (perlu di-decrypt lagi buat verify code, gak bisa cuma di-hash satu arah).
