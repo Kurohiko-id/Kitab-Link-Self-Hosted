@@ -44,9 +44,13 @@ export async function checkYoutubeLive(channelUrl: string): Promise<YoutubeLiveS
     // Nyampe di halaman /watch (baik lewat redirect alias /live, ATAU input-nya emang
     // langsung link video spesifik) -- canonical-nya SAMA baik pas live maupun udah kelar
     // (video watch URL gak pernah "un-redirect"), jadi gak bisa dipakai buat mastiin status.
-    // Signal yang beneran valid: "isLiveNow" di player response, cuma true SELAMA on-air
-    // (begitu stream berhenti, YouTube langsung flip ke false meski videonya tetep di /watch).
-    const isLiveNow = /"isLiveNow":(true|false)/.exec(html)?.[1] === "true";
+    // Signal yang beneran valid: videoDetails.isLive di player response, cuma true SELAMA
+    // on-air (begitu stream berhenti, YouTube langsung flip ke false meski videonya tetep
+    // di /watch). BUKAN "isLiveNow" (field itu gak pernah ada di HTML-nya, verified manual --
+    // itu yang bikin selalu kebaca offline walau channel-nya beneran live) atau
+    // "isLiveContent"/"isLiveVideo"/dst (itu flag teknis lain, true juga buat video yang
+    // DULU live tapi udah kelar/jadi VOD).
+    const isLiveNow = /"isLive":(true|false)/.exec(html)?.[1] === "true";
     return { isLive: isLiveNow, videoUrl: isLiveNow ? canonical : null };
   } catch {
     return null;

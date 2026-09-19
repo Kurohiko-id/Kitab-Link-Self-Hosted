@@ -66,8 +66,9 @@ import { isStreamerModeOn } from "@/lib/streamer-mode";
 import { EditingPageBadge } from "@/components/editing-page-badge";
 import { TokenCreator } from "./token-creator";
 import { createWebhookAction, deleteWebhook, revokeApiToken, sendTestWebhookEvent } from "./integrations-actions";
-import { createWeeklyScheduleRule, createYoutubeLiveRule, deleteScheduledRule } from "./automation-actions";
-import { saveLiveBadgeAction, deleteLiveBadgeAction } from "./live-badge-actions";
+import { createWeeklyScheduleRule, createYoutubeLiveRule, deleteScheduledRule, refreshScheduledRuleAction } from "./automation-actions";
+import { saveLiveBadgeAction, deleteLiveBadgeAction, refreshLiveBadgeAction } from "./live-badge-actions";
+import { RefreshStatusButton } from "@/components/refresh-status-button";
 import { ActionForm } from "@/components/action-form";
 import { ThemeEditor } from "./theme-editor";
 import { SectionCard } from "./section-card";
@@ -945,20 +946,6 @@ function AutomationSection({
 
   return (
     <div className="flex flex-col gap-6">
-      <SectionCard title={t.automation.youtubeTitle}>
-        <form action={createYoutubeLiveRule.bind(null, pageId)} className="flex flex-wrap items-end gap-2">
-          <div className="flex flex-1 flex-col gap-1.5">
-            <Label htmlFor="channelUrl">{t.automation.channelUrl}</Label>
-            <Input id="channelUrl" name="channelUrl" placeholder="https://youtube.com/@namachannel" />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="target">{t.automation.target}</Label>
-            <TargetPicker {...targetPickerProps} />
-          </div>
-          <Button type="submit">{t.automation.addRule}</Button>
-        </form>
-      </SectionCard>
-
       <SectionCard title={t.automation.liveBadgeTitle} description={t.automation.liveBadgeDesc}>
         <div className="flex flex-col gap-3">
           <ActionForm errorMessage={t.common.saveFailed} action={saveLiveBadgeAction.bind(null, pageId)} className="flex flex-wrap items-end gap-2">
@@ -1008,14 +995,31 @@ function AutomationSection({
                   </span>
                 ) : null}
               </div>
-              <form action={deleteLiveBadgeAction.bind(null, pageId)}>
-                <Button type="submit" size="sm" variant="outline">
-                  {t.common.delete}
-                </Button>
-              </form>
+              <div className="flex items-center gap-2">
+                <RefreshStatusButton onRefresh={refreshLiveBadgeAction.bind(null, pageId)} t={t} />
+                <form action={deleteLiveBadgeAction.bind(null, pageId)}>
+                  <Button type="submit" size="sm" variant="outline">
+                    {t.common.delete}
+                  </Button>
+                </form>
+              </div>
             </div>
           ) : null}
         </div>
+      </SectionCard>
+
+      <SectionCard title={t.automation.youtubeTitle}>
+        <form action={createYoutubeLiveRule.bind(null, pageId)} className="flex flex-wrap items-end gap-2">
+          <div className="flex flex-1 flex-col gap-1.5">
+            <Label htmlFor="channelUrl">{t.automation.channelUrl}</Label>
+            <Input id="channelUrl" name="channelUrl" placeholder="https://youtube.com/@namachannel" />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="target">{t.automation.target}</Label>
+            <TargetPicker {...targetPickerProps} />
+          </div>
+          <Button type="submit">{t.automation.addRule}</Button>
+        </form>
       </SectionCard>
 
       <SectionCard title={t.automation.weeklyTitle}>
@@ -1040,6 +1044,16 @@ function AutomationSection({
             <Button type="submit">{t.automation.addRule}</Button>
           </div>
         </form>
+      </SectionCard>
+
+      <SectionCard title={t.automation.feedsTitle} description={t.automation.feedsDesc}>
+        <ContentFeedsSection
+          pageId={pageId}
+          feeds={feeds}
+          groupOptions={boardData.groups.map((g) => ({ id: g.id, name: g.name }))}
+          t={t}
+          locale={locale}
+        />
       </SectionCard>
 
       <SectionCard title={t.automation.rulesTitle}>
@@ -1072,25 +1086,20 @@ function AutomationSection({
                   </div>
                 ) : null}
               </div>
-              <form action={deleteScheduledRule.bind(null, pageId, rule.id)}>
-                <Button type="submit" size="sm" variant="outline">
-                  {t.common.delete}
-                </Button>
-              </form>
+              <div className="flex items-center gap-2">
+                {rule.triggerType === "youtube_live" ? (
+                  <RefreshStatusButton onRefresh={refreshScheduledRuleAction.bind(null, pageId, rule.id)} t={t} />
+                ) : null}
+                <form action={deleteScheduledRule.bind(null, pageId, rule.id)}>
+                  <Button type="submit" size="sm" variant="outline">
+                    {t.common.delete}
+                  </Button>
+                </form>
+              </div>
             </li>
           ))}
           {rules.length === 0 && <li className="text-sm text-muted-foreground">{t.automation.noRules}</li>}
         </ul>
-      </SectionCard>
-
-      <SectionCard title={t.automation.feedsTitle} description={t.automation.feedsDesc}>
-        <ContentFeedsSection
-          pageId={pageId}
-          feeds={feeds}
-          groupOptions={boardData.groups.map((g) => ({ id: g.id, name: g.name }))}
-          t={t}
-          locale={locale}
-        />
       </SectionCard>
     </div>
   );

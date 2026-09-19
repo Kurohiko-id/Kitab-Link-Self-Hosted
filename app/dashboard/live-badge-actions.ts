@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { liveBadges } from "@/lib/db/schema";
 import { requireOwnedPage } from "@/lib/db/pages";
+import { checkAndUpdateLiveBadge } from "@/lib/live-badge-check";
 
 // Satu page cuma bisa punya 1 live badge config (unique pageId) -- insert kalau belum
 // ada, update kalau udah ada. isLive/videoUrl SENGAJA gak direset di sini, biar gak
@@ -30,4 +31,17 @@ export async function deleteLiveBadgeAction(pageId: number) {
   await requireOwnedPage(pageId);
   await db.delete(liveBadges).where(eq(liveBadges.pageId, pageId));
   revalidatePath("/dashboard");
+}
+
+// Tombol "Refresh Status" manual -- cek 1 channel ini doang langsung (gak nunggu tick
+// cron ~2 menit berikutnya), pake logic yang SAMA persis kayak cron (checkAndUpdateLiveBadge).
+export async function refreshLiveBadgeAction(pageId: number): Promise<{ error?: string }> {
+  await requireOwnedPage(pageId);
+  const [row] = await db.select().from(liveBadges).where(eq(liveBadges.pageId, pageId)).limit(1);
+  if (!row) return { error: "Belum ada channel yang di-set." };
+
+  const status = await checkAndUpdateLiveBadge(row);
+  revalidatePath("/dashboard");
+  if (status === null) return { error: "Gagal cek status channel (coba lagi sebentar)." };
+  return {};
 }

@@ -27,24 +27,34 @@ async function applyRuleState(rule: ScheduledRuleRow, desiredVisible: boolean) {
     .where(eq(scheduledRules.id, rule.id));
 }
 
+// Dipake cron (processScheduledRules, tiap ~2 menit) DAN tombol "Refresh Status" manual
+// (scheduled-rule-actions.ts, khusus rule youtube_live) -- satu sumber logic. Return true
+// kalau berhasil dievaluasi, false kalau gagal cek (network error dll, caller boleh diemin).
+export async function checkAndApplyScheduledRule(rule: ScheduledRuleRow): Promise<boolean> {
+  if (rule.triggerType === "youtube_live") {
+    const config = JSON.parse(rule.configJson) as { channelUrl?: string };
+    if (!config.channelUrl) return false;
+
+    const status = await checkYoutubeLive(config.channelUrl);
+    if (status === null) return false; // gagal cek (network error dll) — jangan ubah apapun, coba lagi nanti
+
+    await applyRuleState(rule, status.isLive);
+    return true;
+  }
+  if (rule.triggerType === "weekly_schedule") {
+    const config = JSON.parse(rule.configJson) as WeeklyScheduleConfig;
+    await applyRuleState(rule, evaluateWeeklySchedule(config));
+    return true;
+  }
+  // "manual" -> gak ada evaluasi otomatis, sengaja dilewatin.
+  return false;
+}
+
 // Dipanggil cron tiap ~2 menit (lihat instrumentation.ts). Cuma buat auto show/hide
 // group/link -- badge "sedang live" itu fitur terpisah, lihat lib/live-badge-check.ts.
 export async function processScheduledRules() {
   const rules = await db.select().from(scheduledRules);
-
   for (const rule of rules) {
-    if (rule.triggerType === "youtube_live") {
-      const config = JSON.parse(rule.configJson) as { channelUrl?: string };
-      if (!config.channelUrl) continue;
-
-      const status = await checkYoutubeLive(config.channelUrl);
-      if (status === null) continue; // gagal cek (network error dll) — jangan ubah apapun, coba lagi nanti
-
-      await applyRuleState(rule, status.isLive);
-    } else if (rule.triggerType === "weekly_schedule") {
-      const config = JSON.parse(rule.configJson) as WeeklyScheduleConfig;
-      await applyRuleState(rule, evaluateWeeklySchedule(config));
-    }
-    // "manual" -> gak ada evaluasi otomatis, sengaja dilewatin.
+    await checkAndApplyScheduledRule(rule);
   }
 }

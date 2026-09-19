@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { scheduledRules } from "@/lib/db/schema";
 import { requireOwnedPage } from "@/lib/db/pages";
 import type { ScheduleMode } from "@/lib/schedule-evaluate";
+import { checkAndApplyScheduledRule } from "@/lib/scheduled-rules";
 
 // Format target dari <select> di form: "group:3" atau "link:7".
 function parseTarget(formData: FormData): { targetType: "group" | "link"; targetId: number } | null {
@@ -68,4 +69,22 @@ export async function deleteScheduledRule(pageId: number, ruleId: number) {
     .delete(scheduledRules)
     .where(and(eq(scheduledRules.id, ruleId), eq(scheduledRules.pageId, pageId)));
   revalidatePath("/dashboard");
+}
+
+// Tombol "Refresh Status" manual di rule aktif (khusus youtube_live -- weekly_schedule
+// gak butuh fetch eksternal, evaluasinya deterministik dari jam/tanggal doang, gak ada
+// gunanya di-refresh manual). Pake logic yang SAMA persis kayak cron (checkAndApplyScheduledRule).
+export async function refreshScheduledRuleAction(pageId: number, ruleId: number): Promise<{ error?: string }> {
+  await requireOwnedPage(pageId);
+  const [rule] = await db
+    .select()
+    .from(scheduledRules)
+    .where(and(eq(scheduledRules.id, ruleId), eq(scheduledRules.pageId, pageId)))
+    .limit(1);
+  if (!rule) return { error: "Rule tidak ditemukan." };
+
+  const ok = await checkAndApplyScheduledRule(rule);
+  revalidatePath("/dashboard");
+  if (!ok) return { error: "Gagal cek status (coba lagi sebentar)." };
+  return {};
 }
