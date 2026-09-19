@@ -1,0 +1,221 @@
+#!/usr/bin/env bash
+# Kitab Link — one-command installer.
+#
+#   curl -fsSL https://raw.githubusercontent.com/Kurohiko-id/Kitab-Link-Self-Hosted/main/install.sh | bash
+#
+# Kenapa perlu script ini (bukan cuma docker-compose.yml polos): kalau VPS-nya udah ada
+# app lain di belakang Caddy (kasus yang sangat umum -- 1 VPS, banyak domain), install
+# manual butuh ~7 langkah (bikin folder, edit compose, hapus port, tambah network, install
+# Caddy, tulis Caddyfile, reload). Script ini deteksi kondisi VPS-nya dan ngerjain semua
+# langkah itu otomatis, idempotent (aman dijalanin ulang).
+
+set -euo pipefail
+
+# ---------------------------------------------------------------------------
+# 1. Bahasa
+# ---------------------------------------------------------------------------
+echo "Choose language / Pilih bahasa:"
+echo "  [1] Bahasa Indonesia"
+echo "  [2] English"
+read -rp "> " lang_choice < /dev/tty
+LANG_CODE="en"
+[ "$lang_choice" = "1" ] && LANG_CODE="id"
+
+# Pesan dua-bahasa lewat 1 fungsi -- daripada duplikasi seluruh script jadi 2 file,
+# atau nyampur ID/EN di tiap baris echo.
+t() {
+  case "$1" in
+    ask_domain) [ "$LANG_CODE" = id ] && echo "Domain buat Kitab Link (kosongin kalau cuma mau akses lewat IP:3000):" || echo "Domain for Kitab Link (leave empty to just use IP:3000):" ;;
+    ask_www) [ "$LANG_CODE" = id ] && echo "Tambahin www.$DOMAIN juga? [Y/n]" || echo "Also add www.$DOMAIN? [Y/n]" ;;
+    ask_container) [ "$LANG_CODE" = id ] && echo "Nama container (kosongin buat default 'kitab-link'):" || echo "Container name (leave empty for default 'kitab-link'):" ;;
+    container_taken) [ "$LANG_CODE" = id ] && echo "Nama itu udah kepake container lain. Coba nama lain:" || echo "That name is already used by another container. Try another:" ;;
+    no_docker) [ "$LANG_CODE" = id ] && echo "Docker belum terinstal. Install dulu: https://docs.docker.com/engine/install/" || echo "Docker isn't installed. Install it first: https://docs.docker.com/engine/install/" ;;
+    caddy_found) [ "$LANG_CODE" = id ] && echo "Caddy yang udah jalan ketemu (container: $CADDY_NAME) -- bakal disambungin ke situ, gak bikin proxy baru." || echo "Found an existing Caddy container ($CADDY_NAME) -- will hook into it instead of creating a new proxy." ;;
+    caddy_ask) [ "$LANG_CODE" = id ] && echo "Belum ada Caddy (reverse proxy) di server ini. Mau sekalian dipasang? [Y/n]" || echo "No Caddy (reverse proxy) found on this server. Set it up now? [Y/n]" ;;
+    dns_mismatch) [ "$LANG_CODE" = id ] && echo "PERINGATAN: domain '$DOMAIN' resolve ke $DOMAIN_IP, BUKAN ke IP server ini ($SERVER_IP). SSL cert bakal gagal kalau DNS-nya belum bener." || echo "WARNING: domain '$DOMAIN' resolves to $DOMAIN_IP, NOT this server's IP ($SERVER_IP). SSL cert issuance will fail until DNS is fixed." ;;
+    dns_continue) [ "$LANG_CODE" = id ] && echo "Lanjut aja walau gitu? [y/N]" || echo "Continue anyway? [y/N]" ;;
+    cloudflare_tip) [ "$LANG_CODE" = id ] && echo "Tips: kalau domain ini di belakang Cloudflare -- set ke 'DNS only' (awan abu-abu) dulu sampai cert didapat, baru balik 'Proxied'. Dan set SSL/TLS mode ke 'Full (strict)'." || echo "Tip: if this domain is behind Cloudflare -- set it to 'DNS only' (grey cloud) until the cert is issued, then switch back to 'Proxied'. Also set SSL/TLS mode to 'Full (strict)'." ;;
+    done_msg) [ "$LANG_CODE" = id ] && echo "Selesai! Ambil token setup pertama kali:" || echo "Done! Grab your first-time setup token:" ;;
+    visit) [ "$LANG_CODE" = id ] && echo "Lalu buka:" || echo "Then visit:" ;;
+  esac
+}
+
+# ---------------------------------------------------------------------------
+# 2. Prasyarat
+# ---------------------------------------------------------------------------
+if ! command -v docker >/dev/null 2>&1; then
+  echo "$(t no_docker)"
+  exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# 3. Domain (opsional)
+# ---------------------------------------------------------------------------
+echo "$(t ask_domain)"
+read -rp "> " DOMAIN_RAW < /dev/tty
+
+DOMAIN=""
+ADD_WWW="n"
+if [ -n "$DOMAIN_RAW" ]; then
+  # Normalisasi: buang scheme, buang trailing slash, buang "www." (ditanya terpisah
+  # biar gak nebak-nebak -- domain gabungan TLD kayak .my.id/.co.id gak bisa dideteksi
+  # "root vs subdomain" cuma dari jumlah titik doang).
+  DOMAIN=$(echo "$DOMAIN_RAW" | sed -E 's#^https?://##; s#/$##; s#^www\.##')
+
+  echo "$(t ask_www)"
+  read -rp "> " www_choice < /dev/tty
+  [ -z "$www_choice" ] || [ "${www_choice,,}" = "y" ] && ADD_WWW="y"
+
+  SERVER_IP=$(curl -fsS -4 ifconfig.me || echo "")
+  DOMAIN_IP=$(dig +short "$DOMAIN" 2>/dev/null | tail -1 || echo "")
+  if [ -n "$SERVER_IP" ] && [ -n "$DOMAIN_IP" ] && [ "$SERVER_IP" != "$DOMAIN_IP" ]; then
+    echo "$(t dns_mismatch)"
+    read -rp "$(t dns_continue) " dns_confirm < /dev/tty
+    [[ "${dns_confirm,,}" == "y" ]] || exit 1
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# 4. Nama container
+# ---------------------------------------------------------------------------
+CONTAINER_NAME="kitab-link"
+echo "$(t ask_container)"
+read -rp "> " container_input < /dev/tty
+[ -n "$container_input" ] && CONTAINER_NAME="$container_input"
+
+while docker ps -a --format '{{.Names}}' | grep -qx "$CONTAINER_NAME"; do
+  echo "$(t container_taken)"
+  read -rp "> " CONTAINER_NAME < /dev/tty
+done
+
+# ---------------------------------------------------------------------------
+# 5. Deteksi Caddy yang udah jalan (atau bikin baru)
+# ---------------------------------------------------------------------------
+CADDY_NETWORK=""
+CADDYFILE_HOST_PATH=""
+CADDY_NAME=""
+
+if [ -n "$DOMAIN" ]; then
+  CADDY_NAME=$(docker ps --format '{{.Names}}\t{{.Image}}' | awk -F'\t' '$2 ~ /caddy/ {print $1; exit}')
+
+  if [ -n "$CADDY_NAME" ]; then
+    echo "$(t caddy_found)"
+    CADDY_NETWORK=$(docker inspect "$CADDY_NAME" --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}' | head -1)
+    CADDYFILE_HOST_PATH=$(docker inspect "$CADDY_NAME" --format '{{range .Mounts}}{{if eq .Destination "/etc/caddy/Caddyfile"}}{{.Source}}{{end}}{{end}}')
+  else
+    echo "$(t caddy_ask)"
+    read -rp "> " caddy_confirm < /dev/tty
+    if [ -z "$caddy_confirm" ] || [ "${caddy_confirm,,}" = "y" ]; then
+      mkdir -p ~/apps/proxy
+      touch ~/apps/proxy/Caddyfile
+      docker network create proxy 2>/dev/null || true
+      cat > ~/apps/proxy/docker-compose.yml << 'EOF'
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true
+
+volumes:
+  caddy_data:
+  caddy_config:
+EOF
+      (cd ~/apps/proxy && docker compose up -d)
+      CADDY_NAME="caddy"
+      CADDY_NETWORK="proxy"
+      CADDYFILE_HOST_PATH=~/apps/proxy/Caddyfile
+    fi
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# 6. Compose file Kitab Link
+# ---------------------------------------------------------------------------
+mkdir -p ~/apps/"$CONTAINER_NAME"
+cd ~/apps/"$CONTAINER_NAME"
+
+if [ -n "$CADDY_NETWORK" ]; then
+  cat > docker-compose.yml << EOF
+services:
+  $CONTAINER_NAME:
+    image: ghcr.io/kurohiko-id/kitab-link-self-hosted:latest
+    container_name: $CONTAINER_NAME
+    volumes:
+      - ${CONTAINER_NAME}-data:/app/data
+    restart: unless-stopped
+    networks:
+      - $CADDY_NETWORK
+
+networks:
+  $CADDY_NETWORK:
+    external: true
+
+volumes:
+  ${CONTAINER_NAME}-data:
+EOF
+else
+  # Gak ada domain diisi -> gak butuh reverse proxy, publish port langsung ke host.
+  cat > docker-compose.yml << EOF
+services:
+  $CONTAINER_NAME:
+    image: ghcr.io/kurohiko-id/kitab-link-self-hosted:latest
+    container_name: $CONTAINER_NAME
+    ports:
+      - "3000:3000"
+    volumes:
+      - ${CONTAINER_NAME}-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  ${CONTAINER_NAME}-data:
+EOF
+fi
+
+docker compose up -d
+
+# ---------------------------------------------------------------------------
+# 7. Tambahin ke Caddyfile (kalau ada domain)
+# ---------------------------------------------------------------------------
+if [ -n "$DOMAIN" ] && [ -n "$CADDYFILE_HOST_PATH" ]; then
+  SITE_HOSTS="$DOMAIN"
+  [ "$ADD_WWW" = "y" ] && SITE_HOSTS="$DOMAIN, www.$DOMAIN"
+
+  {
+    echo ""
+    echo "$SITE_HOSTS {"
+    echo "    reverse_proxy $CONTAINER_NAME:3000"
+    echo "}"
+  } >> "$CADDYFILE_HOST_PATH"
+
+  docker exec "$CADDY_NAME" caddy validate --config /etc/caddy/Caddyfile
+  docker exec "$CADDY_NAME" caddy reload --config /etc/caddy/Caddyfile
+fi
+
+# ---------------------------------------------------------------------------
+# 8. Selesai
+# ---------------------------------------------------------------------------
+echo ""
+echo "$(t done_msg)"
+echo "  docker logs $CONTAINER_NAME | grep \"Setup token\""
+echo ""
+echo "$(t visit)"
+if [ -n "$DOMAIN" ]; then
+  echo "  https://$DOMAIN/setup"
+  echo ""
+  echo "$(t cloudflare_tip)"
+else
+  echo "  http://$(curl -fsS -4 ifconfig.me 2>/dev/null || echo "SERVER_IP"):3000/setup"
+fi
