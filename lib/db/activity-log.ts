@@ -16,7 +16,8 @@ export type ActivityAction =
   | "theme_changed"
   | "theme_edited"
   | "css_updated"
-  | "profile_updated";
+  | "profile_updated"
+  | "backup_imported";
 
 // Fire-and-forget kayak recordPageView/recordLinkClick di lib/db/analytics.ts -- gagal
 // nyatet log gak boleh sampe bikin aksi utamanya (hide/show/tambah link, dst) gagal.

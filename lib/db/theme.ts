@@ -25,3 +25,14 @@ export async function requireOwnedTheme(userId: number, themeId: number) {
   if (!theme) throw new Error("Theme tidak ditemukan atau bukan milik Anda.");
   return theme;
 }
+
+// Dipakai theme-actions.ts (import theme tunggal) & backup-actions.ts (import backup
+// gabungan) -- keduanya bikin entry library baru dari nama yang sama, jangan diduplikasi.
+export async function uniqueThemeName(userId: number, base: string): Promise<string> {
+  const existing = await db.select({ name: themes.name }).from(themes).where(eq(themes.userId, userId));
+  const names = new Set(existing.map((row) => row.name));
+  if (!names.has(base)) return base;
+  let i = 2;
+  while (names.has(`${base} (${i})`)) i++;
+  return `${base} (${i})`;
+}

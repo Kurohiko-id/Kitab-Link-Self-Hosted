@@ -5,20 +5,11 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { pages, themes } from "@/lib/db/schema";
 import { requireOwnedPage } from "@/lib/db/pages";
-import { requireOwnedTheme } from "@/lib/db/theme";
+import { requireOwnedTheme, uniqueThemeName } from "@/lib/db/theme";
 import { requireSession } from "@/lib/auth/require-session";
 import { parseThemeTokens, type ThemeTokens } from "@/lib/theme";
 import { buildThemeTokensFromForm } from "@/lib/theme-form";
 import { logActivity } from "@/lib/db/activity-log";
-
-async function uniqueThemeName(userId: number, base: string): Promise<string> {
-  const existing = await db.select({ name: themes.name }).from(themes).where(eq(themes.userId, userId));
-  const names = new Set(existing.map((row) => row.name));
-  if (!names.has(base)) return base;
-  let i = 2;
-  while (names.has(`${base} (${i})`)) i++;
-  return `${base} (${i})`;
-}
 
 // Klik preset di gallery -> langsung jadi entry baru di library user (gak pernah edit
 // definisi preset itu sendiri), sekaligus diaktifkan buat page yang lagi dibuka.

@@ -5,18 +5,59 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { pages, users } from "@/lib/db/schema";
 import { requireSession } from "@/lib/auth/require-session";
-import { createPageForUser, requireOwnedPage } from "@/lib/db/pages";
+import { createPageForUser, requireOwnedPage, RESERVED_SLUGS, SLUG_PATTERN } from "@/lib/db/pages";
 import { hashPassword } from "@/lib/auth/password";
 import { getDictionary, type Locale } from "@/lib/i18n";
+import { parseProfileData } from "@/lib/profile";
 
-export async function createPage(name: string) {
+export async function createPage(name: string, displayName?: string) {
   const session = await requireSession();
   const trimmed = name.trim();
   if (!trimmed) return null;
 
   const page = await createPageForUser(session.userId, trimmed);
+
+  const trimmedDisplayName = displayName?.trim();
+  if (trimmedDisplayName) {
+    const profile = parseProfileData(page.profileJson);
+    await db
+      .update(pages)
+      .set({ profileJson: JSON.stringify({ ...profile, displayName: trimmedDisplayName.slice(0, 100) }) })
+      .where(eq(pages.id, page.id));
+  }
+
   revalidatePath("/dashboard");
   return page;
+}
+
+export type ChangeSlugState = { error?: string } | undefined;
+
+export async function changeSlugAction(
+  locale: Locale,
+  pageId: number,
+  _prevState: ChangeSlugState,
+  formData: FormData,
+): Promise<ChangeSlugState> {
+  const t = getDictionary(locale);
+  await requireOwnedPage(pageId);
+  const slug = String(formData.get("slug") ?? "").trim().toLowerCase();
+
+  if (!SLUG_PATTERN.test(slug)) {
+    return { error: t.settings.slugInvalidError };
+  }
+  if (RESERVED_SLUGS.has(slug)) {
+    return { error: t.settings.slugReservedError };
+  }
+
+  const [taken] = await db.select({ id: pages.id }).from(pages).where(eq(pages.slug, slug)).limit(1);
+  if (taken && taken.id !== pageId) {
+    return { error: t.settings.slugTakenError };
+  }
+
+  await db.update(pages).set({ slug }).where(eq(pages.id, pageId));
+  revalidatePath("/dashboard");
+  revalidatePath("/[slug]", "page");
+  return {};
 }
 
 export async function setPagePassword(pageId: number, formData: FormData) {
