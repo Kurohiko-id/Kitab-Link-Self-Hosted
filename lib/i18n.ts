@@ -129,7 +129,10 @@ const dictionaries = {
     pageSwitcher: {
       activePage: "Halaman Aktif",
       newPageTitle: "Buat page baru",
-      newPagePrompt: "Nama page baru (jadi bagian dari URL, mis. 'kitabalamak'):",
+      newPageNameLabel: "Nama Page",
+      newPageNamePlaceholder: "kitabalamak",
+      newPageDisplayNameLabel: "Nama Tampilan (opsional)",
+      newPageDisplayNamePlaceholder: "Kitab Alamak",
     },
     overview: {
       groups: "Grup",
@@ -234,7 +237,7 @@ const dictionaries = {
       descLabel: "Deskripsi (opsional, dipakai style rich)",
       groupLabel: "Grup",
       styleLabel: "Gaya kartu",
-      styleOptions: { pill: "Pill", rich: "Rich (gambar besar)", icon: "Icon bulat (sosmed)" },
+      styleOptions: { pill: "Pill", rich: "Rich (gambar besar)" },
       thumbnailLabel: "Thumbnail",
       thumbnailChange: "(ganti)",
       thumbnailOptional: "(opsional)",

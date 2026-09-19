@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { ChevronDown, Plus, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -268,7 +268,6 @@ export function LinkFormModal({
               >
                 <option value="pill">{t.linkModal.styleOptions.pill}</option>
                 <option value="rich">{t.linkModal.styleOptions.rich}</option>
-                <option value="icon">{t.linkModal.styleOptions.icon}</option>
               </SelectField>
             </div>
           </div>
@@ -338,9 +337,12 @@ export function LinkFormModal({
           </label>
 
           {linkType === "url" ? (
-            <div className="flex flex-col gap-2 rounded-lg border p-3">
-              <span className="text-xs font-medium text-muted-foreground">{t.linkModal.utmLabel}</span>
-              <div className="grid grid-cols-3 gap-2">
+            <details className="group rounded-lg border p-3">
+              <summary className="flex cursor-pointer list-none items-center justify-between text-xs font-medium text-muted-foreground [&::-webkit-details-marker]:hidden">
+                {t.linkModal.utmLabel}
+                <ChevronDown className="size-3.5 transition-transform group-open:rotate-180" />
+              </summary>
+              <div className="mt-2 grid grid-cols-3 gap-2">
                 <Input
                   name="utmSource"
                   placeholder={t.linkModal.utmSource}
@@ -360,7 +362,7 @@ export function LinkFormModal({
                   className="h-8 text-xs"
                 />
               </div>
-            </div>
+            </details>
           ) : null}
 
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
