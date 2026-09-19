@@ -495,6 +495,77 @@ export type IconCategory = keyof typeof ICON_CATEGORIES;
 export const GENERIC_ICONS = Object.values(ICON_CATEGORIES).flat();
 export type GenericIconId = (typeof GENERIC_ICONS)[number];
 
+// Domain -> brand icon, dicek SEBELUM fallback favicon Google (lihat LinkGlyph di
+// components/link-card.tsx) -- link kayak chat.whatsapp.com/discord.gg/fb.com sering
+// gak punya favicon yang keindex Google (jadi cuma nongol globe generik), padahal brand
+// icon-nya udah ada di BRAND_ICONS di atas. Key = suffix hostname (match exact atau subdomain).
+const DOMAIN_BRAND: Record<string, BrandIconId> = {
+  "whatsapp.com": "whatsapp",
+  "wa.me": "whatsapp",
+  "instagram.com": "instagram",
+  "t.me": "telegram",
+  "telegram.me": "telegram",
+  "telegram.org": "telegram",
+  "tiktok.com": "tiktok",
+  "youtube.com": "youtube",
+  "youtu.be": "youtube",
+  "discord.com": "discord",
+  "discord.gg": "discord",
+  "x.com": "x",
+  "twitter.com": "x",
+  "facebook.com": "facebook",
+  "fb.com": "facebook",
+  "fb.me": "facebook",
+  "spotify.com": "spotify",
+  "linkedin.com": "linkedin",
+  "pinterest.com": "pinterest",
+  "snapchat.com": "snapchat",
+  "twitch.tv": "twitch",
+  "github.com": "github",
+  "threads.net": "threads",
+  "reddit.com": "reddit",
+  "line.me": "line",
+  "paypal.com": "paypal",
+  "paypal.me": "paypal",
+  "medium.com": "medium",
+  "soundcloud.com": "soundcloud",
+  "behance.net": "behance",
+  "dribbble.com": "dribbble",
+  "vimeo.com": "vimeo",
+  "wechat.com": "wechat",
+  "kakao.com": "kakaotalk",
+  "shopee.co.id": "shopee",
+  "shopee.com": "shopee",
+  "gojek.com": "gojek",
+  "grab.com": "grab",
+  "patreon.com": "patreon",
+  "buymeacoffee.com": "buymeacoffee",
+  "etsy.com": "etsy",
+  "notion.so": "notion",
+  "notion.site": "notion",
+  "figma.com": "figma",
+  "bsky.app": "bluesky",
+  "tumblr.com": "tumblr",
+  "vk.com": "vk",
+  "quora.com": "quora",
+  "zalo.me": "zalo",
+  "venmo.com": "venmo",
+  "cash.app": "cashapp",
+};
+
+export function brandIconForUrl(url: string): BrandIconId | null {
+  let host: string;
+  try {
+    host = new URL(url).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+  for (const [suffix, id] of Object.entries(DOMAIN_BRAND)) {
+    if (host === suffix || host.endsWith(`.${suffix}`)) return id;
+  }
+  return null;
+}
+
 // Format tersimpan di links.icon: "brand:whatsapp", "generic:Mail", atau "emoji:🔥"
 // (emoji bebas, gak ada daftar terbatas kayak brand/generic). null = auto (favicon).
 export function parseIconValue(

@@ -14,6 +14,7 @@ import {
 } from "@/lib/theme";
 import type { PublicLink } from "@/lib/db/board";
 import { getLinkHref, parseAccordionItems, extractYoutubeId } from "@/lib/link-render";
+import { brandIconForUrl } from "@/lib/icons";
 import type { PublicLocale } from "@/lib/public-i18n";
 
 // Dipakai di halaman publik (app/[slug]/page.tsx) DAN preview dashboard (theme-editor.tsx)
@@ -43,7 +44,9 @@ function faviconUrl(pageUrl: string): string | null {
 
 // Icon manual (kalau di-set di dashboard) diprioritaskan; abis itu thumbnail (kalau ada,
 // dipake versi kecil sebagai glyph di posisi icon -- BUKAN cuma buat displayStyle "rich"
-// lagi); baru fallback ke default per-type, terakhir favicon otomatis buat link "url" biasa.
+// lagi); baru fallback ke default per-type, lalu brand icon by domain (chat.whatsapp.com,
+// discord.gg, dst -- banyak yang gak punya favicon keindex Google, cuma nongol globe kalau
+// lompat langsung ke favicon), terakhir favicon otomatis buat sisanya.
 //
 // Cuma minta 4 field ini (bukan PublicLink penuh) -- dipakai juga di tempat yang gak punya
 // data link SELENGKAP itu (board.tsx list drag-drop, overview-links-table.tsx ranking klik),
@@ -60,6 +63,10 @@ export function LinkGlyph({ link, className = "size-5 shrink-0" }: { link: Glyph
   const defaultIcon = DEFAULT_ICON_BY_TYPE[link.linkType];
   if (defaultIcon) {
     return <LinkIconRenderer value={defaultIcon} className={className} />;
+  }
+  const brand = brandIconForUrl(link.url);
+  if (brand) {
+    return <LinkIconRenderer value={`brand:${brand}`} className={className} />;
   }
   const favicon = faviconUrl(link.url);
   if (!favicon) return null;
