@@ -32,8 +32,7 @@ t() {
     no_docker) [ "$LANG_CODE" = id ] && echo "Docker belum terinstal. Install dulu: https://docs.docker.com/engine/install/" || echo "Docker isn't installed. Install it first: https://docs.docker.com/engine/install/" ;;
     caddy_found) [ "$LANG_CODE" = id ] && echo "Caddy yang udah jalan ketemu (container: $CADDY_NAME) -- bakal disambungin ke situ, gak bikin proxy baru." || echo "Found an existing Caddy container ($CADDY_NAME) -- will hook into it instead of creating a new proxy." ;;
     caddy_ask) [ "$LANG_CODE" = id ] && echo "Belum ada Caddy (reverse proxy) di server ini. Mau sekalian dipasang? [Y/n]" || echo "No Caddy (reverse proxy) found on this server. Set it up now? [Y/n]" ;;
-    dns_mismatch) [ "$LANG_CODE" = id ] && echo "PERINGATAN: domain '$DOMAIN' resolve ke $DOMAIN_IP, BUKAN ke IP server ini ($SERVER_IP). SSL cert bakal gagal kalau DNS-nya belum bener." || echo "WARNING: domain '$DOMAIN' resolves to $DOMAIN_IP, NOT this server's IP ($SERVER_IP). SSL cert issuance will fail until DNS is fixed." ;;
-    dns_continue) [ "$LANG_CODE" = id ] && echo "Lanjut aja walau gitu? [y/N]" || echo "Continue anyway? [y/N]" ;;
+    dns_mismatch) [ "$LANG_CODE" = id ] && echo "FYI: domain '$DOMAIN' resolve ke $DOMAIN_IP, bukan IP server ini ($SERVER_IP). Normal kalau kamu pakai Cloudflare/CDN proxy di depan. Kalau BUKAN dan ini gak disengaja, cek DNS-nya -- SSL cert bisa gagal kalau salah arah." || echo "FYI: domain '$DOMAIN' resolves to $DOMAIN_IP, not this server's IP ($SERVER_IP). That's normal if you're using Cloudflare/a CDN proxy. If not, double-check your DNS -- SSL cert issuance can fail if it's pointed wrong." ;;
     cloudflare_tip) [ "$LANG_CODE" = id ] && echo "Tips: kalau domain ini di belakang Cloudflare -- set ke 'DNS only' (awan abu-abu) dulu sampai cert didapat, baru balik 'Proxied'. Dan set SSL/TLS mode ke 'Full (strict)'." || echo "Tip: if this domain is behind Cloudflare -- set it to 'DNS only' (grey cloud) until the cert is issued, then switch back to 'Proxied'. Also set SSL/TLS mode to 'Full (strict)'." ;;
     done_msg) [ "$LANG_CODE" = id ] && echo "Selesai! Ambil token setup pertama kali:" || echo "Done! Grab your first-time setup token:" ;;
     visit) [ "$LANG_CODE" = id ] && echo "Lalu buka:" || echo "Then visit:" ;;
@@ -57,21 +56,23 @@ read -rp "> " DOMAIN_RAW < /dev/tty
 DOMAIN=""
 ADD_WWW="n"
 if [ -n "$DOMAIN_RAW" ]; then
-  # Normalisasi: buang scheme, buang trailing slash, buang "www." (ditanya terpisah
-  # biar gak nebak-nebak -- domain gabungan TLD kayak .my.id/.co.id gak bisa dideteksi
-  # "root vs subdomain" cuma dari jumlah titik doang).
-  DOMAIN=$(echo "$DOMAIN_RAW" | sed -E 's#^https?://##; s#/$##; s#^www\.##')
+  # Normalisasi: lowercase (domain case-insensitive, tapi Caddyfile/URL nanti kebaca
+  # rapi), buang scheme, buang trailing slash, buang "www." (ditanya terpisah biar gak
+  # nebak-nebak -- domain gabungan TLD kayak .my.id/.co.id gak bisa dideteksi "root vs
+  # subdomain" cuma dari jumlah titik doang).
+  DOMAIN=$(echo "$DOMAIN_RAW" | tr '[:upper:]' '[:lower:]' | sed -E 's#^https?://##; s#/$##; s#^www\.##')
 
   echo "$(t ask_www)"
   read -rp "> " www_choice < /dev/tty
   [ -z "$www_choice" ] || [ "${www_choice,,}" = "y" ] && ADD_WWW="y"
 
+  # FYI doang, BUKAN blocker -- domain yang udah bener Cloudflare-proxied (atau CDN
+  # lain) MEMANG gak akan pernah match IP origin (itu tujuan proxy-nya), jadi ngeblok
+  # di sini bakal false-positive buat setup yang justru udah benar.
   SERVER_IP=$(curl -fsS -4 ifconfig.me || echo "")
   DOMAIN_IP=$(dig +short "$DOMAIN" 2>/dev/null | tail -1 || echo "")
   if [ -n "$SERVER_IP" ] && [ -n "$DOMAIN_IP" ] && [ "$SERVER_IP" != "$DOMAIN_IP" ]; then
     echo "$(t dns_mismatch)"
-    read -rp "$(t dns_continue) " dns_confirm < /dev/tty
-    [[ "${dns_confirm,,}" == "y" ]] || exit 1
   fi
 fi
 
@@ -96,7 +97,11 @@ CADDYFILE_HOST_PATH=""
 CADDY_NAME=""
 
 if [ -n "$DOMAIN" ]; then
-  CADDY_NAME=$(docker ps --format '{{.Names}}\t{{.Image}}' | awk -F'\t' '$2 ~ /caddy/ {print $1; exit}')
+  # SIMULATE_NO_CADDY=1 -- buat testing doang, biar bisa nge-tes jalur "belum ada Caddy"
+  # di VPS yang beneran udah ada Caddy, tanpa harus stop Caddy asli (zero downtime).
+  if [ "${SIMULATE_NO_CADDY:-}" != "1" ]; then
+    CADDY_NAME=$(docker ps --format '{{.Names}}\t{{.Image}}' | awk -F'\t' '$2 ~ /caddy/ {print $1; exit}')
+  fi
 
   if [ -n "$CADDY_NAME" ]; then
     echo "$(t caddy_found)"
