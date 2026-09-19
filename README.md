@@ -1,59 +1,59 @@
 # Kitab Link
 
-Self-hosted link-in-bio — alternatif Linktree tanpa iklan, tanpa biaya bulanan, dan datanya 100% punya kamu sendiri. Deploy 1 command lewat Docker, semua konfigurasi diatur dari dashboard (bukan file `.env`).
+Self-hosted link-in-bio alternative to Linktree — no ads, no monthly fees, and your data stays completely yours. Deploy in 1 command via Docker, configure everything from the dashboard (not via `.env` files).
 
-## Fitur
+## Features
 
-- **Multi-page dalam 1 akun** — kelola banyak halaman link (`/main`, `/side-project`, dst), masing-masing independen (link, tema, analytics sendiri-sendiri).
-- **Drag & drop link + grup** — susun ulang link dan grup langsung dari dashboard, lengkap dengan show/hide manual.
-- **Tema fleksibel** — preset siap pakai, editor penuh (warna, font, tombol, background animasi), plus export/import JSON dan library tema per akun.
-- **Tipe link lengkap** — URL biasa, WhatsApp (auto-format nomor), email, telepon, file upload, embed, accordion, dan crop gambar built-in buat avatar/thumbnail.
-- **Analytics** — views & klik per link/page, breakdown referrer, device, dan negara.
-- **Automation** — jadwal show/hide grup mingguan, badge "sedang live" otomatis (deteksi YouTube tanpa API key), auto-post dari RSS/Atom feed.
-- **Keamanan** — password-protect per page, kode akses sementara, 2FA (TOTP), API token + webhook buat integrasi eksternal.
-- **Backup & restore** — export/import link+grup (beserta icon) jadi file JSON.
-- **Log aktivitas** — riwayat perubahan link, grup, dan tema per page.
-- **SEO & branding** — custom OG image, favicon, custom CSS, privacy policy halaman sendiri, watermark yang bisa dimatiin.
-- **i18n** — dashboard & login mendukung Bahasa Indonesia dan English.
+- **Multiple pages in 1 account** — manage many link pages (`/main`, `/side-project`, etc.), each independent (links, theme, analytics).
+- **Drag & drop links + groups** — reorder links and groups directly from the dashboard, with manual show/hide toggle.
+- **Flexible theming** — ready-to-use presets, full editor (colors, fonts, buttons, animated backgrounds), plus JSON export/import and per-account theme library.
+- **Complete link types** — regular URLs, WhatsApp (auto-format numbers), email, phone, file uploads, embeds, accordions, and built-in image cropping for avatars/thumbnails.
+- **Analytics** — views & clicks per link/page, breakdown by referrer, device, and country.
+- **Automation** — weekly scheduled show/hide for groups, automatic "live now" badge (YouTube detection without API key), auto-post from RSS/Atom feeds.
+- **Security** — per-page password protection, temporary access codes, 2FA (TOTP), API tokens + webhooks for external integrations.
+- **Backup & restore** — export/import links+groups (including icons) as JSON files.
+- **Activity log** — change history for links, groups, and themes per page.
+- **SEO & branding** — custom OG images, favicon, custom CSS, self-hosted privacy policy page, optional watermarks.
+- **i18n** — dashboard & login support Indonesian and English.
 
 ## Quick Start (Docker)
 
-Cara tercepat, pakai image yang udah di-build (dari GHCR):
+Fastest way — use the pre-built image from GHCR:
 
 ```bash
 curl -O https://raw.githubusercontent.com/Kurohiko-id/Kitab-Link-Self-Hosted/main/docker-compose.yml
 docker compose up -d
 ```
 
-Migration database jalan otomatis pas container start. Buka `http://localhost:3000/setup` buat bikin akun admin pertama.
+Database migration runs automatically on container start. Open `http://localhost:3000/setup` to create your first admin account.
 
-**Update ke versi terbaru:**
+**Update to latest version:**
 
 ```bash
 docker compose pull && docker compose up -d
 ```
 
-**Lupa password?**
+**Forgot password?**
 
-Aplikasi ini gak pakai email/SMTP (single-user self-hosted, sengaja tanpa infra tambahan), jadi reset password dilakuin lewat log container, bukan lewat email:
+This app doesn't use email/SMTP (single-user self-hosted, intentionally minimal infrastructure), so password reset happens via container logs:
 
-1. Buka `/login/forgot-password`, masukin email akun kamu.
-2. Cek log container buat lihat token reset-nya (berlaku 15 menit):
+1. Go to `/login/forgot-password` and enter your username.
+2. Check the container logs for your reset token (valid for 15 minutes):
    ```bash
-   docker logs <nama-container>
+   docker logs <container-name>
    ```
-   Cari baris `Password reset token buat ...`.
-3. Buka `/login/reset-password`, masukin email, token, dan password baru.
+   Look for the line `Password reset token buat ...`.
+3. Go to `/login/reset-password`, enter your username, token, and new password.
 
 ## Tech Stack
 
 - **Framework:** Next.js (App Router, React Server Components)
-- **Database:** SQLite (better-sqlite3, WAL mode) + Drizzle ORM — satu file, gak butuh Postgres/MySQL terpisah
-- **Auth:** Cookie-based session (HMAC), argon2 untuk hash password, TOTP untuk 2FA
+- **Database:** SQLite (better-sqlite3, WAL mode) + Drizzle ORM — single file, no need for separate Postgres/MySQL
+- **Auth:** Cookie-based session (HMAC), argon2 for password hashing, TOTP for 2FA
 - **UI:** Tailwind CSS + shadcn/ui
 - **Drag & drop:** dnd-kit
-- **Image processing:** sharp (semua upload otomatis dikonversi ke WebP)
-- **Scheduler:** node-cron (in-process, gak perlu service terpisah)
+- **Image processing:** sharp (all uploads automatically converted to WebP)
+- **Scheduler:** node-cron (in-process, no separate service needed)
 
 ## Development
 
@@ -62,17 +62,17 @@ npm install
 npm run dev
 ```
 
-Buka `http://localhost:3000`. Migration jalan otomatis lewat Drizzle saat pertama kali start; kalau perlu manual:
+Open `http://localhost:3000`. Database migration runs automatically on first start via Drizzle; if you need to run it manually:
 
 ```bash
-npx drizzle-kit generate   # setelah ubah schema
+npx drizzle-kit generate   # after schema changes
 npx drizzle-kit migrate
 ```
 
 ## License
 
-[MIT](./LICENSE) — bebas dipakai, dimodifikasi, dan di-deploy ulang.
+[MIT](./LICENSE) — free to use, modify, and deploy.
 
 ## Credits
 
-Dibuat oleh **[Kurohiko](https://github.com/Kurohiko-id)**. Kalau project ini kepake dan pengen support, boleh mampir ke [Saweria](https://saweria.co/Kurohiko).
+Created by **[Kurohiko](https://github.com/Kurohiko-id)**. If you find this project useful and want to support, visit [Saweria](https://saweria.co/Kurohiko).
