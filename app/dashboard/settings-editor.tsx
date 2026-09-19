@@ -18,8 +18,9 @@ import type { Locale } from "@/lib/i18n";
 import type { LatestRelease } from "@/lib/update-check";
 import { saveProfileAction, changePasswordAction, type ChangePasswordState } from "./settings-actions";
 import { ActionForm } from "@/components/action-form";
-import { exportPageDataAction, importPageDataAction } from "./backup-actions";
+import { exportPageDataAction, importPageDataAction, type PageBackup } from "./backup-actions";
 import { deletePageAction, setPrimaryPageAction, setPagePassword } from "./page-actions";
+import { SlugForm } from "./slug-form";
 import { createTempAccessAction, revokeTempAccessAction } from "../[slug]/password-actions";
 import { SectionCard } from "./section-card";
 import { TotpSettings } from "./totp-settings";
@@ -103,7 +104,7 @@ export function SettingsEditor({
       {tab === "page" ? (
         <PageAccessTab page={page} isPrimaryPage={isPrimaryPage} accessCodes={accessCodes} t={t} locale={locale} />
       ) : null}
-      {tab === "seo" ? <SeoTab page={page} profile={profile} t={t} /> : null}
+      {tab === "seo" ? <SeoTab page={page} profile={profile} t={t} locale={locale} /> : null}
       {tab === "security" ? (
         <SecurityTab
           totpEnabled={totpEnabled}
@@ -330,13 +331,19 @@ function SeoTab({
   page,
   profile,
   t,
+  locale,
 }: {
   page: { id: number; slug: string };
   profile: ReturnType<typeof parseProfileData>;
   t: Dictionary;
+  locale: Locale;
 }) {
   return (
     <div className="flex flex-col gap-6">
+      <Card title={t.settings.slugSectionTitle} desc={t.settings.slugDesc}>
+        <SlugForm page={page} t={t} locale={locale} />
+      </Card>
+
       <Card title={t.settings.seoSectionTitle} desc={t.settings.seoDesc}>
         <ActionForm errorMessage={t.common.saveFailed} action={saveProfileAction.bind(null, page.id)} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
@@ -547,12 +554,21 @@ function CustomCssTab({
 }
 
 function BackupTab({ page, t }: { page: { id: number }; t: Dictionary }) {
+  const [exportTheme, setExportTheme] = useState(true);
+  const [exportProfile, setExportProfile] = useState(true);
+  const [exportLinks, setExportLinks] = useState(true);
+
   const [importFile, setImportFile] = useState<File | null>(null);
+  const [importText, setImportText] = useState<string | null>(null);
+  const [parsedBackup, setParsedBackup] = useState<PageBackup | null>(null);
+  const [importTheme, setImportTheme] = useState(true);
+  const [importLinks, setImportLinks] = useState(true);
+  const [confirming, setConfirming] = useState(false);
   const [message, setMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
   const [pending, setPending] = useState(false);
 
   async function handleExport() {
-    const data = await exportPageDataAction(page.id);
+    const data = await exportPageDataAction(page.id, { theme: exportTheme, profile: exportProfile, links: exportLinks });
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -562,48 +578,154 @@ function BackupTab({ page, t }: { page: { id: number }; t: Dictionary }) {
     URL.revokeObjectURL(url);
   }
 
+  async function handleFileChange(file: File | null) {
+    setImportFile(file);
+    setConfirming(false);
+    setMessage(null);
+    if (!file) {
+      setImportText(null);
+      setParsedBackup(null);
+      return;
+    }
+    const text = await file.text();
+    setImportText(text);
+    try {
+      const parsed: PageBackup = JSON.parse(text);
+      setParsedBackup(parsed);
+      setImportTheme(Boolean(parsed.theme));
+      setImportLinks(Boolean(parsed.links));
+    } catch {
+      setParsedBackup(null);
+    }
+  }
+
   async function handleImport() {
-    if (!importFile) return;
+    if (!importText) return;
     setPending(true);
     setMessage(null);
-    const text = await importFile.text();
-    const result = await importPageDataAction(page.id, text);
+    const result = await importPageDataAction(page.id, importText, { theme: importTheme, links: importLinks });
     setPending(false);
+    setConfirming(false);
     if (result.error) {
       setMessage({ type: "error", text: result.error });
       return;
     }
     setMessage({ type: "success", text: t.settings.importSuccess });
     setImportFile(null);
+    setImportText(null);
+    setParsedBackup(null);
   }
+
+  const selectedImportParts = [
+    importTheme && parsedBackup?.theme ? t.settings.backupPartTheme : null,
+    importLinks && parsedBackup?.links ? t.settings.backupPartLinks : null,
+  ].filter(Boolean);
 
   return (
     <div className="flex flex-col gap-6">
       <Card title={t.settings.backupTitle} desc={t.settings.backupDesc}>
-        <Button type="button" variant="outline" onClick={handleExport}>
-          {t.settings.exportButton}
-        </Button>
+        <div className="flex flex-col gap-3">
+          <span className="text-xs font-medium text-muted-foreground">{t.settings.backupIncludeLabel}</span>
+          <div className="flex flex-wrap gap-4">
+            <label className="flex items-center gap-1.5 text-sm">
+              <input type="checkbox" checked={exportTheme} onChange={(e) => setExportTheme(e.target.checked)} className="size-4 rounded accent-primary" />
+              {t.settings.backupPartTheme}
+            </label>
+            <label className="flex items-center gap-1.5 text-sm">
+              <input type="checkbox" checked={exportProfile} onChange={(e) => setExportProfile(e.target.checked)} className="size-4 rounded accent-primary" />
+              {t.settings.backupPartProfile}
+            </label>
+            <label className="flex items-center gap-1.5 text-sm">
+              <input type="checkbox" checked={exportLinks} onChange={(e) => setExportLinks(e.target.checked)} className="size-4 rounded accent-primary" />
+              {t.settings.backupPartLinks}
+            </label>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!exportTheme && !exportProfile && !exportLinks}
+            onClick={handleExport}
+            className="self-start"
+          >
+            {t.settings.exportButton}
+          </Button>
+        </div>
       </Card>
 
       <Card title={t.settings.importLabel}>
         <div className="flex flex-col gap-3">
-          <p className="rounded-lg bg-amber-50 p-3 text-xs font-medium text-amber-700 dark:bg-amber-950/50 dark:text-amber-400">
-            {t.settings.importWarning}
-          </p>
           <input
             type="file"
             accept="application/json"
-            onChange={(e) => setImportFile(e.target.files?.[0] ?? null)}
+            onChange={(e) => handleFileChange(e.target.files?.[0] ?? null)}
             className={FILE_INPUT_CLASS}
           />
+
+          {importFile && !parsedBackup ? <p className="text-sm text-destructive">{t.settings.importInvalidFile}</p> : null}
+
+          {parsedBackup ? (
+            <div className="flex flex-col gap-2 rounded-lg border p-3">
+              <span className="text-xs font-medium text-muted-foreground">{t.settings.backupIncludeLabel}</span>
+              <label className={cn("flex items-center gap-1.5 text-sm", !parsedBackup.theme && "opacity-50")}>
+                <input
+                  type="checkbox"
+                  checked={importTheme}
+                  disabled={!parsedBackup.theme}
+                  onChange={(e) => setImportTheme(e.target.checked)}
+                  className="size-4 rounded accent-primary"
+                />
+                {t.settings.backupPartTheme} {!parsedBackup.theme ? `(${t.settings.backupPartMissing})` : ""}
+              </label>
+              <label className={cn("flex items-center gap-1.5 text-sm", !parsedBackup.links && "opacity-50")}>
+                <input
+                  type="checkbox"
+                  checked={importLinks}
+                  disabled={!parsedBackup.links}
+                  onChange={(e) => setImportLinks(e.target.checked)}
+                  className="size-4 rounded accent-primary"
+                />
+                {t.settings.backupPartLinks} {!parsedBackup.links ? `(${t.settings.backupPartMissing})` : ""}
+              </label>
+            </div>
+          ) : null}
+
           {message ? (
             <p className={cn("text-sm", message.type === "error" ? "text-destructive" : "text-emerald-600")}>
               {message.text}
             </p>
           ) : null}
-          <Button type="button" variant="outline" disabled={!importFile || pending} onClick={handleImport} className="self-start">
-            {pending ? t.common.saving : t.settings.importButton}
-          </Button>
+
+          {confirming ? (
+            <div className="flex flex-col gap-3 rounded-lg bg-amber-50 p-3 dark:bg-amber-950/50">
+              <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                {t.settings.importWarning.replace("{parts}", selectedImportParts.join(", "))}
+              </p>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setConfirming(false)}>
+                  {t.common.cancel}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={pending}
+                  onClick={handleImport}
+                  className="bg-destructive text-white hover:bg-destructive/90"
+                >
+                  {pending ? t.common.saving : t.settings.importConfirmButton}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!parsedBackup || selectedImportParts.length === 0}
+              onClick={() => setConfirming(true)}
+              className="self-start"
+            >
+              {t.settings.importButton}
+            </Button>
+          )}
         </div>
       </Card>
     </div>

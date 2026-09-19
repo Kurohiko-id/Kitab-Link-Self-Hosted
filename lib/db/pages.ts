@@ -5,8 +5,14 @@ import { requireSession } from "@/lib/auth/require-session";
 
 // Top-level route di app/ -- kalau slug page persis sama, page-nya ke-shadow permanen
 // sama route asli (gak akan pernah keload). "r" dan "uploads" juga app-level route
-// (app/r/[linkId], app/uploads/[...path]).
-const RESERVED_SLUGS = new Set(["login", "setup", "dashboard", "api", "r", "uploads"]);
+// (app/r/[linkId], app/uploads/[...path]). Exported -- dipake juga buat validasi ganti
+// slug manual di page-actions.ts (changeSlugAction), bukan cuma auto-slugify di sini.
+export const RESERVED_SLUGS = new Set(["login", "setup", "dashboard", "api", "r", "uploads"]);
+
+// Sama persis sama hasil auto-slugify createPageForUser (lowercase, a-z0-9, dash pemisah,
+// gak boleh dash di ujung) -- dipake buat validasi input MANUAL (changeSlugAction), beda
+// dari auto-slugify yang otomatis "membersihkan" karakter aneh, input manual harus udah bersih.
+export const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 export async function getOrCreateDefaultPage(userId: number) {
   const [existing] = await db.select().from(pages).where(eq(pages.userId, userId)).limit(1);
