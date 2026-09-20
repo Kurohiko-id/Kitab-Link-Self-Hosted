@@ -4,6 +4,33 @@ import { db } from "@/lib/db";
 import { links, pages } from "@/lib/db/schema";
 import { verifyApiToken } from "@/lib/auth/api-tokens";
 
+// GET /api/v1/links/:id -> status 1 link doang (buat polling status dari luar,
+// mis. Stream Deck yang nge-refresh title tombol tiap N menit, tanpa toggle state-nya).
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const auth = req.headers.get("authorization");
+  const token = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
+  if (!token) return NextResponse.json({ error: "Missing bearer token" }, { status: 401 });
+
+  const identity = await verifyApiToken(token);
+  if (!identity) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+  if (!identity.scopes.includes("links:read")) {
+    return NextResponse.json({ error: "Token tidak punya scope links:read" }, { status: 403 });
+  }
+
+  const linkId = Number((await params).id);
+  if (!linkId) return NextResponse.json({ error: "ID link tidak valid" }, { status: 400 });
+
+  const [link] = await db
+    .select({ id: links.id, title: links.title, isActive: links.isActive })
+    .from(links)
+    .innerJoin(pages, eq(pages.id, links.pageId))
+    .where(and(eq(links.id, linkId), eq(pages.userId, identity.userId)))
+    .limit(1);
+  if (!link) return NextResponse.json({ error: "Link tidak ditemukan" }, { status: 404 });
+
+  return NextResponse.json(link);
+}
+
 // PATCH /api/v1/links/:id  { "active": true|false } atau body kosong = toggle.
 // Dibikin buat kontrol dari luar (Stream Deck dkk) via satu tombol.
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
