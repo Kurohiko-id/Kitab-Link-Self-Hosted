@@ -59,7 +59,8 @@ t() {
     ask_www) [ "$LANG_CODE" = id ] && echo "Tambahin www.$DOMAIN juga? [Y/n]" || echo "Also add www.$DOMAIN? [Y/n]" ;;
     ask_container) [ "$LANG_CODE" = id ] && echo "Nama container (kosongin buat default 'kitab-link'):" || echo "Container name (leave empty for default 'kitab-link'):" ;;
     container_taken) [ "$LANG_CODE" = id ] && echo "Nama itu udah kepake container lain. Coba nama lain:" || echo "That name is already used by another container. Try another:" ;;
-    no_docker) [ "$LANG_CODE" = id ] && echo "Docker belum terinstal. Install dulu: https://docs.docker.com/engine/install/" || echo "Docker isn't installed. Install it first: https://docs.docker.com/engine/install/" ;;
+    installing_docker) [ "$LANG_CODE" = id ] && echo "Docker belum ada -- install otomatis pakai script resmi Docker..." || echo "Docker isn't installed -- installing it automatically via Docker's official script..." ;;
+    docker_installed_relogin) [ "$LANG_CODE" = id ] && echo "Docker udah keinstall. Logout dulu terus SSH lagi (biar keanggotaan grup 'docker' aktif), baru jalanin ulang command yang sama." || echo "Docker is installed. Log out and SSH back in (so the 'docker' group membership takes effect), then run the same command again." ;;
     caddy_found) [ "$LANG_CODE" = id ] && echo "Caddy yang udah jalan ketemu (container: $CADDY_NAME) -- bakal disambungin ke situ, gak bikin proxy baru." || echo "Found an existing Caddy container ($CADDY_NAME) -- will hook into it instead of creating a new proxy." ;;
     caddy_ask) [ "$LANG_CODE" = id ] && echo "Belum ada Caddy (reverse proxy) di server ini. Mau sekalian dipasang? [Y/n]" || echo "No Caddy (reverse proxy) found on this server. Set it up now? [Y/n]" ;;
     dns_mismatch) [ "$LANG_CODE" = id ] && echo "FYI: domain '$DOMAIN' resolve ke $DOMAIN_IP, bukan IP server ini ($SERVER_IP). Normal kalau kamu pakai Cloudflare/CDN proxy di depan. Kalau BUKAN dan ini gak disengaja, cek DNS-nya -- SSL cert bisa gagal kalau salah arah." || echo "FYI: domain '$DOMAIN' resolves to $DOMAIN_IP, not this server's IP ($SERVER_IP). That's normal if you're using Cloudflare/a CDN proxy. If not, double-check your DNS -- SSL cert issuance can fail if it's pointed wrong." ;;
@@ -75,8 +76,13 @@ t() {
 # 2. Prasyarat
 # ---------------------------------------------------------------------------
 if ! command -v docker >/dev/null 2>&1; then
-  echo "$(t no_docker)"
-  exit 1
+  info "$(t installing_docker)"
+  # get.docker.com itu script resmi Docker sendiri (self-detects sudo, dukung banyak
+  # distro) -- lebih aman/terawat daripada nulis ulang langkah apt-repo manual di sini.
+  curl -fsSL https://get.docker.com | sh
+  sudo usermod -aG docker "$USER"
+  warn "$(t docker_installed_relogin)"
+  exit 0
 fi
 
 # ---------------------------------------------------------------------------

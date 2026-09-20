@@ -27,13 +27,19 @@ docker compose up -d
 
 Database migration runs automatically on container start. Open `http://localhost:3000/setup` to create your first admin account.
 
-**Already running other apps/domains on this server?** Use the interactive installer instead — it detects an existing Caddy reverse proxy (or offers to set one up), asks for a domain, and wires the network + Caddyfile + HTTPS automatically:
+### Easy Installation Method (recommended)
+
+An interactive installer that handles the whole setup for you:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Kurohiko-id/Kitab-Link-Self-Hosted/main/install.sh | bash
 ```
 
-It asks a few questions (language, install folder, domain, container name) and handles the rest. Leave the domain question empty if you just want plain `IP:3000` access — no reverse proxy needed in that case.
+- **Installs Docker automatically** if it isn't already on the server.
+- **Installs and configures Caddy automatically** (or hooks into your existing Caddy if you already run other apps/domains on this server) — HTTPS, reverse proxy, everything wired for you.
+- Just answers a few quick questions (language, install folder, domain, container name) and takes care of the rest.
+
+Leave the domain question empty if you just want plain `IP:3000` access — no reverse proxy needed in that case.
 
 **Update to latest version:**
 
