@@ -2,6 +2,8 @@
 
 Self-hosted link-in-bio alternative to Linktree — no ads, no monthly fees, and your data stays completely yours. Deploy in 1 command via Docker, configure everything from the dashboard (not via `.env` files).
 
+🌐 [Website](https://kitablink.my.id) • 🚀 [Live Demo](https://kurohiko.id) • 📖 [Docs](https://kitablink.my.id/docs)
+
 ## Features
 
 - **Multiple pages in 1 account** — manage many link pages (`/main`, `/side-project`, etc.), each independent (links, theme, analytics).
@@ -40,6 +42,8 @@ curl -fsSL https://raw.githubusercontent.com/Kurohiko-id/Kitab-Link-Self-Hosted/
 - Just answers a few quick questions (language, install folder, domain, container name) and takes care of the rest.
 
 Leave the domain question empty if you just want plain `IP:3000` access — no reverse proxy needed in that case.
+
+Want full control instead, or already have other apps/domains on the server? Follow [Manual Installation](https://kitablink.my.id/docs/manual-install.html) in the docs.
 
 **Update to latest version:**
 

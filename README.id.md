@@ -2,6 +2,8 @@
 
 Self-hosted link-in-bio — alternatif Linktree tanpa iklan, tanpa biaya bulanan, dan datanya 100% punya kamu sendiri. Deploy 1 command lewat Docker, semua konfigurasi diatur dari dashboard (bukan file `.env`).
 
+🌐 [Website](https://kitablink.my.id) • 🚀 [Live Demo](https://kurohiko.id) • 📖 [Docs](https://kitablink.my.id/docs)
+
 ## Fitur
 
 - **Multi-page dalam 1 akun** — kelola banyak halaman link (`/main`, `/side-project`, dst), masing-masing independen (link, tema, analytics sendiri-sendiri).
@@ -40,6 +42,8 @@ curl -fsSL https://raw.githubusercontent.com/Kurohiko-id/Kitab-Link-Self-Hosted/
 - Cukup jawab beberapa pertanyaan singkat (bahasa, folder install, domain, nama container), sisanya otomatis.
 
 Kosongin aja pertanyaan domain kalau cuma mau akses `IP:3000` polos — gak perlu reverse proxy buat itu.
+
+Mau kontrol penuh, atau server-nya udah ada app/domain lain? Ikuti [Manual Installation](https://kitablink.my.id/docs/manual-install.html) di docs.
 
 **Update ke versi terbaru:**
 
