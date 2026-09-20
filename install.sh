@@ -11,6 +11,35 @@
 
 set -euo pipefail
 
+# Warna cuma dinyalain kalau output-nya beneran ke terminal -- kalau di-pipe/redirect
+# ke file/log, kode escape ANSI bakal jadi sampah karakter di outputnya.
+if [ -t 1 ]; then
+  BOLD='\033[1m'; BLUE='\033[0;34m'; GREEN='\033[0;32m'; YELLOW='\033[0;33m'; RED='\033[0;31m'; NC='\033[0m'
+else
+  BOLD=''; BLUE=''; GREEN=''; YELLOW=''; RED=''; NC=''
+fi
+info()    { printf "%b\n" "${BLUE}i${NC}  $*"; }
+success() { printf "%b\n" "${GREEN}✓${NC}  $*"; }
+warn()    { printf "%b\n" "${YELLOW}!${NC}  $*"; }
+
+printf "%b" "${BLUE}"
+cat << 'BANNER'
+  _  _____ _____  _    ____    _     ___ _   _ _  __
+ | |/ /_ _|_   _|/ \  | __ )  | |   |_ _| \ | | |/ /
+ | ' / | |  | | / _ \ |  _ \  | |    | ||  \| | ' /
+ | . \ | |  | |/ ___ \| |_) | | |___ | || |\  | . \
+ |_|\_\___| |_/_/   \_\____/  |_____|___|_| \_|_|\_\
+BANNER
+printf "%b" "${NC}${BOLD}"
+cat << 'BANNER'
+  _           _  __            _    _ _
+ | |__ _  _  | |/ /  _ _ _ ___| |_ (_) |_____
+ | '_ \ || | | ' < || | '_/ _ \ ' \| | / / _ \
+ |_.__/\_, | |_|\_\_,_|_| \___/_||_|_|_\_\___/
+       |__/
+BANNER
+printf "%b\n\n" "${NC}"
+
 # ---------------------------------------------------------------------------
 # 1. Bahasa
 # ---------------------------------------------------------------------------
@@ -25,6 +54,7 @@ LANG_CODE="en"
 # atau nyampur ID/EN di tiap baris echo.
 t() {
   case "$1" in
+    ask_folder) [ "$LANG_CODE" = id ] && echo "Folder tempat install (kosongin buat default '~/apps'):" || echo "Install folder (leave empty for default '~/apps'):" ;;
     ask_domain) [ "$LANG_CODE" = id ] && echo "Domain buat Kitab Link (kosongin kalau cuma mau akses lewat IP:3000):" || echo "Domain for Kitab Link (leave empty to just use IP:3000):" ;;
     ask_www) [ "$LANG_CODE" = id ] && echo "Tambahin www.$DOMAIN juga? [Y/n]" || echo "Also add www.$DOMAIN? [Y/n]" ;;
     ask_container) [ "$LANG_CODE" = id ] && echo "Nama container (kosongin buat default 'kitab-link'):" || echo "Container name (leave empty for default 'kitab-link'):" ;;
@@ -34,6 +64,8 @@ t() {
     caddy_ask) [ "$LANG_CODE" = id ] && echo "Belum ada Caddy (reverse proxy) di server ini. Mau sekalian dipasang? [Y/n]" || echo "No Caddy (reverse proxy) found on this server. Set it up now? [Y/n]" ;;
     dns_mismatch) [ "$LANG_CODE" = id ] && echo "FYI: domain '$DOMAIN' resolve ke $DOMAIN_IP, bukan IP server ini ($SERVER_IP). Normal kalau kamu pakai Cloudflare/CDN proxy di depan. Kalau BUKAN dan ini gak disengaja, cek DNS-nya -- SSL cert bisa gagal kalau salah arah." || echo "FYI: domain '$DOMAIN' resolves to $DOMAIN_IP, not this server's IP ($SERVER_IP). That's normal if you're using Cloudflare/a CDN proxy. If not, double-check your DNS -- SSL cert issuance can fail if it's pointed wrong." ;;
     cloudflare_tip) [ "$LANG_CODE" = id ] && echo "Tips: kalau domain ini di belakang Cloudflare -- set ke 'DNS only' (awan abu-abu) dulu sampai cert didapat, baru balik 'Proxied'. Dan set SSL/TLS mode ke 'Full (strict)'." || echo "Tip: if this domain is behind Cloudflare -- set it to 'DNS only' (grey cloud) until the cert is issued, then switch back to 'Proxied'. Also set SSL/TLS mode to 'Full (strict)'." ;;
+    waiting) [ "$LANG_CODE" = id ] && echo "Nunggu Kitab Link siap..." || echo "Waiting for Kitab Link to be ready..." ;;
+    healthy) [ "$LANG_CODE" = id ] && echo "Kitab Link sehat dan jalan!" || echo "Kitab Link is healthy and running!" ;;
     done_msg) [ "$LANG_CODE" = id ] && echo "Selesai! Ambil token setup pertama kali:" || echo "Done! Grab your first-time setup token:" ;;
     visit) [ "$LANG_CODE" = id ] && echo "Lalu buka:" || echo "Then visit:" ;;
   esac
@@ -46,6 +78,15 @@ if ! command -v docker >/dev/null 2>&1; then
   echo "$(t no_docker)"
   exit 1
 fi
+
+# ---------------------------------------------------------------------------
+# 2.5 Folder install (dipakai buat app-nya sendiri, DAN buat Caddy kalau bikin baru --
+# kalau Caddy udah ada, folder-nya ya folder yang udah ada itu, gak kepengaruh ini).
+# ---------------------------------------------------------------------------
+echo "$(t ask_folder)"
+read -rp "> " folder_input < /dev/tty
+INSTALL_DIR="${folder_input:-$HOME/apps}"
+mkdir -p "$INSTALL_DIR"
 
 # ---------------------------------------------------------------------------
 # 3. Domain (opsional)
@@ -72,7 +113,7 @@ if [ -n "$DOMAIN_RAW" ]; then
   SERVER_IP=$(curl -fsS -4 ifconfig.me || echo "")
   DOMAIN_IP=$(dig +short "$DOMAIN" 2>/dev/null | tail -1 || echo "")
   if [ -n "$SERVER_IP" ] && [ -n "$DOMAIN_IP" ] && [ "$SERVER_IP" != "$DOMAIN_IP" ]; then
-    echo "$(t dns_mismatch)"
+    warn "$(t dns_mismatch)"
   fi
 fi
 
@@ -104,17 +145,17 @@ if [ -n "$DOMAIN" ]; then
   fi
 
   if [ -n "$CADDY_NAME" ]; then
-    echo "$(t caddy_found)"
+    info "$(t caddy_found)"
     CADDY_NETWORK=$(docker inspect "$CADDY_NAME" --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}' | head -1)
     CADDYFILE_HOST_PATH=$(docker inspect "$CADDY_NAME" --format '{{range .Mounts}}{{if eq .Destination "/etc/caddy/Caddyfile"}}{{.Source}}{{end}}{{end}}')
   else
     echo "$(t caddy_ask)"
     read -rp "> " caddy_confirm < /dev/tty
     if [ -z "$caddy_confirm" ] || [ "${caddy_confirm,,}" = "y" ]; then
-      mkdir -p ~/apps/proxy
-      touch ~/apps/proxy/Caddyfile
+      mkdir -p "$INSTALL_DIR"/proxy
+      touch "$INSTALL_DIR"/proxy/Caddyfile
       docker network create proxy 2>/dev/null || true
-      cat > ~/apps/proxy/docker-compose.yml << 'EOF'
+      cat > "$INSTALL_DIR"/proxy/docker-compose.yml << 'EOF'
 services:
   caddy:
     image: caddy:2-alpine
@@ -138,10 +179,10 @@ volumes:
   caddy_data:
   caddy_config:
 EOF
-      (cd ~/apps/proxy && docker compose up -d)
+      (cd "$INSTALL_DIR/proxy" && docker compose up -d)
       CADDY_NAME="caddy"
       CADDY_NETWORK="proxy"
-      CADDYFILE_HOST_PATH=~/apps/proxy/Caddyfile
+      CADDYFILE_HOST_PATH="$INSTALL_DIR"/proxy/Caddyfile
     fi
   fi
 fi
@@ -149,8 +190,8 @@ fi
 # ---------------------------------------------------------------------------
 # 6. Compose file Kitab Link
 # ---------------------------------------------------------------------------
-mkdir -p ~/apps/"$CONTAINER_NAME"
-cd ~/apps/"$CONTAINER_NAME"
+mkdir -p "$INSTALL_DIR"/"$CONTAINER_NAME"
+cd "$INSTALL_DIR"/"$CONTAINER_NAME"
 
 if [ -n "$CADDY_NETWORK" ]; then
   cat > docker-compose.yml << EOF
@@ -191,6 +232,15 @@ fi
 
 docker compose up -d
 
+info "$(t waiting)"
+for _ in $(seq 1 30); do
+  if [ "$(docker inspect -f '{{.State.Health.Status}}' "$CONTAINER_NAME" 2>/dev/null)" = "healthy" ]; then
+    success "$(t healthy)"
+    break
+  fi
+  sleep 1
+done
+
 # ---------------------------------------------------------------------------
 # 7. Tambahin ke Caddyfile (kalau ada domain)
 # ---------------------------------------------------------------------------
@@ -213,7 +263,7 @@ fi
 # 8. Selesai
 # ---------------------------------------------------------------------------
 echo ""
-echo "$(t done_msg)"
+success "$(t done_msg)"
 echo "  docker logs $CONTAINER_NAME | grep \"Setup token\""
 echo ""
 echo "$(t visit)"

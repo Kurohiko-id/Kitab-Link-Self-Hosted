@@ -27,6 +27,14 @@ docker compose up -d
 
 Migration database jalan otomatis pas container start. Buka `http://localhost:3000/setup` buat bikin akun admin pertama.
 
+**Udah ada app/domain lain jalan di server ini?** Pakai installer interaktif aja — dia deteksi Caddy (reverse proxy) yang udah ada (atau nawarin buat pasang kalau belum ada), nanya domain, terus otomatis nyambungin network + Caddyfile + HTTPS:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Kurohiko-id/Kitab-Link-Self-Hosted/main/install.sh | bash
+```
+
+Bakal ditanya beberapa hal (bahasa, folder install, domain, nama container), sisanya otomatis. Kosongin aja pertanyaan domain kalau cuma mau akses `IP:3000` polos — gak perlu reverse proxy buat itu.
+
 **Update ke versi terbaru:**
 
 ```bash
