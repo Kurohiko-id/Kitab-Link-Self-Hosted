@@ -37,6 +37,11 @@ export function buildPublicPageMetadata(
     openGraph: {
       title,
       description,
+      // Next.js gak nge-derive og:url/og:type otomatis dari `alternates.canonical` --
+      // itu 2 sistem metadata beda. Tanpa ini eksplisit, Facebook Sharing Debugger
+      // nge-flag "required properties are missing: og:url, og:type".
+      type: "website",
+      url: `${baseUrl}${canonicalPath}`,
       images: [{ url: imageUrl, width: 1200, height: 630 }],
     },
     twitter: {
