@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, useRef, useTransition, type ReactNode } from "react";
 
 // Pengganti <form action={someServerAction.bind(...)}> buat form EDIT data persisten yang
 // field-nya defaultValue (uncontrolled) -- kalau langsung pake `action` prop, React 19
@@ -36,6 +36,21 @@ export function ActionForm({
   const [version, setVersion] = useState(0);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState(false);
+  // router.refresh() itu ASYNC (fetch ulang RSC payload) -- kalau version di-bump
+  // LANGSUNG abis dipanggil, form ke-remount duluan pakai props LAMA (refresh-nya
+  // belum kelar), dan gak remount lagi pas data baru beneran nyampe (version udah gak
+  // berubah lagi) -> field nyangkut nilai lama sampe di-refresh manual. useTransition
+  // di sini buat nunggu refresh-nya BENERAN kelar (isRefreshing balik false) sebelum
+  // baru bump version, biar remount-nya kena props yang udah fresh.
+  const [isRefreshing, startRefresh] = useTransition();
+  const remountPendingRef = useRef(false);
+
+  useEffect(() => {
+    if (remountPendingRef.current && !isRefreshing) {
+      remountPendingRef.current = false;
+      setVersion((v) => v + 1);
+    }
+  }, [isRefreshing]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -46,8 +61,8 @@ export function ActionForm({
     setError(false);
     try {
       await action(new FormData(e.currentTarget));
-      setVersion((v) => v + 1);
-      router.refresh();
+      remountPendingRef.current = true;
+      startRefresh(() => router.refresh());
     } catch {
       // Server error/koneksi putus -- tanpa try/catch ini, exception ilang gitu aja (form
       // diem, user ngira kesimpen padahal enggak). Gak perlu detail error-nya di sini,
