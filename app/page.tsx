@@ -30,8 +30,10 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // Kalau ada page yang di-set jadi "primary" (Settings -> Domain & Access di dashboard),
 // domain root langsung nampilin page itu APA ADANYA, URL-nya tetep "/" (gak ada redirect
-// ke "/${slug}"). Kalau belum ada yang di-set, balik ke behavior lama: redirect ke
-// /dashboard (yang otomatis minta login sendiri kalau belum ada sesi).
+// ke "/${slug}"). Kalau belum ada yang di-set (fresh install), redirect ke /main --
+// slug default yang dibuat getOrCreateDefaultPage() pas /setup -- biar visitor gak nyasar
+// ke halaman login. Kalau page "main" pun belum ada (belum pernah /setup sama sekali),
+// baru fallback ke /dashboard (bakal mental ke /login sendiri).
 export default async function Home({
   searchParams,
 }: {
@@ -39,7 +41,8 @@ export default async function Home({
 }) {
   const page = await getPrimaryPage();
   if (!page) {
-    redirect("/dashboard");
+    const [mainPage] = await db.select({ id: pages.id }).from(pages).where(eq(pages.slug, "main")).limit(1);
+    redirect(mainPage ? "/main" : "/dashboard");
   }
   const campaignSource = getCampaignSource(await searchParams);
   return <PublicPageBody page={page} redirectTo="/" campaignSource={campaignSource} />;
