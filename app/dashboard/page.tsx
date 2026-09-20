@@ -433,7 +433,7 @@ export default async function DashboardPage({
                   user?.totpBackupCodesJson ? (JSON.parse(user.totpBackupCodesJson) as string[]).length : 0
                 }
                 version={CURRENT_VERSION}
-                availableUpdate={availableUpdate}
+                availableUpdate={rawUpdate}
                 t={t}
                 locale={locale}
               />
