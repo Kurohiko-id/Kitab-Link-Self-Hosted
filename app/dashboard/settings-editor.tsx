@@ -562,6 +562,7 @@ function BackupTab({ page, t }: { page: { id: number }; t: Dictionary }) {
   const [importText, setImportText] = useState<string | null>(null);
   const [parsedBackup, setParsedBackup] = useState<PageBackup | null>(null);
   const [importTheme, setImportTheme] = useState(true);
+  const [importProfile, setImportProfile] = useState(true);
   const [importLinks, setImportLinks] = useState(true);
   const [confirming, setConfirming] = useState(false);
   const [message, setMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
@@ -593,6 +594,7 @@ function BackupTab({ page, t }: { page: { id: number }; t: Dictionary }) {
       const parsed: PageBackup = JSON.parse(text);
       setParsedBackup(parsed);
       setImportTheme(Boolean(parsed.theme));
+      setImportProfile(Boolean(parsed.profile));
       setImportLinks(Boolean(parsed.links));
     } catch {
       setParsedBackup(null);
@@ -603,7 +605,11 @@ function BackupTab({ page, t }: { page: { id: number }; t: Dictionary }) {
     if (!importText) return;
     setPending(true);
     setMessage(null);
-    const result = await importPageDataAction(page.id, importText, { theme: importTheme, links: importLinks });
+    const result = await importPageDataAction(page.id, importText, {
+      theme: importTheme,
+      profile: importProfile,
+      links: importLinks,
+    });
     setPending(false);
     setConfirming(false);
     if (result.error) {
@@ -618,6 +624,7 @@ function BackupTab({ page, t }: { page: { id: number }; t: Dictionary }) {
 
   const selectedImportParts = [
     importTheme && parsedBackup?.theme ? t.settings.backupPartTheme : null,
+    importProfile && parsedBackup?.profile ? t.settings.backupPartProfile : null,
     importLinks && parsedBackup?.links ? t.settings.backupPartLinks : null,
   ].filter(Boolean);
 
@@ -675,6 +682,16 @@ function BackupTab({ page, t }: { page: { id: number }; t: Dictionary }) {
                   className="size-4 rounded accent-primary"
                 />
                 {t.settings.backupPartTheme} {!parsedBackup.theme ? `(${t.settings.backupPartMissing})` : ""}
+              </label>
+              <label className={cn("flex items-center gap-1.5 text-sm", !parsedBackup.profile && "opacity-50")}>
+                <input
+                  type="checkbox"
+                  checked={importProfile}
+                  disabled={!parsedBackup.profile}
+                  onChange={(e) => setImportProfile(e.target.checked)}
+                  className="size-4 rounded accent-primary"
+                />
+                {t.settings.backupPartProfile} {!parsedBackup.profile ? `(${t.settings.backupPartMissing})` : ""}
               </label>
               <label className={cn("flex items-center gap-1.5 text-sm", !parsedBackup.links && "opacity-50")}>
                 <input
