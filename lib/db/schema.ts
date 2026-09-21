@@ -317,6 +317,15 @@ export const activityLogs = sqliteTable("activity_logs", {
     .references(() => pages.id, { onDelete: "cascade" }),
   action: text("action").notNull(),
   detail: text("detail"),
+  // Siapa/apa yang nge-trigger aksi ini -- default "dashboard" (aksi manual user di UI)
+  // biar semua call site logActivity() yang UDAH ADA gak perlu diubah sama sekali.
+  // "automation" = cron rule (scheduled-rules/content-feeds), "api" = API token eksternal
+  // (Stream Deck dkk, lihat app/api/v1/links/[id]/route.ts).
+  source: text("source", { enum: ["dashboard", "automation", "api"] })
+    .notNull()
+    .default("dashboard"),
+  // Nama rule automation-nya, atau nama token API-nya -- null kalau source "dashboard".
+  sourceLabel: text("source_label"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),

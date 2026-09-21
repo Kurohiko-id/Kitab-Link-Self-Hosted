@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { liveBadges } from "@/lib/db/schema";
 import { checkYoutubeLive } from "@/lib/youtube-live";
+import { logActivity } from "@/lib/db/activity-log";
 
 type LiveBadgeRow = typeof liveBadges.$inferSelect;
 
@@ -13,6 +14,7 @@ export async function checkAndUpdateLiveBadge(row: LiveBadgeRow) {
   if (status === null) return null;
 
   const wentLive = status.isLive && !row.isLive;
+  const stateChanged = status.isLive !== row.isLive;
   const now = new Date();
   await db
     .update(liveBadges)
@@ -23,6 +25,10 @@ export async function checkAndUpdateLiveBadge(row: LiveBadgeRow) {
       ...(wentLive ? { lastLiveAt: now } : {}),
     })
     .where(eq(liveBadges.id, row.id));
+
+  if (stateChanged) {
+    logActivity(row.pageId, status.isLive ? "live_badge_on" : "live_badge_off", row.label, "automation", "Live Badge");
+  }
 
   return status;
 }

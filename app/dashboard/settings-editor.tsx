@@ -841,7 +841,13 @@ function ActivityLogTab({ entries, t, locale }: { entries: ActivityLogRow[]; t: 
             const message = template.replace("{detail}", entry.detail ?? "—");
             return (
               <li key={entry.id} className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm">
-                <span>{message}</span>
+                <span className="flex flex-wrap items-center gap-1.5">
+                  {entry.source === "automation" ? <Badge variant="sky">{entry.sourceLabel}</Badge> : null}
+                  {entry.source === "api" ? (
+                    <Badge variant="amber">{t.settings.activityLogSourceApi.replace("{detail}", entry.sourceLabel ?? "")}</Badge>
+                  ) : null}
+                  <span>{message}</span>
+                </span>
                 <span className="shrink-0 text-xs text-muted-foreground">
                   <LocalTime date={entry.createdAt} locale={dateLocale} />
                 </span>

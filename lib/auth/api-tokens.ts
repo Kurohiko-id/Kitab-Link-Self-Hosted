@@ -29,7 +29,7 @@ export async function createApiToken(userId: number, name: string, scopes: strin
 
 export async function verifyApiToken(
   rawToken: string,
-): Promise<{ userId: number; scopes: string[] } | null> {
+): Promise<{ userId: number; scopes: string[]; name: string } | null> {
   if (!rawToken.startsWith(TOKEN_PREFIX)) return null;
 
   const [row] = await db
@@ -39,5 +39,5 @@ export async function verifyApiToken(
     .limit(1);
 
   if (!row) return null;
-  return { userId: row.userId, scopes: JSON.parse(row.scopesJson) as string[] };
+  return { userId: row.userId, scopes: JSON.parse(row.scopesJson) as string[], name: row.name };
 }

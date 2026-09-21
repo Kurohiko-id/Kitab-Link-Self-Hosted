@@ -3,8 +3,15 @@ import { db } from "@/lib/db";
 import { linkGroups, links, scheduledRules } from "@/lib/db/schema";
 import { checkYoutubeLive } from "@/lib/youtube-live";
 import { evaluateWeeklySchedule, type WeeklyScheduleConfig } from "@/lib/schedule-evaluate";
+import { logActivity } from "@/lib/db/activity-log";
 
 type ScheduledRuleRow = typeof scheduledRules.$inferSelect;
+
+// Nama fitur ini di Activity Log -- generik "Auto Show" buat semua trigger type (youtube_live
+// ATAUPUN weekly_schedule), sesuai permintaan user, bukan dibedain per mekanisme.
+function ruleLabel(): string {
+  return "Auto Show";
+}
 
 // Dipakai semua trigger type -> nulis ke target (group/link) cuma kalau state-nya
 // beneran berubah, lastState dipakai generik ("live" = tampil, "offline" = sembunyi).
@@ -14,9 +21,19 @@ async function applyRuleState(rule: ScheduledRuleRow, desiredVisible: boolean) {
 
   if (changed) {
     if (rule.targetType === "group") {
-      await db.update(linkGroups).set({ isVisible: desiredVisible }).where(eq(linkGroups.id, rule.targetId));
+      const [updated] = await db
+        .update(linkGroups)
+        .set({ isVisible: desiredVisible })
+        .where(eq(linkGroups.id, rule.targetId))
+        .returning();
+      logActivity(rule.pageId, desiredVisible ? "group_shown" : "group_hidden", updated?.name ?? null, "automation", ruleLabel());
     } else {
-      await db.update(links).set({ isActive: desiredVisible }).where(eq(links.id, rule.targetId));
+      const [updated] = await db
+        .update(links)
+        .set({ isActive: desiredVisible })
+        .where(eq(links.id, rule.targetId))
+        .returning();
+      logActivity(rule.pageId, desiredVisible ? "link_shown" : "link_hidden", updated?.title ?? null, "automation", ruleLabel());
     }
   }
 

@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { contentFeeds, links } from "@/lib/db/schema";
 import { processImage } from "@/lib/images/process-image";
 import { saveImage } from "@/lib/images/storage";
+import { logActivity } from "@/lib/db/activity-log";
 
 // Batasi berapa item baru yang dibikinin link sekaligus per cek -- feed yang lama gak
 // pernah dicek (atau ganti total isinya) gak boleh nge-flood puluhan link sekaligus.
@@ -96,11 +97,12 @@ async function processSingleFeed(feed: ContentFeedRow) {
     for (const item of [...newItems].reverse()) {
       const thumbnailPath = feed.richPreview ? await tryFetchThumbnail(extractThumbnailUrl(item) ?? "") : null;
 
+      const title = item.title || "Untitled";
       await db.insert(links).values({
         pageId: feed.pageId,
         groupId: feed.groupId,
         orderIndex: nextOrder,
-        title: item.title || "Untitled",
+        title,
         url: item.link || "",
         description: feed.richPreview ? (item.contentSnippet?.slice(0, 200) ?? null) : null,
         displayStyle: feed.richPreview ? "rich" : "pill",
@@ -108,6 +110,7 @@ async function processSingleFeed(feed: ContentFeedRow) {
         linkType: "url",
         isActive: true,
       });
+      logActivity(feed.pageId, "link_created", title, "automation", feed.label || "RSS/Atom Feed");
       nextOrder -= 1;
     }
   }
