@@ -1,8 +1,12 @@
+<p align="center">
+  <img src="public/logo.png" alt="Kitab Link" width="96">
+</p>
+
 # Kitab Link
 
 Self-hosted link-in-bio — alternatif Linktree tanpa iklan, tanpa biaya bulanan, dan datanya 100% punya kamu sendiri. Deploy 1 command lewat Docker, semua konfigurasi diatur dari dashboard (bukan file `.env`).
 
-🌐 [Website](https://kitablink.my.id) • 🚀 [Live Demo](https://kurohiko.id) • 📖 [Docs](https://kitablink.my.id/docs)
+🌐 [Website](https://kitablink.my.id) • 🚀 [Live Demo](https://kurohiko.id) • 📖 [Docs](https://kitablink.my.id/docs) • ☕ [Support](https://saweria.co/Kurohiko)
 
 ## Fitur
 
@@ -43,7 +47,9 @@ curl -fsSL https://raw.githubusercontent.com/Kurohiko-id/Kitab-Link-Self-Hosted/
 
 Kosongin aja pertanyaan domain kalau cuma mau akses `IP:3000` polos — gak perlu reverse proxy buat itu.
 
-Mau kontrol penuh, atau server-nya udah ada app/domain lain? Ikuti [Manual Installation](https://kitablink.my.id/docs/manual-install.html) di docs.
+Panduan lengkap dengan screenshot: [Instalasi Mudah](https://kitablink.my.id/docs#easy-install) di docs.
+
+Mau kontrol penuh, atau server-nya udah ada app/domain lain? Ikuti panduan [Manual Installation](https://kitablink.my.id/docs/manual-install.html) di docs — dipandu langkah demi langkah, pelan-pelan. Ada juga [tutorial videonya di YouTube](https://www.youtube.com/watch?v=8lAqI0KibbU).
 
 **Update ke versi terbaru:**
 
@@ -93,4 +99,4 @@ npx drizzle-kit migrate
 
 ## Credits
 
-Dibuat oleh **[Kurohiko](https://github.com/Kurohiko-id)**. Kalau project ini kepake dan pengen support, boleh mampir ke [Saweria](https://saweria.co/Kurohiko).
+Dibuat oleh **[Kurohiko](https://github.com/Kurohiko-id)**. Kalau project ini kepake dan pengen support, boleh mampir ke [Saweria](https://saweria.co/Kurohiko), atau bisa support Top Up di toko gw: [KurohikoTopUp.com](https://kurohikotopup.com).
