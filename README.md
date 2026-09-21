@@ -6,7 +6,7 @@
 
 Self-hosted link-in-bio alternative to Linktree — no ads, no monthly fees, and your data stays completely yours. Deploy in 1 command via Docker, configure everything from the dashboard (not via `.env` files).
 
-🌐 [Website](https://kitablink.my.id) • 🚀 [Live Demo](https://kurohiko.id) • 📖 [Docs](https://kitablink.my.id/docs) • ☕ [Support](https://saweria.co/Kurohiko)
+🌐 [Website](https://kitablink.my.id) • 🚀 [Live Demo](https://kurohiko.id) • 📖 [Docs](https://kitablink.my.id/docs) • ☕ [Support](https://saweria.co/Kurohiko) • 💎 [Top Up](https://kurohikotopup.com)
 
 ## Features
 
@@ -99,4 +99,4 @@ npx drizzle-kit migrate
 
 ## Credits
 
-Created by **[Kurohiko](https://github.com/Kurohiko-id)**. If you find this project useful and want to support, visit [Saweria](https://saweria.co/Kurohiko), or support by topping up games at his store: [KurohikoTopUp.com](https://kurohikotopup.com).
+Created by **[Kurohiko](https://github.com/Kurohiko-id)**. If you find this project useful and want to support, visit [Saweria](https://saweria.co/Kurohiko), or top up your games at [KurohikoTopUp.com](https://kurohikotopup.com).
