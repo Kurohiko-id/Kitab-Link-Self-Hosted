@@ -1,8 +1,12 @@
+<p align="center">
+  <img src="public/logo.png" alt="Kitab Link" width="96">
+</p>
+
 # Kitab Link
 
 Self-hosted link-in-bio alternative to Linktree — no ads, no monthly fees, and your data stays completely yours. Deploy in 1 command via Docker, configure everything from the dashboard (not via `.env` files).
 
-🌐 [Website](https://kitablink.my.id) • 🚀 [Live Demo](https://kurohiko.id) • 📖 [Docs](https://kitablink.my.id/docs)
+🌐 [Website](https://kitablink.my.id) • 🚀 [Live Demo](https://kurohiko.id) • 📖 [Docs](https://kitablink.my.id/docs) • ☕ [Support](https://saweria.co/Kurohiko)
 
 ## Features
 
@@ -43,7 +47,9 @@ curl -fsSL https://raw.githubusercontent.com/Kurohiko-id/Kitab-Link-Self-Hosted/
 
 Leave the domain question empty if you just want plain `IP:3000` access — no reverse proxy needed in that case.
 
-Want full control instead, or already have other apps/domains on the server? Follow [Manual Installation](https://kitablink.my.id/docs/manual-install.html) in the docs.
+Full walkthrough with screenshots: [Easy Installation Method](https://kitablink.my.id/docs#easy-install) in the docs.
+
+Want full control instead, or already have other apps/domains on the server? Follow the [Manual Installation](https://kitablink.my.id/docs/manual-install.html) guide in the docs — it walks you through everything step by step, nice and slow. There's also a [video walkthrough on YouTube](https://www.youtube.com/watch?v=8lAqI0KibbU).
 
 **Update to latest version:**
 
@@ -93,4 +99,4 @@ npx drizzle-kit migrate
 
 ## Credits
 
-Created by **[Kurohiko](https://github.com/Kurohiko-id)**. If you find this project useful and want to support, visit [Saweria](https://saweria.co/Kurohiko).
+Created by **[Kurohiko](https://github.com/Kurohiko-id)**. If you find this project useful and want to support, visit [Saweria](https://saweria.co/Kurohiko), or support by topping up games at his store: [KurohikoTopUp.com](https://kurohikotopup.com).
