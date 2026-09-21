@@ -6,7 +6,7 @@
 
 Self-hosted link-in-bio — alternatif Linktree tanpa iklan, tanpa biaya bulanan, dan datanya 100% punya kamu sendiri. Deploy 1 command lewat Docker, semua konfigurasi diatur dari dashboard (bukan file `.env`).
 
-🌐 [Website](https://kitablink.my.id) • 🚀 [Live Demo](https://kurohiko.id) • 📖 [Docs](https://kitablink.my.id/docs) • ☕ [Support](https://saweria.co/Kurohiko)
+🌐 [Website](https://kitablink.my.id) • 🚀 [Live Demo](https://kurohiko.id) • 📖 [Docs](https://kitablink.my.id/docs) • ☕ [Saweria](https://saweria.co/Kurohiko) • 💎 [Top Up](https://kurohikotopup.com)
 
 ## Fitur
 
