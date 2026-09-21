@@ -8,7 +8,7 @@ import { requireOwnedPage } from "@/lib/db/pages";
 import { getBoardData, type BoardLink } from "@/lib/db/board";
 import { getThemeForPage, uniqueThemeName } from "@/lib/db/theme";
 import { parseThemeTokens, type ThemeTokens } from "@/lib/theme";
-import { parseProfileData, type ProfileData } from "@/lib/profile";
+import { parseProfileData, DEFAULT_PROFILE, type ProfileData } from "@/lib/profile";
 import { logActivity } from "@/lib/db/activity-log";
 
 // Backup gabungan Theme + Profile + Links, masing-masing OPSIONAL (lihat BackupScope) --
@@ -19,7 +19,7 @@ import { logActivity } from "@/lib/db/activity-log";
 const BACKUP_VERSION = 3;
 
 export type BackupScope = { theme: boolean; profile: boolean; links: boolean };
-export type ImportScope = { theme: boolean; links: boolean };
+export type ImportScope = { theme: boolean; profile: boolean; links: boolean };
 
 type BackupLink = Omit<BoardLink, "id" | "groupId" | "thumbnailPath">;
 type BackupLinks = { groups: { name: string; isVisible: boolean; links: BackupLink[] }[]; ungrouped: BackupLink[] };
@@ -90,6 +90,25 @@ export async function importPageDataAction(
       .returning();
     await db.update(pages).set({ themeId: created.id }).where(eq(pages.id, pageId));
     importedParts.push("theme");
+  }
+
+  if (scope.profile && backup.profile) {
+    // Import cuma jalan kalau backup-nya BENERAN punya profile -- kalau file yang
+    // di-import gak nyertain profile sama sekali (mis. hasil export "Links doang"),
+    // profile page yang lagi jalan sekarang gak disentuh sama sekali (gak di-reset kosong).
+    const profile: ProfileData = {
+      ...DEFAULT_PROFILE,
+      ...backup.profile,
+      // Path gambar (avatar/banner/OG/favicon) nunjuk ke file upload yang gak ikut
+      // kebawa di JSON ini -- kalau diisi ulang apa adanya, <img>-nya patah (404 di page
+      // tujuan). Null-in biar fallback ke placeholder/auto-generate seperti page baru.
+      avatarPath: null,
+      bannerPath: null,
+      ogImagePath: null,
+      faviconPath: null,
+    };
+    await db.update(pages).set({ profileJson: JSON.stringify(profile) }).where(eq(pages.id, pageId));
+    importedParts.push("profile");
   }
 
   if (scope.links && backup.links) {
