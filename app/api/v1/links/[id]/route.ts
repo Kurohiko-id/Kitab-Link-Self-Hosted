@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { links, pages } from "@/lib/db/schema";
 import { verifyApiToken } from "@/lib/auth/api-tokens";
+import { logActivity } from "@/lib/db/activity-log";
 
 // GET /api/v1/links/:id -> status 1 link doang (buat polling status dari luar,
 // mis. Stream Deck yang nge-refresh title tombol tiap N menit, tanpa toggle state-nya).
@@ -48,7 +49,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!linkId) return NextResponse.json({ error: "ID link tidak valid" }, { status: 400 });
 
   const [link] = await db
-    .select({ id: links.id, isActive: links.isActive, pageId: links.pageId })
+    .select({ id: links.id, title: links.title, isActive: links.isActive, pageId: links.pageId })
     .from(links)
     .innerJoin(pages, eq(pages.id, links.pageId))
     .where(and(eq(links.id, linkId), eq(pages.userId, identity.userId)))
@@ -64,6 +65,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   const nextActive = typeof body.active === "boolean" ? body.active : !link.isActive;
   await db.update(links).set({ isActive: nextActive }).where(eq(links.id, linkId));
+  logActivity(link.pageId, nextActive ? "link_shown" : "link_hidden", link.title, "api", identity.name);
 
   return NextResponse.json({ id: linkId, isActive: nextActive });
 }

@@ -17,13 +17,25 @@ export type ActivityAction =
   | "theme_edited"
   | "css_updated"
   | "profile_updated"
-  | "backup_imported";
+  | "backup_imported"
+  | "live_badge_on"
+  | "live_badge_off";
+
+export type ActivitySource = "dashboard" | "automation" | "api";
 
 // Fire-and-forget kayak recordPageView/recordLinkClick di lib/db/analytics.ts -- gagal
 // nyatet log gak boleh sampe bikin aksi utamanya (hide/show/tambah link, dst) gagal.
-export function logActivity(pageId: number, action: ActivityAction, detail: string | null) {
+// source default "dashboard" -- semua call site lama (aksi manual dashboard) gak perlu
+// diubah, cuma call site baru (cron automation, API token) yang perlu isi source+label.
+export function logActivity(
+  pageId: number,
+  action: ActivityAction,
+  detail: string | null,
+  source: ActivitySource = "dashboard",
+  sourceLabel: string | null = null,
+) {
   db.insert(activityLogs)
-    .values({ pageId, action, detail })
+    .values({ pageId, action, detail, source, sourceLabel })
     .catch((err) => console.error("[activity-log] gagal catat:", err));
 }
 
