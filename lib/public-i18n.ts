@@ -28,6 +28,7 @@ const publicDict = {
     checkingLabel: "Memeriksa...",
     wrongPasswordError: "Password salah.",
     tooManyAttemptsError: "Terlalu banyak percobaan salah. Coba lagi beberapa menit lagi.",
+    countdownLockedToast: (time: string) => `Link ini baru bisa diakses ${time} lagi`,
   },
   en: {
     isLiveNow: (name: string) => `${name} is live`,
@@ -45,6 +46,7 @@ const publicDict = {
     checkingLabel: "Checking...",
     wrongPasswordError: "Wrong password.",
     tooManyAttemptsError: "Too many failed attempts. Try again in a few minutes.",
+    countdownLockedToast: (time: string) => `This link unlocks in ${time}`,
   },
 };
 

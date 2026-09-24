@@ -123,7 +123,10 @@ export const links = sqliteTable("links", {
   // nomor, file -> path upload sendiri ATAU url eksternal, embed -> url yang di-iframe-in,
   // copy -> teks bebas yang di-copy ke clipboard pas diklik (kode promo, no. rekening, dll),
   // accordion -> JSON stringified array of {label, value} (list yang expand/collapse pas diklik).
-  linkType: text("link_type", { enum: ["url", "email", "phone", "whatsapp", "file", "embed", "copy", "accordion"] })
+  // countdown -> JSON stringified {endsAt, url} (target waktu ISO + link tujuan setelah lewat).
+  linkType: text("link_type", {
+    enum: ["url", "email", "phone", "whatsapp", "file", "embed", "copy", "accordion", "countdown"],
+  })
     .notNull()
     .default("url"),
   featured: integer("featured", { mode: "boolean" }).notNull().default(false),

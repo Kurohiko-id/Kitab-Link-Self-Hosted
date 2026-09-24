@@ -13,7 +13,7 @@ import { logActivity } from "@/lib/db/activity-log";
 
 const MAX_THUMBNAIL_WIDTH = 800;
 const MAX_LINK_FILE_BYTES = 20 * 1024 * 1024; // 20MB, cukup buat PDF/dokumen umum
-const VALID_LINK_TYPES: LinkType[] = ["url", "email", "phone", "whatsapp", "file", "embed", "copy", "accordion"];
+const VALID_LINK_TYPES: LinkType[] = ["url", "email", "phone", "whatsapp", "file", "embed", "copy", "accordion", "countdown"];
 
 // File link tipe "file" bisa berupa url eksternal ATAU upload sendiri (path relatif
 // "link-files/..") -> ini yang dites, bukan http(s) berarti upload lokal, aman dihapus.

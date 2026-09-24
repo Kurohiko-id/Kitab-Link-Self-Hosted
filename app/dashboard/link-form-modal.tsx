@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Plus, Trash2 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ChevronDown, Plus, Star, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,16 +11,17 @@ import { SelectField } from "@/components/ui/select-field";
 import { IconPicker, EmojiPicker } from "@/components/icon-picker";
 import { CropFileInput } from "@/components/crop-file-input";
 import { GroupFormModal, type GroupModalState } from "./group-form-modal";
-import { cn } from "@/lib/utils";
+import { DateTimePicker } from "@/components/datetime-picker";
+import { cn, FILE_INPUT_CLASS } from "@/lib/utils";
 import type { BoardLink, DisplayStyle, LinkType } from "@/lib/db/board";
-import type { Dictionary } from "@/lib/i18n";
-import { parseAccordionItems, type AccordionItem } from "@/lib/link-render";
+import type { Dictionary, Locale } from "@/lib/i18n";
+import { parseAccordionItems, parseCountdownData, type AccordionItem } from "@/lib/link-render";
 import { saveLinkAction } from "./actions";
 
 type MediaTab = "thumbnail" | "icon" | "emoji";
 const MEDIA_TABS: MediaTab[] = ["thumbnail", "icon", "emoji"];
 
-const LINK_TYPES: LinkType[] = ["url", "email", "phone", "whatsapp", "file", "embed", "copy", "accordion"];
+const LINK_TYPES: LinkType[] = ["url", "email", "phone", "whatsapp", "file", "embed", "copy", "accordion", "countdown"];
 
 const URL_LABEL: Record<LinkType, (t: Dictionary) => string> = {
   url: (t) => t.linkModal.urlLabel,
@@ -31,6 +32,7 @@ const URL_LABEL: Record<LinkType, (t: Dictionary) => string> = {
   embed: (t) => t.linkModal.urlLabelEmbed,
   copy: (t) => t.linkModal.urlLabelCopy,
   accordion: (t) => t.linkModal.urlLabelAccordion,
+  countdown: (t) => t.linkModal.urlLabelCountdown,
 };
 
 const URL_PLACEHOLDER: Record<LinkType, string> = {
@@ -42,12 +44,22 @@ const URL_PLACEHOLDER: Record<LinkType, string> = {
   embed: "https://www.youtube.com/watch?v=...",
   copy: "PROMO2026",
   accordion: "",
+  countdown: "",
 };
 
-// File input gak punya komponen shadcn -- style manual disamain sama Input (border-input,
-// rounded-lg) biar satu keluarga visual, cuma bagian file:* yang beda karena itu tombolnya sendiri.
-const FILE_INPUT_CLASS =
-  "text-xs text-muted-foreground file:mr-2 file:rounded-lg file:border-0 file:bg-muted file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-foreground";
+// <input type="datetime-local"> butuh "YYYY-MM-DDTHH:mm" di JAM LOKAL browser (bukan ISO/UTC)
+// -- dua fungsi ini yang jembatanin ke/dari ISO string yang beneran disimpan (lihat
+// CountdownData di lib/link-render.ts).
+function isoToDatetimeLocal(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function datetimeLocalToIso(value: string): string {
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? "" : d.toISOString();
+}
 
 export type LinkModalState = { mode: "create"; groupId: number | null } | { mode: "edit"; link: BoardLink };
 
@@ -56,6 +68,7 @@ export function LinkFormModal({
   groups,
   state,
   t,
+  locale,
   onClose,
   onCreateGroup,
   onSaved,
@@ -64,6 +77,7 @@ export function LinkFormModal({
   groups: { id: number; name: string }[];
   state: LinkModalState | null;
   t: Dictionary;
+  locale: Locale;
   onClose: () => void;
   // Buat tombol "+ tambah group" di dalam form ini (lihat quick-add group di bawah) --
   // WAJIB async & balikin data grup barunya, beda dari onSubmit GroupFormModal yang
@@ -89,16 +103,33 @@ export function LinkFormModal({
   const [accordionItems, setAccordionItems] = useState<AccordionItem[]>(() => {
     if (state?.mode === "edit" && state.link.linkType === "accordion") {
       const parsed = parseAccordionItems(state.link.url);
-      return parsed.length > 0 ? parsed : [{ label: "", url: "" }];
+      return parsed.length > 0 ? parsed : [{ label: "", url: "", type: "url" }];
     }
-    return [{ label: "", url: "" }];
+    return [{ label: "", url: "", type: "url" }];
+  });
+  const [countdownEndsAt, setCountdownEndsAt] = useState(() => {
+    if (state?.mode === "edit" && state.link.linkType === "countdown") {
+      const parsed = parseCountdownData(state.link.url);
+      if (parsed) return isoToDatetimeLocal(parsed.endsAt);
+    }
+    return "";
+  });
+  const [countdownUrl, setCountdownUrl] = useState(() => {
+    if (state?.mode === "edit" && state.link.linkType === "countdown") {
+      const parsed = parseCountdownData(state.link.url);
+      if (parsed) return parsed.url;
+    }
+    return "";
   });
 
-  function updateAccordionItem(index: number, field: keyof AccordionItem, value: string) {
+  function updateAccordionItem(index: number, field: "label" | "url", value: string) {
     setAccordionItems((prev) => prev.map((item, i) => (i === index ? { ...item, [field]: value } : item)));
   }
+  function setAccordionItemType(index: number, type: AccordionItem["type"]) {
+    setAccordionItems((prev) => prev.map((item, i) => (i === index ? { ...item, type } : item)));
+  }
   function addAccordionItem() {
-    setAccordionItems((prev) => [...prev, { label: "", url: "" }]);
+    setAccordionItems((prev) => [...prev, { label: "", url: "", type: "url" }]);
   }
   function removeAccordionItem(index: number) {
     setAccordionItems((prev) => prev.filter((_, i) => i !== index));
@@ -129,12 +160,13 @@ export function LinkFormModal({
   return (
     <>
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto p-6 sm:max-w-lg">
+      <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+        <div className="overflow-y-auto p-6">
         <DialogHeader>
           <DialogTitle>{state.mode === "edit" ? t.linkModal.editTitle : t.linkModal.addTitle}</DialogTitle>
         </DialogHeader>
 
-        <form action={handleSubmit} className="mt-2 flex flex-col gap-5">
+        <form id="link-form" action={handleSubmit} className="mt-2 flex flex-col gap-5">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="title">{t.linkModal.titleLabel}</Label>
             <Input id="title" name="title" defaultValue={state.mode === "edit" ? state.link.title : ""} required />
@@ -157,32 +189,44 @@ export function LinkFormModal({
           </div>
 
           {linkType === "accordion" ? (
-            <div className="flex flex-col gap-1.5">
+            <div key="accordion-fields" className="flex flex-col gap-1.5">
               <Label>{t.linkModal.accordionItemsLabel}</Label>
               <p className="text-xs text-muted-foreground">{t.linkModal.accordionItemsHint}</p>
               <div className="flex flex-col gap-2">
                 {accordionItems.map((item, i) => (
-                  <div key={i} className="flex items-center gap-2">
+                  <div key={i} className="flex flex-col gap-1.5 rounded-lg border p-2">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        placeholder={t.linkModal.accordionItemLabelPlaceholder}
+                        value={item.label}
+                        onChange={(e) => updateAccordionItem(i, "label", e.target.value)}
+                        className="flex-1"
+                      />
+                      <SelectField
+                        className="w-32 shrink-0"
+                        value={item.type ?? "url"}
+                        onChange={(e) => setAccordionItemType(i, e.target.value as AccordionItem["type"])}
+                      >
+                        <option value="url">{t.linkModal.accordionItemTypeUrl}</option>
+                        <option value="copy">{t.linkModal.accordionItemTypeCopy}</option>
+                      </SelectField>
+                      <button
+                        type="button"
+                        onClick={() => removeAccordionItem(i)}
+                        title={t.linkModal.accordionRemoveItem}
+                        className="shrink-0 text-muted-foreground transition-colors hover:text-destructive"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    </div>
                     <Input
-                      placeholder={t.linkModal.accordionItemLabelPlaceholder}
-                      value={item.label}
-                      onChange={(e) => updateAccordionItem(i, "label", e.target.value)}
-                      className="flex-1"
-                    />
-                    <Input
-                      placeholder={t.linkModal.accordionItemUrlPlaceholder}
+                      placeholder={
+                        item.type === "copy" ? t.linkModal.accordionItemCopyPlaceholder : t.linkModal.accordionItemUrlPlaceholder
+                      }
                       value={item.url}
                       onChange={(e) => updateAccordionItem(i, "url", e.target.value)}
-                      className="flex-1 font-mono text-xs"
+                      className="font-mono text-xs"
                     />
-                    <button
-                      type="button"
-                      onClick={() => removeAccordionItem(i)}
-                      title={t.linkModal.accordionRemoveItem}
-                      className="shrink-0 text-muted-foreground transition-colors hover:text-destructive"
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
                   </div>
                 ))}
               </div>
@@ -196,8 +240,33 @@ export function LinkFormModal({
                 value={JSON.stringify(accordionItems.filter((it) => it.label.trim() || it.url.trim()))}
               />
             </div>
+          ) : linkType === "countdown" ? (
+            <div key="countdown-fields" className="flex flex-col gap-1.5">
+              <Label htmlFor="countdownEndsAt">{t.linkModal.countdownEndsAtLabel}</Label>
+              <DateTimePicker
+                id="countdownEndsAt"
+                value={countdownEndsAt}
+                onChange={setCountdownEndsAt}
+                locale={locale}
+                t={t}
+                required
+              />
+              <Label htmlFor="countdownUrl">{t.linkModal.urlLabelCountdown}</Label>
+              <Input
+                id="countdownUrl"
+                placeholder="https://..."
+                value={countdownUrl}
+                onChange={(e) => setCountdownUrl(e.target.value)}
+                required
+              />
+              <input
+                type="hidden"
+                name="url"
+                value={JSON.stringify({ endsAt: datetimeLocalToIso(countdownEndsAt), url: countdownUrl })}
+              />
+            </div>
           ) : (
-            <div className="flex flex-col gap-1.5">
+            <div key="generic-fields" className="flex flex-col gap-1.5">
               <Label htmlFor="url">{URL_LABEL[linkType](t)}</Label>
               <Input
                 id="url"
@@ -332,17 +401,7 @@ export function LinkFormModal({
             <input type="hidden" name="icon" value={icon} />
           </div>
 
-          <label className="flex cursor-pointer items-center justify-between rounded-lg border px-3 py-2.5">
-            <span className="text-sm font-medium">{t.linkModal.featuredLabel}</span>
-            <input
-              type="checkbox"
-              name="featured"
-              value="1"
-              checked={featured}
-              onChange={(e) => setFeatured(e.target.checked)}
-              className="size-4 rounded accent-primary"
-            />
-          </label>
+          <input type="hidden" name="featured" value={featured ? "1" : ""} />
 
           {linkType === "url" ? (
             <details className="group rounded-lg border p-3">
@@ -374,11 +433,33 @@ export function LinkFormModal({
           ) : null}
 
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
-
-          <Button type="submit" disabled={pending}>
-            {pending ? t.common.saving : t.common.save}
-          </Button>
         </form>
+        </div>
+
+        {/* DialogFooter default-nya "-mx-4 -mb-4" buat nyamain sama padding p-4 bawaan
+            DialogContent -- di sini DialogContent udah p-0 (scroll area sendiri yang p-6),
+            jadi margin negatifnya dibatalin biar footer gak nembus keluar card. flex-row
+            (bukan default flex-col-reverse) + justify-between: Favorite mentok kiri,
+            Batal+Simpan ngumpul di kanan. */}
+        <DialogFooter className="mx-0 mb-0 flex-row items-center justify-between">
+          <Button
+            type="button"
+            variant={featured ? "default" : "outline"}
+            size="icon"
+            title={t.linkModal.favoriteLabel}
+            onClick={() => setFeatured((v) => !v)}
+          >
+            <Star className={cn("size-4", featured && "fill-current")} />
+          </Button>
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" onClick={onClose}>
+              {t.common.cancel}
+            </Button>
+            <Button type="submit" form="link-form" disabled={pending}>
+              {pending ? t.common.saving : t.common.save}
+            </Button>
+          </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
 
