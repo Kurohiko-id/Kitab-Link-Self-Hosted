@@ -4,18 +4,43 @@ import { useState, type ReactNode } from "react";
 import { ChevronDown, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AccordionItem } from "@/lib/link-render";
+import { CopiedCheckIcon, CopyLinkButton } from "@/components/copy-link-button";
+import { LinkIconRenderer } from "@/components/link-icon";
+import type { PublicLocale } from "@/lib/public-i18n";
 
-// Item di dalam list yang di-expand = sub-link beneran (bukan teks buat di-copy) -- klik
-// item buka url-nya di tab baru, mirip link card biasa cuma "disembunyiin" di balik satu
-// header expand/collapse. Bukan row di tabel `links` sendiri (cuma bagian dari JSON di
+// Item di dalam list yang di-expand: default "url" (sub-link beneran, klik buka di tab
+// baru, mirip link card biasa cuma "disembunyiin" di balik satu header expand/collapse),
+// atau "copy" (klik = copy `url` ke clipboard, sama semantiknya kayak linkType "copy" di
+// level parent). Item BUKAN row di tabel `links` sendiri (cuma bagian dari JSON di
 // parent-nya) -- jadi klik-nya gak lewat /r/[linkId], gak ke-catet di analytics per-item.
-function AccordionItemRow({ item }: { item: AccordionItem }) {
+function AccordionItemRow({ item, locale }: { item: AccordionItem; locale?: PublicLocale }) {
+  const rowClassName = "flex items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors hover:bg-black/10";
+
+  if (item.type === "copy") {
+    return (
+      <CopyLinkButton
+        value={item.url}
+        className={rowClassName}
+        locale={locale}
+        copiedIcon={
+          <>
+            <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
+            <CopiedCheckIcon className="size-3.5 shrink-0" />
+          </>
+        }
+      >
+        <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
+        <LinkIconRenderer value="generic:Copy" className="size-3.5 shrink-0 opacity-60" />
+      </CopyLinkButton>
+    );
+  }
+
   return (
     <a
       href={item.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors hover:bg-black/10"
+      className={rowClassName}
     >
       <span className="min-w-0 flex-1 truncate">{item.label}</span>
       <ArrowUpRight className="size-3.5 shrink-0 opacity-60" />
@@ -36,6 +61,7 @@ export function AccordionLinkCard({
   alignClass,
   isEdge,
   iconFirst,
+  locale,
 }: {
   title: string;
   items: AccordionItem[];
@@ -48,6 +74,7 @@ export function AccordionLinkCard({
   alignClass: string;
   isEdge: boolean;
   iconFirst: boolean;
+  locale?: PublicLocale;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -90,7 +117,7 @@ export function AccordionLinkCard({
           style={{ backgroundColor: buttonStyle.backgroundColor, borderColor: buttonStyle.borderColor, color: buttonStyle.color }}
         >
           {items.map((item, i) => (
-            <AccordionItemRow key={i} item={item} />
+            <AccordionItemRow key={i} item={item} locale={locale} />
           ))}
         </div>
       ) : null}

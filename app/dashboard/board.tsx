@@ -39,6 +39,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import type { BoardData, BoardLink, PublicBoardData } from "@/lib/db/board";
+import { describeLinkForList } from "@/lib/link-render";
 import { getDictionary, type Dictionary, type Locale } from "@/lib/i18n";
 import type { ThemeTokens } from "@/lib/theme";
 import type { ProfileData } from "@/lib/profile";
@@ -163,7 +164,7 @@ function SortableLinkRow({
             <span className="truncate text-sm font-medium">{link.title}</span>
             {link.linkType !== "url" ? <Badge variant="sky">{link.linkType}</Badge> : null}
           </div>
-          <div className="truncate text-xs text-muted-foreground">{link.url}</div>
+          <div className="truncate text-xs text-muted-foreground">{describeLinkForList(link)}</div>
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-2">
@@ -693,6 +694,7 @@ export function Board({
         groups={groupOptions}
         state={modalState}
         t={t}
+        locale={locale}
         onClose={() => setModalState(null)}
         onCreateGroup={handleQuickCreateGroup}
         onSaved={() => {

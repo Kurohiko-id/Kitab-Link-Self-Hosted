@@ -51,22 +51,47 @@ function isExternalUrl(value: string): boolean {
 
 export type LinkHref = { href: string; isDownload: boolean };
 
-// Item accordion = sub-link beneran (bukan teks buat di-copy) -- klik item = buka url-nya
-// di tab baru, mirip link card biasa cuma "disembunyiin" di balik satu header expand/collapse.
-export type AccordionItem = { label: string; url: string };
+// Item accordion -- default "url" (klik = buka url-nya di tab baru, mirip link card biasa
+// cuma "disembunyiin" di balik satu header expand/collapse); "copy" (klik = copy `url` ke
+// clipboard, gak navigasi, sama semantiknya kayak linkType "copy" di level parent).
+export type AccordionItemType = "url" | "copy";
+export type AccordionItem = { label: string; url: string; type?: AccordionItemType };
 
-// url (kolom parent link) disimpan sebagai JSON stringified array {label, url}[] -- parsing
-// permisif (skip item yang gak valid/kosong dua-duanya) biar gak gampang rusak kalau JSON-nya
-// berubah manual.
+// url (kolom parent link) disimpan sebagai JSON stringified array {label, url, type?}[] --
+// parsing permisif (skip item yang gak valid/kosong dua-duanya, "type" apapun selain "copy"
+// dianggap "url") biar gak gampang rusak kalau JSON-nya berubah manual.
 export function parseAccordionItems(raw: string): AccordionItem[] {
   try {
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
     return parsed
       .filter((item): item is AccordionItem => typeof item?.label === "string" && typeof item?.url === "string")
-      .filter((item) => item.label.trim() || item.url.trim());
+      .filter((item) => item.label.trim() || item.url.trim())
+      .map((item) => ({ ...item, type: item.type === "copy" ? "copy" : "url" }));
   } catch {
     return [];
+  }
+}
+
+export type CountdownData = { endsAt: string; url: string };
+
+// url (kolom parent link) disimpan sebagai JSON stringified {endsAt, url} -- sama pola
+// dengan accordion (JSON di kolom yang sama), parsing permisif (balikin null kalau
+// bentuknya gak sesuai) biar gak gampang crash kalau datanya korup.
+export function parseCountdownData(raw: string): CountdownData | null {
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (
+      typeof parsed !== "object" ||
+      parsed === null ||
+      typeof (parsed as CountdownData).endsAt !== "string" ||
+      typeof (parsed as CountdownData).url !== "string"
+    ) {
+      return null;
+    }
+    return parsed as CountdownData;
+  } catch {
+    return null;
   }
 }
 
@@ -87,6 +112,15 @@ export function getLinkHref(link: PublicLink): LinkHref {
       };
     case "embed":
       return { href: normalizeEmbedUrl(link.url), isDownload: false };
+    case "countdown": {
+      // Sebelum endsAt lewat, href sengaja "#" (gak nunjuk ke tujuan asli) -- ini juga
+      // yang dipakai /r/[linkId]/route.ts buat redirect, jadi klik langsung ke endpoint
+      // itu SEBELUM waktunya tetep gak bisa nyampe ke url tujuan (bukan cuma diblok di UI).
+      const data = parseCountdownData(link.url);
+      if (!data) return { href: "#", isDownload: false };
+      const isOver = Date.now() >= new Date(data.endsAt).getTime();
+      return { href: isOver ? ensureAbsoluteUrl(data.url) : "#", isDownload: false };
+    }
     case "copy":
       // Gak pernah dipakai buat navigasi beneran (lihat components/copy-link-button.tsx),
       // tetep dikasih nilai valid biar getLinkHref exhaustive dan gak crash kalau kepanggil.
@@ -145,6 +179,28 @@ export function extractYoutubeId(url: string): string | null {
   } catch {
     return null;
   }
+}
+
+// Accordion/countdown nyimpen JSON mentah di kolom `url` (lihat komentar masing-masing tipe
+// di atas) -- gak enak dibaca apa adanya (dipakai board.tsx buat subtitle baris link di
+// manajer drag-drop). Ringkes jadi teks manusiawi, locale-agnostic (gak butuh Dictionary di
+// sini, file ini dipakai bareng halaman publik) -- fallback ke `url` mentah kalau JSON-nya
+// gak valid/kosong, daripada nampilin string kosong yang bikin baris keliatan rusak.
+export function describeLinkForList(link: Pick<PublicLink, "linkType" | "url">): string {
+  if (link.linkType === "accordion") {
+    const items = parseAccordionItems(link.url);
+    return items.length > 0 ? items.map((item) => item.label || item.url).join(", ") : link.url;
+  }
+  if (link.linkType === "countdown") {
+    const data = parseCountdownData(link.url);
+    if (!data) return link.url;
+    const d = new Date(data.endsAt);
+    if (Number.isNaN(d.getTime())) return link.url;
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const formatted = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return `${formatted} · ${data.url}`;
+  }
+  return link.url;
 }
 
 // Auto-convert cuma buat YouTube (kasus paling umum) -> platform lain (Spotify, dst)

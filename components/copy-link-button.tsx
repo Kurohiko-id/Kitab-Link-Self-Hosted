@@ -46,7 +46,9 @@ export async function copyText(text: string): Promise<boolean> {
 
 // Tombol "copy" (linkType === "copy") gak nembak /r/[linkId] buat navigasi (gak ada
 // tujuan buat di-redirect) -- tapi tetep fetch endpoint itu di background biar klik-nya
-// kecatet di analytics sama kayak link lain, lihat app/r/[linkId]/route.ts.
+// kecatet di analytics sama kayak link lain, lihat app/r/[linkId]/route.ts. linkId opsional
+// -- item accordion tipe "copy" (lihat components/accordion-link-card.tsx) bukan row `links`
+// sendiri, gak punya id buat di-fetch, jadi skip analytics-nya buat kasus itu.
 export function CopyLinkButton({
   linkId,
   value,
@@ -58,7 +60,7 @@ export function CopyLinkButton({
   // pengunjung, cuma halaman publik beneran (PublicPageBody) yang ngirim locale asli.
   locale = "en",
 }: {
-  linkId: number;
+  linkId?: number;
   value: string;
   className?: string;
   style?: React.CSSProperties;
@@ -76,7 +78,7 @@ export function CopyLinkButton({
   const [manualCopyValue, setManualCopyValue] = useState<string | null>(null);
 
   async function handleClick() {
-    fetch(`/r/${linkId}`, { redirect: "manual" }).catch(() => {});
+    if (linkId !== undefined) fetch(`/r/${linkId}`, { redirect: "manual" }).catch(() => {});
     // Dibungkus try/catch ekstra di sini juga (bukan cuma di dalam copyText) -- jaga-jaga
     // ada error gak terduga di lingkungan tertentu yang lolos dari guard internal copyText,
     // biar tetep jatuh ke popup manual daripada tombolnya kerasa "gak ngapa-ngapain" sama sekali.

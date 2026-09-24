@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 import { LinkIconRenderer } from "@/components/link-icon";
 import { CopiedCheckIcon, CopyLinkButton } from "@/components/copy-link-button";
 import { AccordionLinkCard } from "@/components/accordion-link-card";
+import { CountdownLinkCard } from "@/components/countdown-link-card";
 import { YoutubeFacade } from "@/components/youtube-facade";
 import {
   getButtonAlignClass,
@@ -13,7 +14,7 @@ import {
   type ThemeTokens,
 } from "@/lib/theme";
 import type { PublicLink } from "@/lib/db/board";
-import { getLinkHref, parseAccordionItems, extractYoutubeId } from "@/lib/link-render";
+import { getLinkHref, parseAccordionItems, parseCountdownData, extractYoutubeId } from "@/lib/link-render";
 import { brandIconForUrl } from "@/lib/icons";
 import type { PublicLocale } from "@/lib/public-i18n";
 
@@ -31,6 +32,7 @@ const DEFAULT_ICON_BY_TYPE: Partial<Record<PublicLink["linkType"], string>> = {
   file: "generic:Download",
   embed: "generic:Play",
   copy: "generic:Clipboard",
+  countdown: "generic:Timer",
 };
 
 function faviconUrl(pageUrl: string): string | null {
@@ -131,6 +133,31 @@ export function LinkCard({
   // sebelum di-redirect ke tujuan sebenarnya, lihat app/r/[linkId]/route.ts.
   const clickHref = `/r/${link.id}`;
 
+  // Countdown -- gak bisa diklik sebelum endsAt lewat, jadi dicek DULUAN sebelum displayStyle
+  // "icon" (gak masuk akal buat state "nonaktif sementara" ini). "rich" TETEP didukung (lihat
+  // CountdownLinkCard) -- thumbnail besar + countdown di sebelah judul, sisanya (pill/icon)
+  // selalu render sebagai bar biasa, sama kayak accordion di bawah.
+  if (link.linkType === "countdown") {
+    return (
+      <CountdownLinkCard
+        title={link.title}
+        description={link.description}
+        thumbnailPath={link.thumbnailPath}
+        data={parseCountdownData(link.url)}
+        clickHref={clickHref}
+        buttonStyle={buttonStyle}
+        className={sharedClassName}
+        glyph={<LinkGlyph link={link} />}
+        countdownGlyph={<LinkIconRenderer value="generic:Timer" className="size-5 shrink-0" />}
+        alignClass={alignClass}
+        isEdge={isEdge}
+        iconFirst={iconFirst}
+        displayStyle={link.displayStyle}
+        locale={locale}
+      />
+    );
+  }
+
   // Accordion -- klik-nya toggle expand/collapse (bukan navigasi), jadi dicek DULUAN
   // sebelum displayStyle "rich"/"icon" (dua-duanya gak masuk akal buat header expand/
   // collapse) -- accordion selalu render sebagai bar biasa apapun displayStyle-nya.
@@ -145,6 +172,7 @@ export function LinkCard({
         alignClass={alignClass}
         isEdge={isEdge}
         iconFirst={iconFirst}
+        locale={locale}
       />
     );
   }
