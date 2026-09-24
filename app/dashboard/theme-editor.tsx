@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { SelectField } from "@/components/ui/select-field";
-import { cn } from "@/lib/utils";
+import { cn, FILE_INPUT_CLASS } from "@/lib/utils";
 import {
   THEME_PRESETS,
   DEFAULT_THEME,
@@ -659,7 +659,7 @@ export function ThemeEditor({
                   name="backgroundImage"
                   type="file"
                   accept="image/*"
-                  className="text-xs text-muted-foreground file:mr-2 file:rounded-lg file:border-0 file:bg-muted file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-foreground"
+                  className={FILE_INPUT_CLASS}
                 />
               </div>
 
@@ -729,7 +729,7 @@ export function ThemeEditor({
                     name="customFont"
                     type="file"
                     accept=".ttf,.otf,.woff,.woff2"
-                    className="text-xs text-muted-foreground file:mr-2 file:rounded-lg file:border-0 file:bg-muted file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-foreground"
+                    className={FILE_INPUT_CLASS}
                   />
                 </div>
               ) : null}
@@ -1224,7 +1224,7 @@ export function ThemeEditor({
               type="file"
               name="file"
               accept="application/json"
-              className="mt-3 text-xs text-muted-foreground file:mr-2 file:rounded-lg file:border-0 file:bg-muted file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-foreground"
+              className={cn("mt-3", FILE_INPUT_CLASS)}
             />
             <Textarea name="json" rows={3} placeholder={t.theme.importPlaceholder} className="mt-2 font-mono text-xs" />
             {importError ? (

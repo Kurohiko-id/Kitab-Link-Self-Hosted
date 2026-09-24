@@ -10,9 +10,7 @@ import { Label } from "@/components/ui/label";
 import { CropFileInput } from "@/components/crop-file-input";
 import { updateAccountAction } from "@/app/dashboard/settings-actions";
 import type { Dictionary, Locale } from "@/lib/i18n";
-
-const FILE_INPUT_CLASS =
-  "text-xs text-muted-foreground file:mr-2 file:rounded-lg file:border-0 file:bg-muted file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-foreground";
+import { FILE_INPUT_CLASS } from "@/lib/utils";
 
 // Sidebar row cuma nampilin avatar + nama (KOSMETIK, aman keliatan orang lewat) -- klik
 // buat buka popup, semua editan (avatar/nama/username) dan reveal username ada di dalem situ.

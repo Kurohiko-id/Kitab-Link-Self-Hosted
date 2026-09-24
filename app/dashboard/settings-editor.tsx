@@ -11,7 +11,7 @@ import { SelectField } from "@/components/ui/select-field";
 import { Badge } from "@/components/ui/badge";
 import { LinkIconRenderer } from "@/components/link-icon";
 import { LocalTime } from "@/components/local-time";
-import { cn } from "@/lib/utils";
+import { cn, FILE_INPUT_CLASS } from "@/lib/utils";
 import { parseProfileData } from "@/lib/profile";
 import type { Dictionary } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
@@ -28,11 +28,6 @@ import type { getActivityLogForPage, ActivityAction } from "@/lib/db/activity-lo
 
 const GITHUB_URL = "https://github.com/Kurohiko-id/Kitab-Link-Self-Hosted";
 const SAWERIA_URL = "https://saweria.co/Kurohiko";
-
-// Sama kayak file input di link-form-modal.tsx/theme-editor.tsx -- default browser buat
-// tombol "Choose file" nyaru sama background, jadi selalu dikasih file: classes ini.
-const FILE_INPUT_CLASS =
-  "text-xs text-muted-foreground file:mr-2 file:rounded-lg file:border-0 file:bg-muted file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-foreground";
 
 // "danger" SENGAJA paling akhir -- tombol hapus page gak boleh jadi tab pertama yang
 // keliatan mata, atas permintaan user.

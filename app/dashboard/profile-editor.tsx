@@ -15,12 +15,7 @@ import type { SocialLinksByPosition } from "./social-links-actions";
 import { SectionCard } from "./section-card";
 import { RemoveImageButton } from "@/components/remove-image-button";
 import { CropFileInput } from "@/components/crop-file-input";
-
-// Dulu tab "Profile" di dalam Settings, dipindah jadi menu sendiri di sidebar (di bawah
-// Links & Groups) atas permintaan user -- form/action-nya sama persis, cuma lokasinya pindah
-// dan sekarang ditemenin live preview kayak tab Links & Groups.
-const FILE_INPUT_CLASS =
-  "text-xs text-muted-foreground file:mr-2 file:rounded-lg file:border-0 file:bg-muted file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-foreground";
+import { FILE_INPUT_CLASS } from "@/lib/utils";
 
 export function ProfileEditor({
   page,
