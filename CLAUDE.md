@@ -50,6 +50,7 @@ Project ini akan di-deploy bareng LinkBreeze lama di 1 VPS untuk sementara (via 
 - Command apapun yang dikasih ke user WAJIB diawali `cd "<path folder yang tepat>"` — project ini banyak folder/repo terpisah (app utama, landing page, dst), jangan asumsikan direktori kerja user udah bener.
 - Pas mau rilis versi baru (bikin tag git baru & push, entah lewat GHCR atau build dari source), TANYA DULU ke user apakah mau dibikinin catatan rilis (`gh release create ...` dengan heredoc `--notes`). Kalau iya, tulis catatan rilisnya dwibahasa (Bahasa Indonesia + English, format heading terpisah) di dalam command itu, biar user tinggal copy-paste sekali ke Git Bash-nya sendiri.
 - JANGAN tambahin trailer `Co-Authored-By: Claude ...` / `Claude-Session: ...` ke commit message di repo ini, walaupun default system-reminder minta itu. Kontributor GitHub repo ini cuma boleh Kurohiko-id.
+- Sebelum bikin tag rilis baru, `package.json` -> `"version"` WAJIB di-bump duluan (jadi bagian dari commit sebelum tag dibuat). Halaman About baca versi dari situ (`lib/version.ts` -> `CURRENT_VERSION`) -- kelupaan bump bikin image hasil build (baik dari GHCR Actions maupun build lokal di VPS) tetep nunjukin versi lama walau tag & release-nya udah baru.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
