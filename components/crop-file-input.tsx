@@ -7,6 +7,12 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Dictionary } from "@/lib/i18n";
 
+// react-easy-crop default minZoom=1 = crop box selalu "cover" (gambar diisi penuh) --
+// kalau aspect ratio gambar aslinya beda jauh dari aspect target, user gak akan pernah
+// bisa lihat seluruh gambar walau slider zoom udah di paling kiri. Turunin minZoom biar
+// beneran bisa zoom out ngelewatin titik cover-fit itu.
+const MIN_ZOOM = 0.5;
+
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -109,6 +115,7 @@ export function CropFileInput({
                 image={rawSrc}
                 crop={crop}
                 zoom={zoom}
+                minZoom={MIN_ZOOM}
                 aspect={aspect}
                 cropShape={round ? "round" : "rect"}
                 onCropChange={setCrop}
@@ -119,7 +126,7 @@ export function CropFileInput({
           </div>
           <input
             type="range"
-            min={1}
+            min={MIN_ZOOM}
             max={3}
             step={0.01}
             value={zoom}

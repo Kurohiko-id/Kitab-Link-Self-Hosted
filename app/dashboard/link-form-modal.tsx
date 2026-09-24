@@ -12,7 +12,7 @@ import { IconPicker, EmojiPicker } from "@/components/icon-picker";
 import { CropFileInput } from "@/components/crop-file-input";
 import { GroupFormModal, type GroupModalState } from "./group-form-modal";
 import { cn } from "@/lib/utils";
-import type { BoardLink, LinkType } from "@/lib/db/board";
+import type { BoardLink, DisplayStyle, LinkType } from "@/lib/db/board";
 import type { Dictionary } from "@/lib/i18n";
 import { parseAccordionItems, type AccordionItem } from "@/lib/link-render";
 import { saveLinkAction } from "./actions";
@@ -77,6 +77,7 @@ export function LinkFormModal({
   const [icon, setIcon] = useState(state?.mode === "edit" ? (state.link.icon ?? "") : "");
   const [removeThumbnail, setRemoveThumbnail] = useState(false);
   const [linkType, setLinkType] = useState<LinkType>(state?.mode === "edit" ? state.link.linkType : "url");
+  const [displayStyle, setDisplayStyle] = useState<DisplayStyle>(state?.mode === "edit" ? state.link.displayStyle : "pill");
   const [featured, setFeatured] = useState(state?.mode === "edit" ? state.link.featured : false);
   const [mediaTab, setMediaTab] = useState<MediaTab>("thumbnail");
   const [target, setTarget] = useState(() => {
@@ -264,7 +265,8 @@ export function LinkFormModal({
               <SelectField
                 id="displayStyle"
                 name="displayStyle"
-                defaultValue={state.mode === "edit" ? state.link.displayStyle : "pill"}
+                value={displayStyle}
+                onChange={(e) => setDisplayStyle(e.target.value as DisplayStyle)}
               >
                 <option value="pill">{t.linkModal.styleOptions.pill}</option>
                 <option value="rich">{t.linkModal.styleOptions.rich}</option>
@@ -312,7 +314,13 @@ export function LinkFormModal({
                     </button>
                   </div>
                 ) : null}
-                <CropFileInput id="thumbnail" name="thumbnail" aspect={16 / 9} className={FILE_INPUT_CLASS} t={t} />
+                <CropFileInput
+                  id="thumbnail"
+                  name="thumbnail"
+                  aspect={displayStyle === "rich" ? 16 / 9 : 1}
+                  className={FILE_INPUT_CLASS}
+                  t={t}
+                />
               </div>
             ) : null}
 
