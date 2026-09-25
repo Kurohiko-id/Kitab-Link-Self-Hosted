@@ -11,9 +11,10 @@ Self-hosted link-in-bio alternative to Linktree — no ads, no monthly fees, and
 ## Features
 
 - **Multiple pages in 1 account** — manage many link pages (`/main`, `/side-project`, etc.), each independent (links, theme, analytics).
+- **Custom domain per page** — point your own domain (e.g. `yourname.com`) at any single page, independent from your main install domain.
 - **Drag & drop links + groups** — reorder links and groups directly from the dashboard, with manual show/hide toggle.
-- **Flexible theming** — ready-to-use presets, full editor (colors, fonts, buttons, animated backgrounds), plus JSON export/import and per-account theme library.
-- **Complete link types** — regular URLs, WhatsApp (auto-format numbers), email, phone, file uploads, embeds, accordions, and built-in image cropping for avatars/thumbnails.
+- **Flexible theming** — ready-to-use presets (including animated and brutalist styles), full editor (colors with beginner-friendly curated palettes, fonts, buttons, animated backgrounds), plus JSON export/import and per-account theme library.
+- **Complete link types** — regular URLs, WhatsApp (auto-format numbers), email, phone, file uploads, embeds, expandable accordion lists (items can open a link or copy to clipboard), countdown-locked links, and built-in image cropping for avatars/thumbnails.
 - **Analytics** — views & clicks per link/page, breakdown by referrer, device, and country.
 - **Automation** — weekly scheduled show/hide for groups, automatic "live now" badge (YouTube detection without API key), auto-post from RSS/Atom feeds.
 - **Security** — per-page password protection, temporary access codes, 2FA (TOTP), API tokens + webhooks for external integrations.
