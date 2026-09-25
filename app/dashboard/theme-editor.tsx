@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { SelectField } from "@/components/ui/select-field";
 import { cn, FILE_INPUT_CLASS } from "@/lib/utils";
+import { ColorPalettePicker } from "@/components/color-palette-picker";
+import { ColorSchemePicker } from "@/components/color-scheme-picker";
 import {
   THEME_PRESETS,
   DEFAULT_THEME,
@@ -121,6 +123,12 @@ function formatRelativeTime(date: Date, locale: Locale): string {
   return rtf.format(0, "minute");
 }
 
+// Native <input type="color"> CUMA nerima "#rrggbb" persis -- banyak preset di sini pake
+// rgba() (efek glass, transparansi) yang bakal keputus alpha-nya kalau dipaksa lewat situ.
+// Jadi picker native cuma muncul kalau value-nya beneran hex polos, sisanya (rgba/nama
+// warna CSS) tetep fallback ke kotak preview statis + edit manual lewat field teks.
+const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
+
 function ColorField({
   label,
   value,
@@ -132,11 +140,22 @@ function ColorField({
   onChange: (value: string) => void;
   name: string;
 }) {
+  const isPlainHex = HEX_COLOR_RE.test(value);
   return (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={name}>{label}</Label>
       <div className="flex items-center gap-2">
-        <div className="size-8 shrink-0 rounded border" style={{ backgroundColor: value || "transparent" }} />
+        {isPlainHex ? (
+          <input
+            type="color"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            title={label}
+            className="size-8 shrink-0 cursor-pointer rounded border p-0"
+          />
+        ) : (
+          <div className="size-8 shrink-0 rounded border" style={{ backgroundColor: value || "transparent" }} />
+        )}
         <Input
           id={name}
           name={name}
@@ -144,6 +163,7 @@ function ColorField({
           onChange={(e) => onChange(e.target.value)}
           className="font-mono text-xs"
         />
+        <ColorPalettePicker label={label} onPick={onChange} />
       </div>
     </div>
   );
@@ -1137,32 +1157,48 @@ export function ThemeEditor({
               ) : null}
             </div>
 
-            <div className={cn("mt-3 grid grid-cols-2 gap-3", tab === "colors" ? "grid" : "hidden")}>
-              <ColorField label={t.theme.text} name="text" value={tokens.text} onChange={(v) => setTokens((p) => ({ ...p, text: v }))} />
-              <ColorField
-                label={t.theme.textMuted}
-                name="textMuted"
-                value={tokens.textMuted}
-                onChange={(v) => setTokens((p) => ({ ...p, textMuted: v }))}
+            <div className={cn("mt-3 flex flex-col gap-4", tab === "colors" ? "flex" : "hidden")}>
+              <ColorSchemePicker
+                onPick={(scheme) => {
+                  updateColors(scheme.background);
+                  setTokens((p) => ({
+                    ...p,
+                    backgroundType: "solid",
+                    text: scheme.text,
+                    textMuted: scheme.textMuted,
+                    cardBackground: scheme.cardBackground,
+                    cardBorder: scheme.cardBorder,
+                    buttonText: scheme.buttonText,
+                  }));
+                }}
               />
-              <ColorField
-                label={t.theme.cardBackground}
-                name="cardBackground"
-                value={tokens.cardBackground}
-                onChange={(v) => setTokens((p) => ({ ...p, cardBackground: v }))}
-              />
-              <ColorField
-                label={t.theme.cardBorder}
-                name="cardBorder"
-                value={tokens.cardBorder}
-                onChange={(v) => setTokens((p) => ({ ...p, cardBorder: v }))}
-              />
-              <ColorField
-                label={t.theme.buttonText}
-                name="buttonText"
-                value={tokens.buttonText}
-                onChange={(v) => setTokens((p) => ({ ...p, buttonText: v }))}
-              />
+              <div className="grid grid-cols-2 gap-3">
+                <ColorField label={t.theme.text} name="text" value={tokens.text} onChange={(v) => setTokens((p) => ({ ...p, text: v }))} />
+                <ColorField
+                  label={t.theme.textMuted}
+                  name="textMuted"
+                  value={tokens.textMuted}
+                  onChange={(v) => setTokens((p) => ({ ...p, textMuted: v }))}
+                />
+                <ColorField
+                  label={t.theme.cardBackground}
+                  name="cardBackground"
+                  value={tokens.cardBackground}
+                  onChange={(v) => setTokens((p) => ({ ...p, cardBackground: v }))}
+                />
+                <ColorField
+                  label={t.theme.cardBorder}
+                  name="cardBorder"
+                  value={tokens.cardBorder}
+                  onChange={(v) => setTokens((p) => ({ ...p, cardBorder: v }))}
+                />
+                <ColorField
+                  label={t.theme.buttonText}
+                  name="buttonText"
+                  value={tokens.buttonText}
+                  onChange={(v) => setTokens((p) => ({ ...p, buttonText: v }))}
+                />
+              </div>
             </div>
 
             <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t pt-4">
