@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/logo.png" alt="Kitab Link" width="96">
+  <img src="https://kitablink.my.id/og-image.png" alt="Kitab Link — Linktree alternatif tanpa iklan, support Multipage">
 </p>
 
 # Kitab Link
