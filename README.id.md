@@ -11,9 +11,10 @@ Self-hosted link-in-bio — alternatif Linktree tanpa iklan, tanpa biaya bulanan
 ## Fitur
 
 - **Multi-page dalam 1 akun** — kelola banyak halaman link (`/main`, `/side-project`, dst), masing-masing independen (link, tema, analytics sendiri-sendiri).
+- **Domain kustom per page** — arahin domain sendiri (mis. `namamu.com`) ke satu page tertentu, independen dari domain utama tempat Kitab Link kamu jalan.
 - **Drag & drop link + grup** — susun ulang link dan grup langsung dari dashboard, lengkap dengan show/hide manual.
-- **Tema fleksibel** — preset siap pakai, editor penuh (warna, font, tombol, background animasi), plus export/import JSON dan library tema per akun.
-- **Tipe link lengkap** — URL biasa, WhatsApp (auto-format nomor), email, telepon, file upload, embed, accordion, dan crop gambar built-in buat avatar/thumbnail.
+- **Tema fleksibel** — preset siap pakai (termasuk gaya animasi & brutalist), editor penuh (warna dengan palet kurasi buat pemula, font, tombol, background animasi), plus export/import JSON dan library tema per akun.
+- **Tipe link lengkap** — URL biasa, WhatsApp (auto-format nomor), email, telepon, file upload, embed, list accordion expand/collapse (item bisa buka link atau copy ke clipboard), link countdown (baru bisa diklik setelah waktu tertentu), dan crop gambar built-in buat avatar/thumbnail.
 - **Analytics** — views & klik per link/page, breakdown referrer, device, dan negara.
 - **Automation** — jadwal show/hide grup mingguan, badge "sedang live" otomatis (deteksi YouTube tanpa API key), auto-post dari RSS/Atom feed.
 - **Keamanan** — password-protect per page, kode akses sementara, 2FA (TOTP), API token + webhook buat integrasi eksternal.
