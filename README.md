@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/logo.png" alt="Kitab Link" width="96">
+  <img src=".github/banner-en.png" alt="Kitab Link — Self-hosted Linktree alternative, no ads, multi-page support">
 </p>
 
 # Kitab Link
