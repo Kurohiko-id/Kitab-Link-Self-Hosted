@@ -42,6 +42,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# gambar GitHub Social Preview -- di-upload manual lewat Settings > General di web GitHub,
+# bukan bagian dari app, gak perlu ikut ke-commit.
+/social-preview.png
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
