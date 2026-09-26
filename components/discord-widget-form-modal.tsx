@@ -73,6 +73,8 @@ export function DiscordWidgetFormModal({
   const [showAvatars, setShowAvatars] = useState(config?.showAvatars ?? true);
   const [showVoiceChannels, setShowVoiceChannels] = useState(config?.showVoiceChannels ?? true);
   const [showJoinButton, setShowJoinButton] = useState(config?.showJoinButton ?? true);
+  const [width, setWidth] = useState(config?.width ? String(config.width) : "");
+  const [height, setHeight] = useState(config?.height ? String(config.height) : "");
 
   const [previewData, setPreviewData] = useState<DiscordWidgetData | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -115,7 +117,16 @@ export function DiscordWidgetFormModal({
     onClose();
   }
 
-  const previewConfig = { style, title: title || null, showMemberCount, showAvatars, showVoiceChannels, showJoinButton };
+  const previewConfig = {
+    style,
+    title: title || null,
+    showMemberCount,
+    showAvatars,
+    showVoiceChannels,
+    showJoinButton,
+    width: width ? Number(width) : null,
+    height: height ? Number(height) : null,
+  };
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -212,6 +223,38 @@ export function DiscordWidgetFormModal({
                 })}
               </div>
             )}
+
+            <div className={placementMode === "floating" ? "grid grid-cols-2 gap-2" : "grid grid-cols-1 gap-2"}>
+              {placementMode === "floating" ? (
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="discordWidgetWidth">{t.widgets.discordWidthLabel}</Label>
+                  <Input
+                    id="discordWidgetWidth"
+                    name="width"
+                    type="number"
+                    min={200}
+                    max={600}
+                    placeholder="Auto"
+                    value={width}
+                    onChange={(e) => setWidth(e.target.value)}
+                  />
+                </div>
+              ) : null}
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="discordWidgetHeight">{t.widgets.discordHeightLabel}</Label>
+                <Input
+                  id="discordWidgetHeight"
+                  name="height"
+                  type="number"
+                  min={150}
+                  max={800}
+                  placeholder="Auto"
+                  value={height}
+                  onChange={(e) => setHeight(e.target.value)}
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">{t.widgets.discordSizeHint}</p>
 
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
           </form>

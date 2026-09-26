@@ -16,6 +16,8 @@ export function TokenCreator({ t }: { t: Dictionary }) {
   const scopeOptions = [
     { value: "links:read", label: t.integrations.scopeRead },
     { value: "links:write", label: t.integrations.scopeWrite },
+    { value: "discord:read", label: t.integrations.scopeDiscordRead },
+    { value: "discord:write", label: t.integrations.scopeDiscordWrite },
   ];
 
   if (createdToken) {

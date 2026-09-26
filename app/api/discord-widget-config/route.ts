@@ -16,7 +16,9 @@ export async function GET(req: NextRequest) {
   }
 
   const widget = await getDiscordWidgetById(widgetId);
-  if (!widget) {
+  // Widget kehapus ATAU lagi dimatiin manual (isEnabled) -- dua-duanya diperlakukan sama
+  // kayak "not found" di sini, biar DiscordWidgetLinkCard cukup ngecek res.ok lalu diem aja.
+  if (!widget || !widget.isEnabled) {
     return NextResponse.json({ error: "widget not found" }, { status: 404 });
   }
 
@@ -28,6 +30,8 @@ export async function GET(req: NextRequest) {
     showAvatars: widget.showAvatars,
     showVoiceChannels: widget.showVoiceChannels,
     showJoinButton: widget.showJoinButton,
+    width: widget.width,
+    height: widget.height,
   };
 
   if (widget.style === "iframe") {

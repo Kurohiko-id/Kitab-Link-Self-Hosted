@@ -24,5 +24,7 @@ export async function getFloatingDiscordWidgetsForPage(pageId: number): Promise<
   return db
     .select()
     .from(discordWidgets)
-    .where(and(eq(discordWidgets.pageId, pageId), eq(discordWidgets.placementMode, "floating")));
+    .where(
+      and(eq(discordWidgets.pageId, pageId), eq(discordWidgets.placementMode, "floating"), eq(discordWidgets.isEnabled, true)),
+    );
 }

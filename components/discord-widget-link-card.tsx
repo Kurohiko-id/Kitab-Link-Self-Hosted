@@ -47,7 +47,9 @@ export function DiscordWidgetLinkCard({
   // Belum ke-fetch/widget udah kehapus/gagal -- diem aja, jangan bikin halaman keliatan
   // rusak gara-gara satu widget gagal muat.
   if (!result) return null;
-  if (result.config.style === "iframe") return <DiscordIframe guildId={result.config.guildId} />;
+  if (result.config.style === "iframe") {
+    return <DiscordIframe guildId={result.config.guildId} width={result.config.width} height={result.config.height} />;
+  }
   if (!result.data) return null;
 
   return <DiscordWidgetCard data={result.data} config={result.config} theme={theme} t={t} />;
