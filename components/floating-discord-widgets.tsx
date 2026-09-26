@@ -15,6 +15,13 @@ const POSITION_CLASS: Record<string, string> = {
   "right-bottom": "right-4 bottom-4",
 };
 
+// "classic" render 2 kolom (channel + member) berdampingan -- w-72 (288px) yang cukup
+// buat style lain jadi kepotong/truncate parah di situ (issue #5 report). Style lain tetep
+// w-72 biar posisi floating gak geser drastis dari sebelumnya.
+function widthClassFor(style: string): string {
+  return style === "classic" ? "w-96" : "w-72";
+}
+
 export function FloatingDiscordWidgets({
   widgets,
   theme,
@@ -29,7 +36,8 @@ export function FloatingDiscordWidgets({
       {widgets.map((widget) => (
         <div
           key={widget.id}
-          className={`fixed z-20 hidden w-72 lg:flex ${POSITION_CLASS[widget.floatingPosition ?? "left-middle"]}`}
+          className={`fixed z-20 hidden ${widget.width ? "" : widthClassFor(widget.style)} lg:flex ${POSITION_CLASS[widget.floatingPosition ?? "left-middle"]}`}
+          style={widget.width ? { width: widget.width, maxWidth: "100%" } : undefined}
         >
           <DiscordWidget config={widget} theme={theme} locale={locale} />
         </div>

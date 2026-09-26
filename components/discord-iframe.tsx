@@ -6,12 +6,21 @@
 // link-in-bio yang gelap), bukan dibikin opsi baru lagi. "allowtransparency" (atribut lama
 // Discord sendiri di contoh embed-nya) sengaja gak dipake -- browser modern udah transparan
 // otomatis kalau background di dalem iframe-nya transparan, gak butuh atribut IE-lama itu.
-export function DiscordIframe({ guildId }: { guildId: string }) {
+export function DiscordIframe({
+  guildId,
+  width,
+  height,
+}: {
+  guildId: string;
+  width?: number | null;
+  height?: number | null;
+}) {
   return (
     <iframe
       src={`https://discord.com/widget?id=${guildId}&theme=dark`}
-      width="100%"
-      height={500}
+      width={width || "100%"}
+      height={height || 500}
+      style={{ maxWidth: "100%" }}
       sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"
       className="rounded-2xl border-0"
       title="Discord"

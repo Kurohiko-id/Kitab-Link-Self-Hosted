@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { deleteDiscordWidgetAction } from "@/app/dashboard/discord-widget-actions";
+import { Switch } from "@/components/ui/switch";
+import { deleteDiscordWidgetAction, toggleDiscordWidgetEnabledAction } from "@/app/dashboard/discord-widget-actions";
 import { DiscordWidgetFormModal, type DiscordWidgetModalState } from "@/components/discord-widget-form-modal";
 import type { DiscordWidgetRow } from "@/lib/db/discord-widget";
 import type { Dictionary } from "@/lib/i18n";
@@ -42,6 +43,11 @@ export function DiscordWidgetsManager({
     router.refresh();
   }
 
+  async function handleToggleEnabled(widgetId: number, isEnabled: boolean) {
+    await toggleDiscordWidgetEnabledAction(pageId, widgetId, isEnabled);
+    router.refresh();
+  }
+
   return (
     <div className="flex max-w-md flex-col gap-2">
       {discordWidgets.map((widget) => (
@@ -53,8 +59,10 @@ export function DiscordWidgetsManager({
                 ? t.widgets[FLOATING_POSITION_LABEL_KEY[widget.floatingPosition ?? ""] ?? "placementFloating"]
                 : t.widgets.placementInline}
             </Badge>
+            {!widget.isEnabled ? <Badge variant="neutral">{t.widgets.discordDisabledBadge}</Badge> : null}
           </span>
           <div className="flex shrink-0 items-center gap-1">
+            <Switch checked={widget.isEnabled} onCheckedChange={(checked) => handleToggleEnabled(widget.id, checked)} />
             <button
               type="button"
               onClick={() => setModalState({ mode: "edit", widget })}

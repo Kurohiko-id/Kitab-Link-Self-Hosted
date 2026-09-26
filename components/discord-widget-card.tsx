@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { Volume2 } from "lucide-react";
 import type { DiscordWidgetData, DiscordWidgetMember } from "@/lib/discord-widget";
 import type { ThemeTokens } from "@/lib/theme";
@@ -27,7 +28,26 @@ export type DiscordWidgetDisplayConfig = {
   showAvatars: boolean;
   showVoiceChannels: boolean;
   showJoinButton: boolean;
+  width: number | null;
+  height: number | null;
 };
+
+// null (auto) = gak nambahin apa-apa. Diisi = width/maxWidth (biar gak jebol keluar
+// container inline yang lebih sempit dari widget).
+function widthStyle(width: number | null): CSSProperties {
+  return width ? { width, maxWidth: "100%" } : {};
+}
+
+// Height diisi -> BUKAN bikin card di-scroll (Join Server jadi ketutup di bawah scroll,
+// gak sesuai ekspektasi user) -- daftar channel/member yang dipendekin duluan biar card
+// beneran pas setinggi itu tanpa scrollbar. Konstanta di bawah ngikut padding/line-height
+// class Tailwind yang DIPAKE BENERAN di kartu (row-nya dijamin 1 baris karena semua pake
+// `truncate`, gak pernah wrap) -- kalau class-nya diubah, angka ini ikut disesuain manual
+// (gak ada pengukuran DOM beneran, komponen ini Server Component/gak ada ResizeObserver).
+function maxRowsForHeight(height: number | null, fixedCost: number, rowHeight: number, fallback: number): number {
+  if (!height) return fallback;
+  return Math.max(0, Math.floor((height - fixedCost) / rowHeight));
+}
 
 function paletteFor(style: "custom" | "discord", theme: ThemeTokens) {
   if (style === "discord") return DISCORD_BRAND_PALETTE;
@@ -82,10 +102,21 @@ export function DiscordWidgetCard({
   const shownMembers = config.showAvatars ? data.members.slice(0, 8) : [];
   const extraCount = config.showAvatars ? Math.max(0, data.members.length - shownMembers.length) : 0;
 
+  // Cuma daftar channel yang tingginya bisa berubah-ubah (header/avatar row/tombol join
+  // tingginya udah fix) -- itu doang yang dipendekin kalau height dibatasi.
+  const hasAvatarRow = config.showAvatars && shownMembers.length > 0;
+  const hasButton = config.showJoinButton && !!data.instantInvite;
+  const hasChannels = config.showVoiceChannels && data.channels.length > 0;
+  const sectionCount = 1 + (hasAvatarRow ? 1 : 0) + (hasChannels ? 1 : 0) + (hasButton ? 1 : 0);
+  const fixedNonChannelHeight =
+    32 /* p-4 */ + 24 /* header row */ + (hasAvatarRow ? 32 : 0) /* size-8 avatar row */ + (hasButton ? 36 : 0) /* join button */ +
+    Math.max(0, sectionCount - 1) * 12 /* gap-3 antar section */;
+  const shownChannels = hasChannels ? data.channels.slice(0, maxRowsForHeight(config.height, fixedNonChannelHeight, 20, data.channels.length)) : [];
+
   return (
     <div
       className="flex w-full flex-col gap-3 rounded-2xl border p-4"
-      style={{ backgroundColor: palette.bg, borderColor: palette.border, color: palette.text }}
+      style={{ backgroundColor: palette.bg, borderColor: palette.border, color: palette.text, ...widthStyle(config.width) }}
     >
       <div className="flex items-center justify-between gap-2">
         <span className="truncate font-semibold">{config.title || data.name}</span>
@@ -120,9 +151,9 @@ export function DiscordWidgetCard({
         </div>
       ) : null}
 
-      {config.showVoiceChannels && data.channels.length > 0 ? (
+      {shownChannels.length > 0 ? (
         <div className="flex flex-col gap-1 text-xs opacity-80">
-          {data.channels.map((channel) => (
+          {shownChannels.map((channel) => (
             <span key={channel.id} className="truncate">
               🔊 {channel.name}
             </span>
@@ -157,32 +188,42 @@ function ClassicDiscordWidget({
   config: DiscordWidgetDisplayConfig;
   t: PublicDictionary;
 }) {
-  const shownMembers = config.showAvatars ? data.members.slice(0, 10) : [];
+  const hasFooter = config.showJoinButton && !!data.instantInvite;
+  const fixedCost = 48 /* header px-4 py-3 */ + 32 /* content p-4 */ + (hasFooter ? 41 : 0) /* footer */;
+  const maxChannelRows = maxRowsForHeight(config.height, fixedCost, 26 /* row text-sm + gap-1.5 */, data.channels.length);
+  const shownChannels = config.showVoiceChannels ? data.channels.slice(0, maxChannelRows) : [];
+
+  const memberLabelHeight = config.showAvatars ? 22 /* "MEMBERS ONLINE" label + gap-2 */ : 0;
+  const maxMemberRows = maxRowsForHeight(config.height, fixedCost + memberLabelHeight, 32 /* row size-6 avatar + gap-2 */, 10);
+  const shownMembers = config.showAvatars ? data.members.slice(0, Math.min(10, maxMemberRows)) : [];
 
   return (
-    <div className="flex w-full flex-col overflow-hidden rounded-2xl border" style={{ borderColor: "#1e1f22" }}>
+    <div
+      className="flex w-full flex-col overflow-hidden rounded-2xl border"
+      style={{ borderColor: "#1e1f22", ...widthStyle(config.width) }}
+    >
       <div className="flex items-center justify-between gap-2 px-4 py-3" style={{ backgroundColor: BLURPLE, color: "#ffffff" }}>
         <span className="truncate font-bold">{config.title || data.name}</span>
         {config.showMemberCount ? <span className="shrink-0 text-xs font-medium opacity-90">{t.discordOnline(data.presenceCount)}</span> : null}
       </div>
       <div className="flex gap-4 p-4" style={{ backgroundColor: "#2b2d31", color: "#f2f3f5" }}>
-        {config.showVoiceChannels && data.channels.length > 0 ? (
-          <div className="flex flex-1 flex-col gap-1.5">
-            {data.channels.map((channel) => (
-              <span key={channel.id} className="flex items-center gap-1.5 truncate text-sm opacity-80">
+        {shownChannels.length > 0 ? (
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+            {shownChannels.map((channel) => (
+              <span key={channel.id} className="flex min-w-0 items-center gap-1.5 text-sm opacity-80">
                 <Volume2 className="size-3.5 shrink-0" />
-                {channel.name}
+                <span className="truncate">{channel.name}</span>
               </span>
             ))}
           </div>
         ) : null}
         {config.showAvatars && shownMembers.length > 0 ? (
-          <div className="flex flex-1 flex-col gap-2">
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
             <span className="text-[10px] font-bold tracking-wide opacity-50 uppercase">{t.discordMembersOnline}</span>
             {shownMembers.map((member) => (
-              <div key={member.id} className="flex items-center gap-2 text-sm">
+              <div key={member.id} className="flex min-w-0 items-center gap-2 text-sm">
                 <AvatarWithStatus member={member} size="size-6" ringColor="#2b2d31" />
-                <span className="truncate opacity-90">{member.username}</span>
+                <span className="min-w-0 flex-1 truncate opacity-90">{member.username}</span>
               </div>
             ))}
           </div>

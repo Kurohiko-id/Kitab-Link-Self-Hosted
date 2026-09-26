@@ -6,11 +6,22 @@ import { db } from "@/lib/db";
 import { discordWidgets } from "@/lib/db/schema";
 import { requireOwnedPage } from "@/lib/db/pages";
 import { fetchDiscordWidgetData } from "@/lib/discord-widget";
+import { logActivity } from "@/lib/db/activity-log";
 
 export type SaveDiscordWidgetState = { error?: string } | undefined;
 
 type FloatingPosition = "left-top" | "left-middle" | "left-bottom" | "right-top" | "right-middle" | "right-bottom";
 const FLOATING_POSITIONS: FloatingPosition[] = ["left-top", "left-middle", "left-bottom", "right-top", "right-middle", "right-bottom"];
+
+// Batas wajar biar gak ada yang ngerender rusak/kosong di halaman publik (input kosong = null = auto).
+const WIDTH_RANGE = { min: 200, max: 600 };
+const HEIGHT_RANGE = { min: 150, max: 800 };
+
+function parseClampedSize(raw: FormDataEntryValue | null, range: { min: number; max: number }): number | null {
+  const n = Number(raw);
+  if (!raw || !Number.isFinite(n) || n <= 0) return null;
+  return Math.min(range.max, Math.max(range.min, Math.round(n)));
+}
 
 // widgetId null = bikin baru, ada = update row itu punya page ini. Nge-tes fetch ke
 // widget.json dulu SEBELUM nyimpen -- biar user langsung tau kalau Server ID salah /
@@ -53,6 +64,11 @@ export async function saveDiscordWidgetAction(
   const showAvatars = formData.get("showAvatars") === "1";
   const showVoiceChannels = formData.get("showVoiceChannels") === "1";
   const showJoinButton = formData.get("showJoinButton") === "1";
+  // Width cuma masuk akal buat "floating" (box lepas di layar) -- mode "inline" ngikutin
+  // lebar kolom link halaman publik, gak boleh di-override (form-nya juga udah sembunyiin
+  // input ini kalau placementMode "inline", ini jaga-jaga di server).
+  const width = placementMode === "floating" ? parseClampedSize(formData.get("width"), WIDTH_RANGE) : null;
+  const height = parseClampedSize(formData.get("height"), HEIGHT_RANGE);
 
   const values = {
     name,
@@ -65,12 +81,16 @@ export async function saveDiscordWidgetAction(
     showAvatars,
     showVoiceChannels,
     showJoinButton,
+    width,
+    height,
   } as const;
 
   if (widgetId) {
     await db.update(discordWidgets).set(values).where(and(eq(discordWidgets.id, widgetId), eq(discordWidgets.pageId, pageId)));
+    logActivity(pageId, "discord_widget_updated", name);
   } else {
     await db.insert(discordWidgets).values({ pageId, ...values });
+    logActivity(pageId, "discord_widget_created", name);
   }
 
   revalidatePath("/dashboard");
@@ -79,7 +99,25 @@ export async function saveDiscordWidgetAction(
 
 export async function deleteDiscordWidgetAction(pageId: number, widgetId: number) {
   await requireOwnedPage(pageId);
-  await db.delete(discordWidgets).where(and(eq(discordWidgets.id, widgetId), eq(discordWidgets.pageId, pageId)));
+  const [deleted] = await db
+    .delete(discordWidgets)
+    .where(and(eq(discordWidgets.id, widgetId), eq(discordWidgets.pageId, pageId)))
+    .returning({ name: discordWidgets.name });
+  logActivity(pageId, "discord_widget_deleted", deleted?.name ?? null);
+  revalidatePath("/dashboard");
+  revalidatePath("/[slug]", "page");
+}
+
+// Toggle cepat dari list (gak lewat modal edit) -- pola sama kayak toggleLinkActive di
+// actions.ts. Dipake juga dari API token (app/api/v1/discord-widgets/[id]/route.ts).
+export async function toggleDiscordWidgetEnabledAction(pageId: number, widgetId: number, isEnabled: boolean) {
+  await requireOwnedPage(pageId);
+  const [updated] = await db
+    .update(discordWidgets)
+    .set({ isEnabled })
+    .where(and(eq(discordWidgets.id, widgetId), eq(discordWidgets.pageId, pageId)))
+    .returning({ name: discordWidgets.name });
+  logActivity(pageId, isEnabled ? "discord_widget_enabled" : "discord_widget_disabled", updated?.name ?? null);
   revalidatePath("/dashboard");
   revalidatePath("/[slug]", "page");
 }

@@ -19,7 +19,12 @@ export type ActivityAction =
   | "profile_updated"
   | "backup_imported"
   | "live_badge_on"
-  | "live_badge_off";
+  | "live_badge_off"
+  | "discord_widget_created"
+  | "discord_widget_updated"
+  | "discord_widget_deleted"
+  | "discord_widget_enabled"
+  | "discord_widget_disabled";
 
 export type ActivitySource = "dashboard" | "automation" | "api";
 

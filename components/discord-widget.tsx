@@ -21,7 +21,7 @@ export async function DiscordWidget({
   locale: PublicLocale;
 }) {
   // Style "iframe" gak butuh widget.json sama sekali -- skip fetch-nya, langsung iframe.
-  if (config.style === "iframe") return <DiscordIframe guildId={config.guildId} />;
+  if (config.style === "iframe") return <DiscordIframe guildId={config.guildId} width={config.width} height={config.height} />;
 
   const t = getPublicDictionary(locale);
   const data = await fetchDiscordWidgetData(config.guildId);

@@ -803,6 +803,17 @@ function IntegrationsSection({
               {t.integrations.apiWriteDescStream}
             </div>
           </div>
+          <div className="border-t border-background/10 pt-2">
+            <span className="text-background/60">GET</span> /api/v1/discord-widgets/&lt;id&gt;
+            <div className="mt-0.5 text-background/60">{t.integrations.apiDiscordReadDesc} discord:read)</div>
+          </div>
+          <div className="border-t border-background/10 pt-2">
+            <span className="text-background/60">PATCH</span> /api/v1/discord-widgets/&lt;id&gt;
+            <div className="mt-0.5 text-background/60">
+              {t.integrations.apiDiscordWriteDesc} {`{"enabled": true}`} {t.integrations.apiWriteDescSuffix} discord:write){" "}
+              {t.integrations.apiWriteDescStream}
+            </div>
+          </div>
         </div>
         <div className="mt-3">
           <TokenCreator t={t} />
