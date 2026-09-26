@@ -75,6 +75,21 @@ export function parseAccordionItems(raw: string): AccordionItem[] {
 
 export type CountdownData = { endsAt: string; url: string };
 
+// url (kolom parent link) disimpan sebagai JSON stringified {widgetId} -- REFERENSI ke row
+// discordWidgets, bukan snapshot -- edit config-nya di tab Integrations > Discord LANGSUNG
+// kepake di semua link yang nunjuk ke situ (live, gak perlu hapus-tambah ulang link-nya).
+// Config aslinya (guildId/style/toggles) di-fetch on-demand lewat /api/discord-widget-config
+// (route handler, server context beneran) -- LinkCard sendiri gak bisa query DB langsung
+// soalnya bisa ke-render dari preview dashboard yang client-side (lihat DiscordWidgetLinkCard).
+export function parseDiscordWidgetId(raw: string): number | null {
+  try {
+    const parsed = JSON.parse(raw);
+    return typeof parsed?.widgetId === "number" ? parsed.widgetId : null;
+  } catch {
+    return null;
+  }
+}
+
 // url (kolom parent link) disimpan sebagai JSON stringified {endsAt, url} -- sama pola
 // dengan accordion (JSON di kolom yang sama), parsing permisif (balikin null kalau
 // bentuknya gak sesuai) biar gak gampang crash kalau datanya korup.
@@ -125,6 +140,10 @@ export function getLinkHref(link: PublicLink): LinkHref {
       // Gak pernah dipakai buat navigasi beneran (lihat components/copy-link-button.tsx),
       // tetep dikasih nilai valid biar getLinkHref exhaustive dan gak crash kalau kepanggil.
       return { href: link.url, isDownload: false };
+    case "discord_widget":
+      // Bukan link beneran -- kartu widget dirender langsung di posisi ini (lihat
+      // components/link-card.tsx), gak ada "klik buka sesuatu".
+      return { href: "#", isDownload: false };
     case "accordion":
       // Gak pernah dipakai buat navigasi (klik-nya expand/collapse, lihat AccordionLinkCard) --
       // tetep dikasih nilai valid biar getLinkHref exhaustive dan gak crash kalau kepanggil.
@@ -186,7 +205,12 @@ export function extractYoutubeId(url: string): string | null {
 // manajer drag-drop). Ringkes jadi teks manusiawi, locale-agnostic (gak butuh Dictionary di
 // sini, file ini dipakai bareng halaman publik) -- fallback ke `url` mentah kalau JSON-nya
 // gak valid/kosong, daripada nampilin string kosong yang bikin baris keliatan rusak.
-export function describeLinkForList(link: Pick<PublicLink, "linkType" | "url">): string {
+// `discordWidgetNames` opsional -- board.tsx yang punya akses ke list discordWidgets
+// (dari Board props), file ini sendiri gak query DB (dipakai bareng halaman publik).
+export function describeLinkForList(
+  link: Pick<PublicLink, "linkType" | "url">,
+  discordWidgetNames?: Record<number, string>,
+): string {
   if (link.linkType === "accordion") {
     const items = parseAccordionItems(link.url);
     return items.length > 0 ? items.map((item) => item.label || item.url).join(", ") : link.url;
@@ -199,6 +223,11 @@ export function describeLinkForList(link: Pick<PublicLink, "linkType" | "url">):
     const pad = (n: number) => String(n).padStart(2, "0");
     const formatted = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
     return `${formatted} · ${data.url}`;
+  }
+  if (link.linkType === "discord_widget") {
+    const widgetId = parseDiscordWidgetId(link.url);
+    const name = widgetId !== null ? discordWidgetNames?.[widgetId] : undefined;
+    return name ?? "Discord Widget";
   }
   return link.url;
 }
