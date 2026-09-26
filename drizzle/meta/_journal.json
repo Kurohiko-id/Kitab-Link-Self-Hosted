@@ -218,6 +218,13 @@
       "when": 1790458065307,
       "tag": "0030_fine_warlock",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "6",
+      "when": 1790459067256,
+      "tag": "0031_curved_talon",
+      "breakpoints": true
     }
   ]
 }
