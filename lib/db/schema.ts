@@ -313,6 +313,14 @@ export const discordWidgets = sqliteTable("discord_widgets", {
   // bukan keterbatasan kita) -- gak ada cara nampilin daftar channel text/kosong.
   showVoiceChannels: integer("show_voice_channels", { mode: "boolean" }).notNull().default(true),
   showJoinButton: integer("show_join_button", { mode: "boolean" }).notNull().default(true),
+  // null = ukuran default per style (lihat widthClassFor di floating-discord-widgets.tsx /
+  // fallback width="100%" height={500} di discord-iframe.tsx). Diisi dari px, di-clamp di
+  // action (200-600 / 150-800) biar gak ada yang ngerender rusak/kosong di halaman publik.
+  width: integer("width"),
+  height: integer("height"),
+  // Toggle nyala/mati widget tanpa hapus konfigurasinya -- dipake juga dari API token
+  // (app/api/v1/discord-widgets/[id]/route.ts) buat kontrol dari luar (mis. Stream Deck).
+  isEnabled: integer("is_enabled", { mode: "boolean" }).notNull().default(true),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
