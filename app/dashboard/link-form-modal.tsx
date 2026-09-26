@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { SelectField } from "@/components/ui/select-field";
 import { IconPicker, EmojiPicker } from "@/components/icon-picker";
 import { CropFileInput } from "@/components/crop-file-input";
+import { HeightCropFileInput } from "@/components/height-crop-file-input";
+import { Switch } from "@/components/ui/switch";
 import { GroupFormModal, type GroupModalState } from "./group-form-modal";
 import { DateTimePicker } from "@/components/datetime-picker";
 import { cn, FILE_INPUT_CLASS } from "@/lib/utils";
@@ -81,6 +83,7 @@ export function LinkFormModal({
   pageId,
   groups,
   discordWidgets,
+  containerWidth,
   state,
   t,
   locale,
@@ -91,6 +94,9 @@ export function LinkFormModal({
   pageId: number;
   groups: { id: number; name: string }[];
   discordWidgets: DiscordWidgetRow[];
+  // Cuma buat teks hint displayStyle "image" ("lebar gambar maks Xpx") -- ikut lebar
+  // halaman publik dari theme aktif, lihat lib/theme.ts containerWidth.
+  containerWidth: number;
   state: LinkModalState | null;
   t: Dictionary;
   locale: Locale;
@@ -140,6 +146,8 @@ export function LinkFormModal({
   });
   const [featured, setFeatured] = useState(state?.mode === "edit" ? state.link.featured : false);
   const [mediaTab, setMediaTab] = useState<MediaTab>("thumbnail");
+  const [imageHideBorder, setImageHideBorder] = useState(state?.mode === "edit" ? state.link.imageHideBorder : false);
+  const [imageHideBackground, setImageHideBackground] = useState(state?.mode === "edit" ? state.link.imageHideBackground : false);
   const [target, setTarget] = useState(() => {
     if (state?.mode === "edit") return state.link.groupId ? `group:${state.link.groupId}` : "ungrouped";
     if (state?.mode === "create" && state.groupId) return `group:${state.groupId}`;
@@ -356,7 +364,7 @@ export function LinkFormModal({
             </div>
           )}
 
-          {linkType !== "discord_widget" ? (
+          {linkType !== "discord_widget" && displayStyle !== "image" ? (
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="description">{t.linkModal.descLabel}</Label>
               <Textarea
@@ -411,12 +419,13 @@ export function LinkFormModal({
                 >
                   <option value="pill">{t.linkModal.styleOptions.pill}</option>
                   <option value="rich">{t.linkModal.styleOptions.rich}</option>
+                  <option value="image">{t.linkModal.styleOptions.image}</option>
                 </SelectField>
               </div>
             ) : null}
           </div>
 
-          {linkType !== "discord_widget" ? (
+          {linkType !== "discord_widget" && displayStyle !== "image" ? (
             <div className="flex flex-col gap-1.5">
               <Label>{t.linkModal.mediaLabel}</Label>
               <div className="flex flex-wrap gap-1 rounded-lg bg-muted p-1">
@@ -473,6 +482,89 @@ export function LinkFormModal({
 
               <input type="hidden" name="removeThumbnail" value={removeThumbnail ? "1" : ""} />
               <input type="hidden" name="icon" value={icon} />
+            </div>
+          ) : null}
+
+          {linkType !== "discord_widget" && displayStyle === "image" ? (
+            <div className="flex flex-col gap-3 rounded-lg border bg-muted/50 p-3">
+              <p className="text-xs text-muted-foreground">
+                {t.linkModal.imageSizeHint.replace("{width}", String(containerWidth))}
+              </p>
+
+              <div className="flex flex-col gap-2">
+                <Label className="text-xs">{t.linkModal.imageMainLabel}</Label>
+                {state.mode === "edit" && state.link.thumbnailPath && !removeThumbnail ? (
+                  // Ditumpuk ke bawah, BUKAN sebaris sama gambarnya -- banner yang lebar
+                  // bikin tombol hapusnya kedorong keluar modal kalau sebaris.
+                  <div className="flex flex-col items-start gap-1.5">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- preview gambar yang sudah diupload */}
+                    <img
+                      src={`/uploads/${state.link.thumbnailPath}`}
+                      alt=""
+                      className="max-h-14 w-auto max-w-full rounded-lg object-contain"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setRemoveThumbnail(true)}
+                      className="flex items-center gap-1 text-xs font-medium text-destructive transition-colors hover:text-destructive/80"
+                    >
+                      <Trash2 className="size-3.5" />
+                      {t.linkModal.removeThumbnail}
+                    </button>
+                  </div>
+                ) : null}
+                <HeightCropFileInput
+                  id="thumbnail"
+                  name="thumbnail"
+                  outputWidth={containerWidth}
+                  className={FILE_INPUT_CLASS}
+                  t={t}
+                />
+              </div>
+              <input type="hidden" name="removeThumbnail" value={removeThumbnail ? "1" : ""} />
+              <input type="hidden" name="icon" value="" />
+
+              <div className="mt-1 flex flex-col gap-2 border-t pt-3">
+                <Label className="text-xs font-medium">{t.linkModal.imageOverrideLabel}</Label>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm">{t.linkModal.imageHideBorderLabel}</p>
+                  <Switch checked={imageHideBorder} onCheckedChange={setImageHideBorder} />
+                </div>
+                <input type="hidden" name="imageHideBorder" value={imageHideBorder ? "1" : ""} />
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm">{t.linkModal.imageHideBackgroundLabel}</p>
+                  <Switch checked={imageHideBackground} onCheckedChange={setImageHideBackground} />
+                </div>
+                <input type="hidden" name="imageHideBackground" value={imageHideBackground ? "1" : ""} />
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex flex-col gap-1">
+                    <Label htmlFor="imageRadius" className="text-xs">
+                      {t.linkModal.imageRadiusLabel}
+                    </Label>
+                    <Input
+                      id="imageRadius"
+                      name="imageRadius"
+                      type="number"
+                      min={0}
+                      max={100}
+                      placeholder={t.linkModal.imageRadiusPlaceholder}
+                      defaultValue={state.mode === "edit" && state.link.imageRadius !== null ? state.link.imageRadius : ""}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label htmlFor="imageShadow" className="text-xs">
+                      {t.linkModal.imageShadowLabel}
+                    </Label>
+                    <SelectField id="imageShadow" name="imageShadow" defaultValue={state.mode === "edit" ? state.link.imageShadow : "theme"}>
+                      <option value="theme">{t.linkModal.imageShadowTheme}</option>
+                      <option value="none">{t.linkModal.imageShadowNone}</option>
+                      <option value="sm">{t.linkModal.imageShadowSm}</option>
+                      <option value="md">{t.linkModal.imageShadowMd}</option>
+                      <option value="lg">{t.linkModal.imageShadowLg}</option>
+                    </SelectField>
+                  </div>
+                </div>
+              </div>
             </div>
           ) : null}
 

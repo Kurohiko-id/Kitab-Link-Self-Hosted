@@ -109,10 +109,20 @@ export const links = sqliteTable("links", {
   // 2 pilihan yang hasilnya sama. Row lama di database yang masih "rounded" udah dimigrasi
   // ke "pill" (lihat drizzle/ -- ini plain text column, gak ada CHECK constraint DB, jadi
   // ganti union type di sini gak butuh migration SQL).
-  displayStyle: text("display_style", { enum: ["pill", "rich", "icon"] })
+  displayStyle: text("display_style", { enum: ["pill", "rich", "icon", "image"] })
     .notNull()
     .default("pill"),
   thumbnailPath: text("thumbnail_path"),
+  // Override tampilan tombol khusus displayStyle "image" -- gambar itu sendiri udah jadi
+  // "wajah" tombolnya, jadi border/background/shadow dari theme kadang malah ganggu (nutup
+  // sudut gambar, nambah bingkai gak diinginkan). Null/"theme" = ikut theme seperti biasa,
+  // gak ngaruh ke displayStyle lain.
+  imageHideBorder: integer("image_hide_border", { mode: "boolean" }).notNull().default(false),
+  imageHideBackground: integer("image_hide_background", { mode: "boolean" }).notNull().default(false),
+  imageRadius: integer("image_radius"),
+  imageShadow: text("image_shadow", { enum: ["theme", "none", "sm", "md", "lg"] })
+    .notNull()
+    .default("theme"),
   // Format "brand:whatsapp" / "generic:Mail" — null = auto (favicon), lihat lib/icons.ts
   icon: text("icon"),
   scheduleStart: integer("schedule_start", { mode: "timestamp" }),

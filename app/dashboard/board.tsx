@@ -706,6 +706,7 @@ export function Board({
         pageId={pageId}
         groups={groupOptions}
         discordWidgets={discordWidgets}
+        containerWidth={tokens.containerWidth}
         state={modalState}
         t={t}
         locale={locale}

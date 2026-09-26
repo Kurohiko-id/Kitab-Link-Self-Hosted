@@ -1591,7 +1591,9 @@ export function getAnimatedBackgroundClass(tokens: ThemeTokens): string | null {
   return null;
 }
 
-const SHADOW_PRESETS: Record<ButtonShadow, string> = {
+// Diexport -- dipakai lagi di components/link-card.tsx buat override shadow per-link
+// (displayStyle "image"), bukan cuma internal getCardStyle di sini.
+export const SHADOW_PRESETS: Record<ButtonShadow, string> = {
   none: "",
   sm: "0 1px 2px rgba(0,0,0,0.08)",
   md: "0 4px 10px rgba(0,0,0,0.14)",

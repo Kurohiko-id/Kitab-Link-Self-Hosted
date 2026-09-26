@@ -22,6 +22,10 @@ import { cn } from "@/lib/utils";
 const PLACEHOLDER_LINK_BASE = {
   description: null,
   thumbnailPath: null,
+  imageHideBorder: false,
+  imageHideBackground: false,
+  imageRadius: null,
+  imageShadow: "theme" as const,
   displayStyle: "pill" as const,
   icon: null,
   linkType: "url" as const,

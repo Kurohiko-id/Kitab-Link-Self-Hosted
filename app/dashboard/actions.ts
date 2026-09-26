@@ -167,20 +167,48 @@ export async function saveLinkAction(
   const utmMedium = String(formData.get("utmMedium") ?? "").trim() || null;
   const utmCampaign = String(formData.get("utmCampaign") ?? "").trim() || null;
 
+  // Override tampilan tombol -- cuma dikirim form pas displayStyle "image", tapi disimpan
+  // apa adanya (gak di-force default kalau displayStyle lain, gak masalah numpuk di kolom
+  // gak kepake karena kolom lain juga banyak yang "cuma relevan buat displayStyle X").
+  const imageHideBorder = formData.get("imageHideBorder") === "1";
+  const imageHideBackground = formData.get("imageHideBackground") === "1";
+  const imageRadiusRaw = String(formData.get("imageRadius") ?? "").trim();
+  const imageRadiusParsed = imageRadiusRaw === "" ? NaN : Number(imageRadiusRaw);
+  const imageRadius = Number.isFinite(imageRadiusParsed) ? imageRadiusParsed : null;
+  const imageShadowRaw = String(formData.get("imageShadow") ?? "theme");
+  const imageShadow = (["theme", "none", "sm", "md", "lg"].includes(imageShadowRaw) ? imageShadowRaw : "theme") as
+    | "theme"
+    | "none"
+    | "sm"
+    | "md"
+    | "lg";
+
   const removeThumbnail = formData.get("removeThumbnail") === "1";
 
   let newThumbnailPath: string | null = null;
-  const thumbnailFile = formData.get("thumbnail");
-  if (thumbnailFile instanceof File && thumbnailFile.size > 0) {
-    if (!thumbnailFile.type.startsWith("image/")) {
-      return { error: "File thumbnail harus berupa gambar." };
-    }
-    const buffer = Buffer.from(await thumbnailFile.arrayBuffer());
-    const webp = await processImage(buffer, MAX_THUMBNAIL_WIDTH);
-    newThumbnailPath = await saveImage(webp, "link-thumbnails");
+  try {
+    newThumbnailPath = await uploadLinkImage(formData.get("thumbnail"));
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Upload gambar gagal." };
   }
 
-  const values = { title, url, description, displayStyle, icon, groupId, linkType, featured, utmSource, utmMedium, utmCampaign };
+  const values = {
+    title,
+    url,
+    description,
+    displayStyle,
+    icon,
+    groupId,
+    linkType,
+    featured,
+    utmSource,
+    utmMedium,
+    utmCampaign,
+    imageHideBorder,
+    imageHideBackground,
+    imageRadius,
+    imageShadow,
+  };
 
   if (linkId) {
     const [existing] = await db.select().from(links).where(eq(links.id, linkId)).limit(1);
@@ -207,6 +235,18 @@ export async function saveLinkAction(
   }
 
   revalidatePath("/dashboard");
+}
+
+// Dipakai buat thumbnail (semua displayStyle) DAN cap kiri/kanan displayStyle "image" 3-bagian
+// -- sama-sama "upload gambar opsional, resize+convert webp, atau skip kalau gak ada file baru".
+async function uploadLinkImage(file: FormDataEntryValue | null): Promise<string | null> {
+  if (!(file instanceof File) || file.size === 0) return null;
+  if (!file.type.startsWith("image/")) {
+    throw new Error("File yang diupload harus berupa gambar.");
+  }
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const webp = await processImage(buffer, MAX_THUMBNAIL_WIDTH);
+  return await saveImage(webp, "link-thumbnails");
 }
 
 // Log 3 field paling signifikan doang (judul/URL/icon) buat activity log -- diff penuh semua
