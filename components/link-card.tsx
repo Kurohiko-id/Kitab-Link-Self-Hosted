@@ -12,6 +12,7 @@ import {
   getEntranceClass,
   getSocialIconShapeClass,
   getSocialIconStyle,
+  SHADOW_PRESETS,
   type ThemeTokens,
 } from "@/lib/theme";
 import type { PublicLink } from "@/lib/db/board";
@@ -268,6 +269,39 @@ export function LinkCard({
         style={socialIconStyle}
       >
         <LinkGlyph link={link} className="size-5 shrink-0" />
+      </a>
+    );
+  }
+
+  // "image" -- gambar sendiri jadi wajah tombolnya (banner/iklan), gak ada teks/icon.
+  // max-width otomatis ngikut lebar container publik (w-full di parent yang udah dibatasin
+  // theme.containerWidth), jadi gak perlu diulang di sini -- cukup h-auto biar rasio asli
+  // gambar kejaga, TANPA w-full di <img> single (biar gambar yang lebih kecil dari container
+  // gak dipaksa upscale melar).
+  if (link.displayStyle === "image") {
+    const imageStyle: React.CSSProperties = { ...buttonStyle };
+    if (link.imageHideBorder) imageStyle.borderWidth = 0;
+    if (link.imageHideBackground) {
+      imageStyle.backgroundColor = "transparent";
+      imageStyle.backdropFilter = "none";
+    }
+    if (link.imageRadius !== null) imageStyle.borderRadius = link.imageRadius;
+    if (link.imageShadow !== "theme") imageStyle.boxShadow = SHADOW_PRESETS[link.imageShadow] || undefined;
+
+    return (
+      <a
+        href={clickHref}
+        target="_blank"
+        rel="noopener noreferrer"
+        download={linkHref.isDownload || undefined}
+        title={link.title}
+        className={cn("block w-full overflow-hidden", sharedClassName)}
+        style={imageStyle}
+      >
+        {link.thumbnailPath ? (
+          // eslint-disable-next-line @next/next/no-img-element -- gambar sudah diproses jadi webp sendiri, bukan kandidat next/image
+          <img src={`/uploads/${link.thumbnailPath}`} alt="" className="h-auto max-w-full" />
+        ) : null}
       </a>
     );
   }

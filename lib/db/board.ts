@@ -2,7 +2,9 @@ import { and, asc, eq } from "drizzle-orm";
 import { db } from "./index";
 import { linkGroups, links, pages } from "./schema";
 
-export type DisplayStyle = "pill" | "rich" | "icon";
+export type DisplayStyle = "pill" | "rich" | "icon" | "image";
+// "theme" = ikut theme.buttonShadow seperti biasa, sisanya override manual per-link.
+export type ImageShadow = "theme" | "none" | "sm" | "md" | "lg";
 export type LinkType =
   | "url"
   | "email"
@@ -24,6 +26,10 @@ export type BoardLink = {
   description: string | null;
   isActive: boolean;
   thumbnailPath: string | null;
+  imageHideBorder: boolean;
+  imageHideBackground: boolean;
+  imageRadius: number | null;
+  imageShadow: ImageShadow;
   displayStyle: DisplayStyle;
   icon: string | null;
   linkType: LinkType;
@@ -79,6 +85,10 @@ export async function getBoardData(pageId: number): Promise<BoardData> {
       description: link.description,
       isActive: link.isActive,
       thumbnailPath: link.thumbnailPath,
+      imageHideBorder: link.imageHideBorder,
+      imageHideBackground: link.imageHideBackground,
+      imageRadius: link.imageRadius,
+      imageShadow: link.imageShadow,
       displayStyle: link.displayStyle,
       icon: link.icon,
       linkType: link.linkType,
@@ -118,6 +128,10 @@ export type PublicLink = {
   url: string;
   description: string | null;
   thumbnailPath: string | null;
+  imageHideBorder: boolean;
+  imageHideBackground: boolean;
+  imageRadius: number | null;
+  imageShadow: ImageShadow;
   displayStyle: DisplayStyle;
   icon: string | null;
   linkType: LinkType;
@@ -157,6 +171,10 @@ export async function getPublicBoardData(pageId: number): Promise<PublicBoardDat
       url: link.url,
       description: link.description,
       thumbnailPath: link.thumbnailPath,
+      imageHideBorder: link.imageHideBorder,
+      imageHideBackground: link.imageHideBackground,
+      imageRadius: link.imageRadius,
+      imageShadow: link.imageShadow,
       displayStyle: link.displayStyle,
       icon: link.icon,
       linkType: link.linkType,
