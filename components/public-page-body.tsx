@@ -15,6 +15,7 @@ import { recordPageView } from "@/lib/db/analytics";
 import { getReferrerHost, getDeviceType, getCountryFromHeaders } from "@/lib/analytics-capture";
 import { hasPageAccess } from "@/lib/auth/page-session";
 import { getActiveLiveStatus } from "@/lib/db/live-status";
+import { getFloatingDiscordWidgetsForPage } from "@/lib/db/discord-widget";
 import { detectVisitorLocale, getPublicDictionary } from "@/lib/public-i18n";
 import { KITABLINK_SITE_URL } from "@/lib/version";
 import { LinkCard } from "@/components/link-card";
@@ -23,6 +24,7 @@ import { SocialIconRow } from "@/components/social-icon-row";
 import { NetworkBackground } from "@/components/network-background";
 import { ThemeProfileHeader } from "@/components/theme-profile-header";
 import { LiveBadge } from "@/components/live-badge";
+import { FloatingDiscordWidgets } from "@/components/floating-discord-widgets";
 import { PasswordForm } from "@/app/[slug]/password-form";
 
 export type PublicPageRow = { id: number; slug: string; profileJson: string; passwordHash: string | null };
@@ -64,10 +66,11 @@ export async function PublicPageBody({
     country: getCountryFromHeaders(requestHeaders),
   });
 
-  const [board, theme, liveStatus] = await Promise.all([
+  const [board, theme, liveStatus, floatingDiscordWidgets] = await Promise.all([
     getPublicBoardData(page.id),
     getThemeForPage(page.id),
     getActiveLiveStatus(page.id),
+    getFloatingDiscordWidgetsForPage(page.id),
   ]);
   const { topIconLinks, bottomIconLinks, ungrouped, groups } = splitIconLinks(board.ungrouped, board.groups);
   const hasAnyLink = ungrouped.length > 0 || groups.some((group) => group.links.length > 0);
@@ -100,6 +103,10 @@ export async function PublicPageBody({
         </>
       ) : null}
       {isNetwork ? <NetworkBackground colors={theme.backgroundColors} /> : null}
+
+      {floatingDiscordWidgets.length > 0 ? (
+        <FloatingDiscordWidgets widgets={floatingDiscordWidgets} theme={theme} locale={visitorLocale} />
+      ) : null}
 
       <div
         className="relative z-10 mx-auto flex w-full flex-col items-center p-8"

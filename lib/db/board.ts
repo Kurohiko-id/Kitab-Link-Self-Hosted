@@ -3,7 +3,17 @@ import { db } from "./index";
 import { linkGroups, links, pages } from "./schema";
 
 export type DisplayStyle = "pill" | "rich" | "icon";
-export type LinkType = "url" | "email" | "phone" | "whatsapp" | "file" | "embed" | "copy" | "accordion" | "countdown";
+export type LinkType =
+  | "url"
+  | "email"
+  | "phone"
+  | "whatsapp"
+  | "file"
+  | "embed"
+  | "copy"
+  | "accordion"
+  | "countdown"
+  | "discord_widget";
 export type IconPosition = "top" | "bottom";
 
 export type BoardLink = {

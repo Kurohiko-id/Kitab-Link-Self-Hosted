@@ -3,6 +3,7 @@ import { LinkIconRenderer } from "@/components/link-icon";
 import { CopiedCheckIcon, CopyLinkButton } from "@/components/copy-link-button";
 import { AccordionLinkCard } from "@/components/accordion-link-card";
 import { CountdownLinkCard } from "@/components/countdown-link-card";
+import { DiscordWidgetLinkCard } from "@/components/discord-widget-link-card";
 import { YoutubeFacade } from "@/components/youtube-facade";
 import {
   getButtonAlignClass,
@@ -14,7 +15,7 @@ import {
   type ThemeTokens,
 } from "@/lib/theme";
 import type { PublicLink } from "@/lib/db/board";
-import { getLinkHref, parseAccordionItems, parseCountdownData, extractYoutubeId } from "@/lib/link-render";
+import { getLinkHref, parseAccordionItems, parseCountdownData, parseDiscordWidgetId, extractYoutubeId } from "@/lib/link-render";
 import { brandIconForUrl } from "@/lib/icons";
 import type { PublicLocale } from "@/lib/public-i18n";
 
@@ -33,6 +34,7 @@ const DEFAULT_ICON_BY_TYPE: Partial<Record<PublicLink["linkType"], string>> = {
   embed: "generic:Play",
   copy: "generic:Clipboard",
   countdown: "generic:Timer",
+  discord_widget: "brand:discord",
 };
 
 function faviconUrl(pageUrl: string): string | null {
@@ -132,6 +134,12 @@ export function LinkCard({
   // Klik nembak ke sini dulu (bukan langsung ke URL asli) -> analytics klik ke-catat
   // sebelum di-redirect ke tujuan sebenarnya, lihat app/r/[linkId]/route.ts.
   const clickHref = `/r/${link.id}`;
+
+  // Discord Widget -- bukan link (gak ada "klik buka sesuatu"), langsung render kartu
+  // widget-nya di posisi ini, sama kayak accordion/countdown gak peduliin displayStyle.
+  if (link.linkType === "discord_widget") {
+    return <DiscordWidgetLinkCard widgetId={parseDiscordWidgetId(link.url)} theme={theme} locale={locale} />;
+  }
 
   // Countdown -- gak bisa diklik sebelum endsAt lewat, jadi dicek DULUAN sebelum displayStyle
   // "icon" (gak masuk akal buat state "nonaktif sementara" ini). "rich" TETEP didukung (lihat
