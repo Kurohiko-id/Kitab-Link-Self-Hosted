@@ -36,6 +36,8 @@ import {
 import { getApiTokensForUser, getWebhooksForUser } from "@/lib/db/integrations";
 import { getScheduledRulesForPage } from "@/lib/db/automation";
 import { getLiveBadgeForPage } from "@/lib/db/live-badges";
+import { getDiscordWidgetsForPage } from "@/lib/db/discord-widget";
+import { DiscordWidgetsManager } from "@/components/discord-widgets-manager";
 import { getThemeForPage, getThemeLibrary } from "@/lib/db/theme";
 import { getDictionary, type Dictionary, type Locale } from "@/lib/i18n";
 import { getLocale } from "@/lib/i18n-server";
@@ -151,6 +153,7 @@ export default async function DashboardPage({
   searchParams: Promise<{
     page?: string;
     tab?: string;
+    itab?: string;
     chartPeriod?: string;
     linksPeriod?: string;
     openLink?: string;
@@ -159,6 +162,7 @@ export default async function DashboardPage({
   const {
     page: pageParam,
     tab: tabParam,
+    itab: itabParam,
     chartPeriod: chartPeriodParam,
     linksPeriod: linksPeriodParam,
     openLink: openLinkParam,
@@ -184,6 +188,11 @@ export default async function DashboardPage({
   const deadLinks = await getDeadLinksForUser(session.userId);
 
   const activeTab: TabKey = NAV_KEYS.includes(tabParam as TabKey) ? (tabParam as TabKey) : "overview";
+  const INTEGRATIONS_SUBTABS = ["api", "webhook", "discord"] as const;
+  type IntegrationsSubTab = (typeof INTEGRATIONS_SUBTABS)[number];
+  const integrationsSubTab: IntegrationsSubTab = INTEGRATIONS_SUBTABS.includes(itabParam as IntegrationsSubTab)
+    ? (itabParam as IntegrationsSubTab)
+    : "api";
   const chartPeriod: Period = CHART_PERIODS.includes(chartPeriodParam as Period) ? (chartPeriodParam as Period) : "week";
   const linksPeriod: Period = LINKS_PERIODS.includes(linksPeriodParam as Period) ? (linksPeriodParam as Period) : "today";
 
@@ -220,9 +229,11 @@ export default async function DashboardPage({
   const contentFeeds =
     activeTab === "automation" ? await getContentFeedsForPage(activePage.id) : null;
   const liveBadge = activeTab === "automation" ? await getLiveBadgeForPage(activePage.id) : null;
+  const discordWidgets =
+    activeTab === "integrations" || activeTab === "links" ? await getDiscordWidgetsForPage(activePage.id) : [];
 
   const themeTokens =
-    activeTab === "theme" || activeTab === "links" || activeTab === "profile"
+    activeTab === "theme" || activeTab === "links" || activeTab === "profile" || activeTab === "integrations"
       ? await getThemeForPage(activePage.id)
       : null;
   const [themeLibrary, themePreviewBoard] =
@@ -400,6 +411,7 @@ export default async function DashboardPage({
                 clickCounts={linkClickCounts ?? {}}
                 openLinkId={openLinkParam ? Number(openLinkParam) : null}
                 socialPreviewBoard={linksSocialBoard}
+                discordWidgets={discordWidgets}
               />
             ) : null}
             {activeTab === "profile" && themeTokens && profilePreviewBoard && profileSocialLinks ? (
@@ -438,8 +450,17 @@ export default async function DashboardPage({
                 locale={locale}
               />
             ) : null}
-            {activeTab === "integrations" && apiTokens && webhookList ? (
-              <IntegrationsSection pageId={activePage.id} tokens={apiTokens} webhooks={webhookList} t={t} locale={locale} />
+            {activeTab === "integrations" && apiTokens && webhookList && themeTokens ? (
+              <IntegrationsSection
+                pageId={activePage.id}
+                tokens={apiTokens}
+                webhooks={webhookList}
+                discordWidgets={discordWidgets}
+                theme={themeTokens}
+                subTab={integrationsSubTab}
+                t={t}
+                locale={locale}
+              />
             ) : null}
             {activeTab === "automation" && boardData && scheduledRules && contentFeeds ? (
               <AutomationSection
@@ -708,15 +729,26 @@ function IntegrationsSection({
   pageId,
   tokens,
   webhooks,
+  discordWidgets,
+  theme,
+  subTab,
   t,
   locale,
 }: {
   pageId: number;
   tokens: Awaited<ReturnType<typeof getApiTokensForUser>>;
   webhooks: Awaited<ReturnType<typeof getWebhooksForUser>>;
+  discordWidgets: Awaited<ReturnType<typeof getDiscordWidgetsForPage>>;
+  theme: ThemeTokens;
+  subTab: "api" | "webhook" | "discord";
   t: Dictionary;
   locale: string;
 }) {
+  const SUBTABS: { key: "api" | "webhook" | "discord"; label: string }[] = [
+    { key: "api", label: t.integrations.tabApi },
+    { key: "webhook", label: t.integrations.tabWebhook },
+    { key: "discord", label: t.integrations.tabDiscord },
+  ];
   const EVENT_LABELS: Record<string, string> =
     locale === "en"
       ? {
@@ -735,6 +767,22 @@ function IntegrationsSection({
 
   return (
     <div className="flex flex-col gap-6">
+      <div className="flex w-fit flex-wrap gap-1 rounded-xl border bg-card p-1.5 shadow-sm">
+        {SUBTABS.map((item) => (
+          <Link
+            key={item.key}
+            href={`/dashboard?page=${pageId}&tab=integrations&itab=${item.key}`}
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+              subTab === item.key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            )}
+          >
+            {item.label}
+          </Link>
+        ))}
+      </div>
+
+      {subTab === "api" ? (
       <SectionCard
         title={t.integrations.apiTokensTitle}
         description={
@@ -792,7 +840,9 @@ function IntegrationsSection({
           {tokens.length === 0 && <li className="text-sm text-muted-foreground">{t.integrations.noTokens}</li>}
         </ul>
       </SectionCard>
+      ) : null}
 
+      {subTab === "webhook" ? (
       <SectionCard title={t.integrations.webhooksTitle} description={t.integrations.webhooksDesc}>
         <form
           action={createWebhookAction.bind(null, pageId, "test.ping")}
@@ -843,6 +893,13 @@ function IntegrationsSection({
           {webhooks.length === 0 && <li className="text-sm text-muted-foreground">{t.integrations.noWebhooks}</li>}
         </ul>
       </SectionCard>
+      ) : null}
+
+      {subTab === "discord" ? (
+      <SectionCard title={t.widgets.discordTitle} description={t.widgets.discordDesc}>
+        <DiscordWidgetsManager pageId={pageId} discordWidgets={discordWidgets} theme={theme} t={t} />
+      </SectionCard>
+      ) : null}
     </div>
   );
 }

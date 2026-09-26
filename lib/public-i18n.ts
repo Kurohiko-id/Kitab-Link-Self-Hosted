@@ -29,6 +29,9 @@ const publicDict = {
     wrongPasswordError: "Password salah.",
     tooManyAttemptsError: "Terlalu banyak percobaan salah. Coba lagi beberapa menit lagi.",
     countdownLockedToast: (time: string) => `Link ini baru bisa diakses ${time} lagi`,
+    discordJoinServer: "Gabung Server",
+    discordOnline: (count: number) => `${count} online`,
+    discordMembersOnline: "Member Online",
   },
   en: {
     isLiveNow: (name: string) => `${name} is live`,
@@ -47,9 +50,13 @@ const publicDict = {
     wrongPasswordError: "Wrong password.",
     tooManyAttemptsError: "Too many failed attempts. Try again in a few minutes.",
     countdownLockedToast: (time: string) => `This link unlocks in ${time}`,
+    discordJoinServer: "Join Server",
+    discordOnline: (count: number) => `${count} online`,
+    discordMembersOnline: "Members Online",
   },
 };
 
 export function getPublicDictionary(locale: PublicLocale) {
   return publicDict[locale];
 }
+export type PublicDictionary = ReturnType<typeof getPublicDictionary>;

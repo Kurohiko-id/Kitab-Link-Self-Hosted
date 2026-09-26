@@ -43,6 +43,7 @@ import { describeLinkForList } from "@/lib/link-render";
 import { getDictionary, type Dictionary, type Locale } from "@/lib/i18n";
 import type { ThemeTokens } from "@/lib/theme";
 import type { ProfileData } from "@/lib/profile";
+import type { DiscordWidgetRow } from "@/lib/db/discord-widget";
 import { DashboardPreviewPanel } from "@/components/dashboard-preview-panel";
 import {
   createGroup,
@@ -111,6 +112,7 @@ function DroppableContainer({ id, children }: { id: string; children: React.Reac
 function SortableLinkRow({
   link,
   clicks,
+  discordWidgetNames,
   onToggleActive,
   onToggleFeatured,
   onEdit,
@@ -118,6 +120,7 @@ function SortableLinkRow({
 }: {
   link: BoardLink;
   clicks: number;
+  discordWidgetNames: Record<number, string>;
   onToggleActive: (isActive: boolean) => void;
   onToggleFeatured: (featured: boolean) => void;
   onEdit: () => void;
@@ -164,7 +167,7 @@ function SortableLinkRow({
             <span className="truncate text-sm font-medium">{link.title}</span>
             {link.linkType !== "url" ? <Badge variant="sky">{link.linkType}</Badge> : null}
           </div>
-          <div className="truncate text-xs text-muted-foreground">{describeLinkForList(link)}</div>
+          <div className="truncate text-xs text-muted-foreground">{describeLinkForList(link, discordWidgetNames)}</div>
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-2">
@@ -199,6 +202,7 @@ function SortableGroupCard({
   group,
   links,
   clickCounts,
+  discordWidgetNames,
   forceCollapsed,
   onToggleVisibility,
   onRenameGroup,
@@ -214,6 +218,7 @@ function SortableGroupCard({
   group: GroupMeta;
   links: BoardLink[];
   clickCounts: Record<number, number>;
+  discordWidgetNames: Record<number, string>;
   // true selama drag REORDER GROUP lagi jalan (lihat Board) -- card grup laen numpuk
   // panjang bikin drag target susah dijangkau, jadi dipaksa collapse sementara biar
   // gampang, balik ke state expand/collapse `expanded` masing-masing abis drag selesai.
@@ -299,6 +304,7 @@ function SortableGroupCard({
                     key={link.id}
                     link={link}
                     clicks={clickCounts[link.id] ?? 0}
+                    discordWidgetNames={discordWidgetNames}
                     onToggleActive={(isActive) => onToggleLinkActive(link.id, isActive)}
                     onToggleFeatured={(featured) => onToggleLinkFeatured(link.id, featured)}
                     onEdit={() => onEditLink(link)}
@@ -328,6 +334,7 @@ export function Board({
   clickCounts,
   openLinkId,
   socialPreviewBoard,
+  discordWidgets,
 }: {
   pageId: number;
   initialData: BoardData;
@@ -337,6 +344,7 @@ export function Board({
   fallbackName: string;
   clickCounts: Record<number, number>;
   openLinkId?: number | null;
+  discordWidgets: DiscordWidgetRow[];
   // getBoardData (initialData) sengaja gak nyertain link displayStyle "icon" (baris
   // sosmed) -- ini sumber TERPISAH (getPublicBoardData, nyertain semua link) khusus
   // buat nyuplai baris icon sosmed ke preview HP di bawah, biar previewnya konsisten
@@ -562,6 +570,9 @@ export function Board({
   // tujuannya tetap kebuka biar drop zone-nya keliatan.
   const isDraggingGroup = activeId?.startsWith(GROUP_PREFIX) ?? false;
   const groupOptions = groupOrder.map((id) => groupMeta[id]);
+  // Buat subtitle baris link bertipe discord_widget di list drag-drop (describeLinkForList)
+  // -- link-nya cuma nyimpen id, ini yang nerjemahin balik ke nama widget-nya biar kebaca.
+  const discordWidgetNames = Object.fromEntries(discordWidgets.map((w) => [w.id, w.name]));
 
   // Baris icon sosmed gak ada di containerLinks sama sekali (getBoardData nge-skip-nya),
   // jadi ditarik dari socialPreviewBoard (getPublicBoardData) terus disisipin ke ungrouped
@@ -628,6 +639,7 @@ export function Board({
                         key={link.id}
                         link={link}
                         clicks={clickCounts[link.id] ?? 0}
+                        discordWidgetNames={discordWidgetNames}
                         onToggleActive={(isActive) => handleToggleLinkActive(link.id, isActive)}
                         onToggleFeatured={(featured) => handleToggleLinkFeatured(link.id, featured)}
                         onEdit={() => setModalState({ mode: "edit", link })}
@@ -659,6 +671,7 @@ export function Board({
                       group={meta}
                       links={containerLinks[containerId] ?? []}
                       clickCounts={clickCounts}
+                      discordWidgetNames={discordWidgetNames}
                       forceCollapsed={isDraggingGroup}
                       onToggleVisibility={(checked) => handleToggleVisibility(meta.id, checked)}
                       onRenameGroup={() => setGroupModalState({ mode: "rename", groupId: meta.id, currentName: meta.name })}
@@ -692,6 +705,7 @@ export function Board({
         key={modalState ? (modalState.mode === "edit" ? `edit-${modalState.link.id}` : `create-${modalState.groupId}`) : "link-closed"}
         pageId={pageId}
         groups={groupOptions}
+        discordWidgets={discordWidgets}
         state={modalState}
         t={t}
         locale={locale}

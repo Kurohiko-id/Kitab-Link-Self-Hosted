@@ -16,12 +16,24 @@ import { cn, FILE_INPUT_CLASS } from "@/lib/utils";
 import type { BoardLink, DisplayStyle, LinkType } from "@/lib/db/board";
 import type { Dictionary, Locale } from "@/lib/i18n";
 import { parseAccordionItems, parseCountdownData, type AccordionItem } from "@/lib/link-render";
+import type { DiscordWidgetRow } from "@/lib/db/discord-widget";
 import { saveLinkAction } from "./actions";
 
 type MediaTab = "thumbnail" | "icon" | "emoji";
 const MEDIA_TABS: MediaTab[] = ["thumbnail", "icon", "emoji"];
 
-const LINK_TYPES: LinkType[] = ["url", "email", "phone", "whatsapp", "file", "embed", "copy", "accordion", "countdown"];
+const LINK_TYPES: LinkType[] = [
+  "url",
+  "email",
+  "phone",
+  "whatsapp",
+  "file",
+  "embed",
+  "copy",
+  "accordion",
+  "countdown",
+  "discord_widget",
+];
 
 const URL_LABEL: Record<LinkType, (t: Dictionary) => string> = {
   url: (t) => t.linkModal.urlLabel,
@@ -33,6 +45,7 @@ const URL_LABEL: Record<LinkType, (t: Dictionary) => string> = {
   copy: (t) => t.linkModal.urlLabelCopy,
   accordion: (t) => t.linkModal.urlLabelAccordion,
   countdown: (t) => t.linkModal.urlLabelCountdown,
+  discord_widget: () => "",
 };
 
 const URL_PLACEHOLDER: Record<LinkType, string> = {
@@ -45,6 +58,7 @@ const URL_PLACEHOLDER: Record<LinkType, string> = {
   copy: "PROMO2026",
   accordion: "",
   countdown: "",
+  discord_widget: "",
 };
 
 // <input type="datetime-local"> butuh "YYYY-MM-DDTHH:mm" di JAM LOKAL browser (bukan ISO/UTC)
@@ -66,6 +80,7 @@ export type LinkModalState = { mode: "create"; groupId: number | null } | { mode
 export function LinkFormModal({
   pageId,
   groups,
+  discordWidgets,
   state,
   t,
   locale,
@@ -75,6 +90,7 @@ export function LinkFormModal({
 }: {
   pageId: number;
   groups: { id: number; name: string }[];
+  discordWidgets: DiscordWidgetRow[];
   state: LinkModalState | null;
   t: Dictionary;
   locale: Locale;
@@ -88,10 +104,40 @@ export function LinkFormModal({
 }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  // Cuma widget mode "inline" yang valid buat dipasang lewat link -- widget floating
+  // udah nempel sendiri di layar (lihat FloatingDiscordWidgets), jadi gak relevan dipilih
+  // di sini walau tetep ada di daftar Integrations.
+  const inlineDiscordWidgets = discordWidgets.filter((w) => w.placementMode === "inline");
   const [icon, setIcon] = useState(state?.mode === "edit" ? (state.link.icon ?? "") : "");
   const [removeThumbnail, setRemoveThumbnail] = useState(false);
   const [linkType, setLinkType] = useState<LinkType>(state?.mode === "edit" ? state.link.linkType : "url");
   const [displayStyle, setDisplayStyle] = useState<DisplayStyle>(state?.mode === "edit" ? state.link.displayStyle : "pill");
+  const [selectedWidgetId, setSelectedWidgetId] = useState(() => {
+    if (state?.mode === "edit" && state.link.linkType === "discord_widget") {
+      try {
+        const parsed = JSON.parse(state.link.url);
+        if (typeof parsed?.widgetId === "number" && inlineDiscordWidgets.some((w) => w.id === parsed.widgetId)) {
+          return String(parsed.widgetId);
+        }
+      } catch {
+        // JSON korup -- fallback ke default di bawah.
+      }
+    }
+    return inlineDiscordWidgets[0] ? String(inlineDiscordWidgets[0].id) : "";
+  });
+  // Widget yang tadinya dipakai link ini udah gak ada di daftar mode "inline" saat ini --
+  // entah dihapus (ID gak nemu, referensi by-ID gak "connect balik" ke widget baru walau
+  // namanya sama persis, SQLite AUTOINCREMENT gak pernah reuse ID lama) atau diganti ke
+  // mode floating -- user perlu pilih ulang widgetnya.
+  const [widgetWasDeleted] = useState(() => {
+    if (state?.mode !== "edit" || state.link.linkType !== "discord_widget") return false;
+    try {
+      const parsed = JSON.parse(state.link.url);
+      return typeof parsed?.widgetId === "number" && !inlineDiscordWidgets.some((w) => w.id === parsed.widgetId);
+    } catch {
+      return true;
+    }
+  });
   const [featured, setFeatured] = useState(state?.mode === "edit" ? state.link.featured : false);
   const [mediaTab, setMediaTab] = useState<MediaTab>("thumbnail");
   const [target, setTarget] = useState(() => {
@@ -265,6 +311,29 @@ export function LinkFormModal({
                 value={JSON.stringify({ endsAt: datetimeLocalToIso(countdownEndsAt), url: countdownUrl })}
               />
             </div>
+          ) : linkType === "discord_widget" ? (
+            <div key="discord-widget-fields" className="flex flex-col gap-1.5">
+              <Label htmlFor="discordWidgetPick">{t.linkModal.discordWidgetPickLabel}</Label>
+              {inlineDiscordWidgets.length > 0 ? (
+                <>
+                  {widgetWasDeleted ? <p className="text-xs font-medium text-destructive">{t.linkModal.discordWidgetResetHint}</p> : null}
+                  <SelectField id="discordWidgetPick" value={selectedWidgetId} onChange={(e) => setSelectedWidgetId(e.target.value)}>
+                    {inlineDiscordWidgets.map((widget) => (
+                      <option key={widget.id} value={widget.id}>
+                        {widget.name}
+                      </option>
+                    ))}
+                  </SelectField>
+                  {/* Cuma nyimpen ID (referensi LIVE) -- bukan snapshot semua field-nya, biar
+                      edit config di tab Integrations > Discord langsung kepake di sini juga. */}
+                  <input type="hidden" name="url" value={selectedWidgetId ? JSON.stringify({ widgetId: Number(selectedWidgetId) }) : ""} />
+                </>
+              ) : (
+                <p className="rounded-lg border border-amber-400 bg-amber-50 p-3 text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+                  {t.linkModal.discordWidgetEmptyHint}
+                </p>
+              )}
+            </div>
           ) : (
             <div key="generic-fields" className="flex flex-col gap-1.5">
               <Label htmlFor="url">{URL_LABEL[linkType](t)}</Label>
@@ -287,17 +356,19 @@ export function LinkFormModal({
             </div>
           )}
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="description">{t.linkModal.descLabel}</Label>
-            <Textarea
-              id="description"
-              name="description"
-              rows={2}
-              defaultValue={state.mode === "edit" ? (state.link.description ?? "") : ""}
-            />
-          </div>
+          {linkType !== "discord_widget" ? (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="description">{t.linkModal.descLabel}</Label>
+              <Textarea
+                id="description"
+                name="description"
+                rows={2}
+                defaultValue={state.mode === "edit" ? (state.link.description ?? "") : ""}
+              />
+            </div>
+          ) : null}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className={cn("grid gap-3", linkType === "discord_widget" ? "grid-cols-1" : "grid-cols-2")}>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="target">{t.linkModal.groupLabel}</Label>
               <div className="flex items-center gap-1.5">
@@ -329,77 +400,81 @@ export function LinkFormModal({
               </div>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="displayStyle">{t.linkModal.styleLabel}</Label>
-              <SelectField
-                id="displayStyle"
-                name="displayStyle"
-                value={displayStyle}
-                onChange={(e) => setDisplayStyle(e.target.value as DisplayStyle)}
-              >
-                <option value="pill">{t.linkModal.styleOptions.pill}</option>
-                <option value="rich">{t.linkModal.styleOptions.rich}</option>
-              </SelectField>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label>{t.linkModal.mediaLabel}</Label>
-            <div className="flex flex-wrap gap-1 rounded-lg bg-muted p-1">
-              {MEDIA_TABS.map((key) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setMediaTab(key)}
-                  className={cn(
-                    "rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
-                    mediaTab === key ? "bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-foreground",
-                  )}
+            {linkType !== "discord_widget" ? (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="displayStyle">{t.linkModal.styleLabel}</Label>
+                <SelectField
+                  id="displayStyle"
+                  name="displayStyle"
+                  value={displayStyle}
+                  onChange={(e) => setDisplayStyle(e.target.value as DisplayStyle)}
                 >
-                  {key === "thumbnail" && t.linkModal.mediaTabThumbnail}
-                  {key === "icon" && t.linkModal.mediaTabIcon}
-                  {key === "emoji" && t.linkModal.mediaTabEmoji}
-                </button>
-              ))}
-            </div>
-
-            {mediaTab === "thumbnail" ? (
-              <div className="flex flex-col gap-2 rounded-lg border bg-muted/50 p-3">
-                {state.mode === "edit" && state.link.thumbnailPath && !removeThumbnail ? (
-                  <div className="flex items-center gap-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- preview thumbnail yang sudah diupload */}
-                    <img
-                      src={`/uploads/${state.link.thumbnailPath}`}
-                      alt=""
-                      className="size-14 rounded-lg object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setRemoveThumbnail(true)}
-                      className="flex items-center gap-1 text-xs font-medium text-destructive transition-colors hover:text-destructive/80"
-                    >
-                      <Trash2 className="size-3.5" />
-                      {t.linkModal.removeThumbnail}
-                    </button>
-                  </div>
-                ) : null}
-                <CropFileInput
-                  id="thumbnail"
-                  name="thumbnail"
-                  aspect={displayStyle === "rich" ? 16 / 9 : 1}
-                  className={FILE_INPUT_CLASS}
-                  t={t}
-                />
+                  <option value="pill">{t.linkModal.styleOptions.pill}</option>
+                  <option value="rich">{t.linkModal.styleOptions.rich}</option>
+                </SelectField>
               </div>
             ) : null}
-
-            {mediaTab === "icon" ? <IconPicker value={icon} onChange={setIcon} t={t} showEmoji={false} /> : null}
-
-            {mediaTab === "emoji" ? <EmojiPicker value={icon} onChange={setIcon} t={t} /> : null}
-
-            <input type="hidden" name="removeThumbnail" value={removeThumbnail ? "1" : ""} />
-            <input type="hidden" name="icon" value={icon} />
           </div>
+
+          {linkType !== "discord_widget" ? (
+            <div className="flex flex-col gap-1.5">
+              <Label>{t.linkModal.mediaLabel}</Label>
+              <div className="flex flex-wrap gap-1 rounded-lg bg-muted p-1">
+                {MEDIA_TABS.map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setMediaTab(key)}
+                    className={cn(
+                      "rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+                      mediaTab === key ? "bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {key === "thumbnail" && t.linkModal.mediaTabThumbnail}
+                    {key === "icon" && t.linkModal.mediaTabIcon}
+                    {key === "emoji" && t.linkModal.mediaTabEmoji}
+                  </button>
+                ))}
+              </div>
+
+              {mediaTab === "thumbnail" ? (
+                <div className="flex flex-col gap-2 rounded-lg border bg-muted/50 p-3">
+                  {state.mode === "edit" && state.link.thumbnailPath && !removeThumbnail ? (
+                    <div className="flex items-center gap-2">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- preview thumbnail yang sudah diupload */}
+                      <img
+                        src={`/uploads/${state.link.thumbnailPath}`}
+                        alt=""
+                        className="size-14 rounded-lg object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setRemoveThumbnail(true)}
+                        className="flex items-center gap-1 text-xs font-medium text-destructive transition-colors hover:text-destructive/80"
+                      >
+                        <Trash2 className="size-3.5" />
+                        {t.linkModal.removeThumbnail}
+                      </button>
+                    </div>
+                  ) : null}
+                  <CropFileInput
+                    id="thumbnail"
+                    name="thumbnail"
+                    aspect={displayStyle === "rich" ? 16 / 9 : 1}
+                    className={FILE_INPUT_CLASS}
+                    t={t}
+                  />
+                </div>
+              ) : null}
+
+              {mediaTab === "icon" ? <IconPicker value={icon} onChange={setIcon} t={t} showEmoji={false} /> : null}
+
+              {mediaTab === "emoji" ? <EmojiPicker value={icon} onChange={setIcon} t={t} /> : null}
+
+              <input type="hidden" name="removeThumbnail" value={removeThumbnail ? "1" : ""} />
+              <input type="hidden" name="icon" value={icon} />
+            </div>
+          ) : null}
 
           <input type="hidden" name="featured" value={featured ? "1" : ""} />
 
