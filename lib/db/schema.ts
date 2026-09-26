@@ -124,8 +124,9 @@ export const links = sqliteTable("links", {
   // copy -> teks bebas yang di-copy ke clipboard pas diklik (kode promo, no. rekening, dll),
   // accordion -> JSON stringified array of {label, value} (list yang expand/collapse pas diklik).
   // countdown -> JSON stringified {endsAt, url} (target waktu ISO + link tujuan setelah lewat).
+  // discord_widget -> id row discordWidgets (angka as string) yang mau ditaro di posisi ini.
   linkType: text("link_type", {
-    enum: ["url", "email", "phone", "whatsapp", "file", "embed", "copy", "accordion", "countdown"],
+    enum: ["url", "email", "phone", "whatsapp", "file", "embed", "copy", "accordion", "countdown", "discord_widget"],
   })
     .notNull()
     .default("url"),
@@ -256,6 +257,52 @@ export const liveBadges = sqliteTable("live_badges", {
   // Kapan TERAKHIR KALI berhasil mendeteksi channel-nya lagi live (edge dari offline ->
   // live) -- beda sama lastCheckedAt yang keupdate tiap tick polling walau statusnya sama.
   lastLiveAt: integer("last_live_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+// Widget server Discord di halaman publik -- data member/channel/invite di-fetch LIVE dari
+// endpoint publik Discord (widget.json, gak butuh bot token) tiap page di-render, jadi tabel
+// ini cuma nyimpen KONFIGURASI-nya doang (bukan cache data member, itu berubah tiap detik).
+// BUKAN 1 row per page lagi (beda dari liveBadges) -- 1 page bisa punya banyak widget
+// (banyak server Discord), makanya ada `name` buat bedain di daftar dashboard.
+export const discordWidgets = sqliteTable("discord_widgets", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  pageId: integer("page_id")
+    .notNull()
+    .references(() => pages.id, { onDelete: "cascade" }),
+  // Nama buat bedain di daftar dashboard (BUKAN yang tampil di halaman publik itu --
+  // itu title/nama server asli, lihat di bawah).
+  name: text("name").notNull(),
+  guildId: text("guild_id").notNull(),
+  // "custom" = ngikutin warna/font theme page (dibangun manual dari widget.json).
+  // "discord" = kulit warna brand Discord (masih layout kartu yang sama). "classic" =
+  // niru LAYOUT iframe premade Discord asli (header blurple + kolom channel/member) pake
+  // widget.json manual. "iframe" = <iframe src="discord.com/widget?..."> ASLI dari Discord
+  // -- toggle show*/title di bawah gak berlaku buat ini (gak ada cara kontrol dari luar
+  // iframe cross-origin), tapi paling akurat/gak pernah out-of-date dibanding "classic".
+  style: text("style", { enum: ["custom", "discord", "classic", "iframe"] })
+    .notNull()
+    .default("custom"),
+  // "floating" = nempel di posisi tetap layar (kosong kiri-kanan halaman di desktop,
+  // lihat floatingPosition) -- gak muncul di mobile (gak ada ruang kosongnya).
+  // "inline" = gak dirender di sini sama sekali, cuma "ditaro" lewat link biasa
+  // (linkType "discord_widget" di tabel links, bisa didrag ke posisi/grup manapun).
+  placementMode: text("placement_mode", { enum: ["floating", "inline"] })
+    .notNull()
+    .default("inline"),
+  floatingPosition: text("floating_position", {
+    enum: ["left-top", "left-middle", "left-bottom", "right-top", "right-middle", "right-bottom"],
+  }),
+  // Override nama yang ditampilin di halaman publik -- null = pakai nama server asli dari widget.json.
+  title: text("title"),
+  showMemberCount: integer("show_member_count", { mode: "boolean" }).notNull().default(true),
+  showAvatars: integer("show_avatars", { mode: "boolean" }).notNull().default(true),
+  // Discord CUMA nampilin voice channel yang lagi ada orangnya di widget.json (privasi,
+  // bukan keterbatasan kita) -- gak ada cara nampilin daftar channel text/kosong.
+  showVoiceChannels: integer("show_voice_channels", { mode: "boolean" }).notNull().default(true),
+  showJoinButton: integer("show_join_button", { mode: "boolean" }).notNull().default(true),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
