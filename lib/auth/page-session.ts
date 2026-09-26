@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { sign, verify } from "./hmac";
+import { isSecureRequest } from "./secure-cookie";
 
 const ACCESS_TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 hari
 
@@ -18,7 +19,7 @@ export async function grantPageAccess(pageId: number) {
   store.set(cookieName(pageId), value, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: await isSecureRequest(),
     path: "/",
     expires: new Date(expires),
   });
