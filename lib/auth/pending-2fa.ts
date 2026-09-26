@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { sign, verify } from "./hmac";
+import { isSecureRequest } from "./secure-cookie";
 
 const COOKIE_NAME = "kitab_2fa_pending";
 const PENDING_TTL_MS = 1000 * 60 * 5; // 5 menit -- cukup buat buka app authenticator di HP
@@ -16,7 +17,7 @@ export async function grantPending2fa(userId: number) {
   store.set(COOKIE_NAME, value, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: await isSecureRequest(),
     path: "/",
     expires: new Date(expires),
   });

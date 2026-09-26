@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { sign, verify } from "./hmac";
+import { isSecureRequest } from "./secure-cookie";
 
 const COOKIE_NAME = "kitab_totp_enroll";
 const ENROLL_TTL_MS = 1000 * 60 * 10; // 10 menit -- cukup buat scan QR + baca kode pertama
@@ -18,7 +19,7 @@ export async function savePendingTotpSecret(userId: number, secret: string) {
   store.set(COOKIE_NAME, value, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: await isSecureRequest(),
     path: "/",
     expires: new Date(expires),
   });
