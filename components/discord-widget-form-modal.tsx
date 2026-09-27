@@ -272,7 +272,14 @@ export function DiscordWidgetFormModal({
                   <p className="text-xs text-muted-foreground">{t.widgets.discordPreviewEmpty}</p>
                 )
               ) : previewData && isValidGuildId ? (
-                <DiscordWidgetCard data={previewData} config={previewConfig} theme={theme} t={previewT} />
+                // key={guildId} -- widget.json Discord ngasih id member cuma angka urut
+                // ("0","1","2",...) yang SAMA persis buat server manapun. Tanpa key ini,
+                // ganti Server ID di preview bikin React nganggep avatar server lama &
+                // baru "elemen yang sama" (key React di dalem DiscordWidgetCard cuma
+                // member.id) terus REUSE <img> node yang sama -- pas resolusi gambar
+                // beda antara server lama/baru, transisinya kacau (avatar keliatan
+                // gede sendiri sesaat). key di sini maksa full remount tiap ganti server.
+                <DiscordWidgetCard key={guildId} data={previewData} config={previewConfig} theme={theme} t={previewT} />
               ) : (
                 <p className="text-xs text-muted-foreground">
                   {previewLoading ? t.common.saving : t.widgets.discordPreviewEmpty}

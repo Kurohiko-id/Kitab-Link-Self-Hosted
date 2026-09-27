@@ -54,17 +54,24 @@ function paletteFor(style: "custom" | "discord", theme: ThemeTokens) {
   return { bg: theme.cardBackground, border: theme.cardBorder, text: theme.text, buttonBg: theme.cardBorder, buttonText: theme.buttonText };
 }
 
+// px numerik per size class -- dipakai buat attribute width/height HTML di <img> (BUKAN cuma
+// CSS). Tanpa ini, browser gak tau intrinsic size sebelum gambar Discord CDN selesai decode,
+// jadi sempet nge-flash gede sesaat (natural size, kadang GIF/WebP) baru "loncat" ke ukuran
+// pas -- itu penyebab avatar keliatan gede sendiri yang dilaporkan.
+const AVATAR_PX: Record<string, number> = { "size-8": 32, "size-6": 24 };
+
 // Avatar + titik status online -- dot-nya HARUS di LUAR wrapper "overflow-hidden rounded-full"
 // punya gambar avatar, bukan di dalemnya. Sebelumnya dot ini nempel di dalam wrapper yang
 // sama, jadi ke-crop sama mask lingkaran punya avatar (keliatan kepotong sabit di pojoknya,
 // bukan bulet penuh) -- itu penyebab "border aneh" yang dilaporkan.
 function AvatarWithStatus({ member, size, ringColor }: { member: DiscordWidgetMember; size: string; ringColor: string }) {
+  const px = AVATAR_PX[size] ?? 32;
   return (
     <span className={`relative ${size} shrink-0`}>
       <span className="block size-full overflow-hidden rounded-full">
         {member.avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element -- avatar dari CDN Discord, bukan aset lokal
-          <img src={member.avatarUrl} alt="" className="size-full object-cover" />
+          <img src={member.avatarUrl} alt="" width={px} height={px} className="size-full object-cover" />
         ) : (
           <span className="flex size-full items-center justify-center bg-black/20 text-[10px] font-medium">
             {member.username.slice(0, 2).toUpperCase()}
