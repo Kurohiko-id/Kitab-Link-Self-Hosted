@@ -5,6 +5,14 @@ const nextConfig: NextConfig = {
   // penuh atau source TS-nya.
   output: "standalone",
 
+  // Next.js dev server nge-block request ke aset "/_next/*" (termasuk JS chunk buat
+  // hydration komponen client) kalau originnya bukan "localhost" atau hostname yang
+  // di-allowlist -- makanya buka lewat IP LAN (dari HP pas testing) bikin HTML/CSS ke-load
+  // normal tapi SEMUA komponen "use client" (termasuk widget Discord mode inline) gagal
+  // hydrate diem-diem, useEffect-nya gak pernah jalan. Cuma efek dev mode, gak ngaruh ke
+  // production (next start / Docker).
+  allowedDevOrigins: ["192.168.1.151"],
+
   // Default Next.js buat body Server Action cuma 1MB -- foto profil/banner asli (dari HP)
   // gampang lebih gede dari itu, request-nya ditolak duluan sebelum sempet ke validasi
   // ukuran kita sendiri (MAX_OG_IMAGE_BYTES dst di settings-actions.ts, sampai 5MB).
