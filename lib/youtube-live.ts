@@ -33,13 +33,22 @@ function extractVideoId(html: string): string | null {
 export type YoutubeLiveStatus = { isLive: boolean; videoUrl: string | null };
 
 // Tanpa YouTube Data API: fetch halaman /live milik channel, baca
-// videoDetails.liveBroadcastDetails.isLiveNow di player response -- SATU-SATUNYA sinyal
-// yang valid, cuma true SELAMA on-air (begitu stream berhenti ATAU masih scheduled/belum
-// mulai, YouTube nunjukin false). BUKAN top-level "isLive" (itu punya widget viewCount --
-// "N menunggu"/"N watching", TETEP true buat stream yang masih SCHEDULED, bukan cuma yang
-// udah on-air -- verified manual 2026-09-27 abis kejadian ini kebaca "live" padahal masih
-// scheduled) atau "isLiveContent"/"isLiveVideo" dst (flag teknis lain, true juga buat video
-// yang DULU live tapi udah kelar/jadi VOD).
+// videoDetails.liveBroadcastDetails.isLiveNow di player response -- sinyal PALING presisi,
+// cuma true SELAMA on-air (begitu stream berhenti ATAU masih scheduled/belum mulai, YouTube
+// nunjukin false). BUKAN top-level "isLive" (itu punya widget viewCount -- "N
+// menunggu"/"N watching", TETEP true buat stream yang masih SCHEDULED, bukan cuma yang udah
+// on-air) atau "isLiveContent"/"isLiveVideo" dst (flag teknis lain, true juga buat video yang
+// DULU live tapi udah kelar/jadi VOD).
+//
+// liveBroadcastDetails BOLEH gak ada sama sekali di HTML -- ke-observasi 2026-09-27, YouTube
+// ngirim varian halaman channel yang lebih "kosong" (gak nyisipin videoDetails lengkap) ke
+// IP tertentu (kemungkinan kena flagging anti-bot mereka, independen dari kode ini). Kalau
+// itu kejadian, fallback ke top-level "isLive" + tolak kalau ada "isUpcoming":true -- balik
+// ke behavior lama (boleh sedikit ketuker widget viewCount, tapi tetep bisa detect live sama
+// sekali daripada selalu false).
+// ponytail: fallback masih bisa salah baca scheduled sebagai live KALAU liveBroadcastDetails
+// gak ada DAN isUpcoming juga gak ke-embed di varian HTML itu -- upgrade ke YouTube Data API
+// (OAuth, liveBroadcasts.list mine=true) kalau butuh akurat 100% terlepas dari varian HTML.
 // Return null kalau gagal cek (network error dll) — biar caller gak salah update status.
 export async function checkYoutubeLive(channelUrl: string): Promise<YoutubeLiveStatus | null> {
   try {
@@ -51,7 +60,11 @@ export async function checkYoutubeLive(channelUrl: string): Promise<YoutubeLiveS
     if (!res.ok) return null;
 
     const html = await res.text();
-    const isLiveNow = /"liveBroadcastDetails":\{"isLiveNow":(true|false)/.exec(html)?.[1] === "true";
+    const strictMatch = /"liveBroadcastDetails":\{"isLiveNow":(true|false)/.exec(html)?.[1];
+    const isLiveNow =
+      strictMatch !== undefined
+        ? strictMatch === "true"
+        : /"isLive":true/.test(html) && !/"isUpcoming":true/.test(html);
     if (!isLiveNow) return { isLive: false, videoUrl: null };
 
     const canonical = extractCanonicalUrl(html);
