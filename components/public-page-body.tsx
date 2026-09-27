@@ -7,6 +7,7 @@ import {
   getPageBackgroundStyle,
   getTextureOverlayClass,
   getTextureOverlayStyle,
+  getTextureOverlayVars,
   getTypographyStyle,
 } from "@/lib/theme";
 import { parseProfileData } from "@/lib/profile";
@@ -22,6 +23,10 @@ import { LinkCard } from "@/components/link-card";
 import { GroupContainer } from "@/components/group-container";
 import { SocialIconRow } from "@/components/social-icon-row";
 import { NetworkBackground } from "@/components/network-background";
+import { GravityDustBackground } from "@/components/gravity-dust-background";
+import { ColorMorphBackground } from "@/components/color-morph-background";
+import { BlackholeBackground } from "@/components/blackhole-background";
+import { FireflyOverlay } from "@/components/firefly-overlay";
 import { ThemeProfileHeader } from "@/components/theme-profile-header";
 import { LiveBadge } from "@/components/live-badge";
 import { FloatingDiscordWidgets } from "@/components/floating-discord-widgets";
@@ -76,6 +81,9 @@ export async function PublicPageBody({
   const hasAnyLink = ungrouped.length > 0 || groups.some((group) => group.links.length > 0);
   const isAurora = theme.backgroundType === "aurora";
   const isNetwork = theme.backgroundType === "network";
+  const isGravity = theme.backgroundType === "gravity";
+  const isColormorph = theme.backgroundType === "colormorph";
+  const isBlackhole = theme.backgroundType === "blackhole";
   const customFontFace = getCustomFontFaceCSS(theme);
   const profile = parseProfileData(page.profileJson);
   const textureOverlayStyle = getTextureOverlayStyle(theme);
@@ -103,6 +111,9 @@ export async function PublicPageBody({
         </>
       ) : null}
       {isNetwork ? <NetworkBackground colors={theme.backgroundColors} /> : null}
+      {isGravity ? <GravityDustBackground colors={theme.backgroundColors} /> : null}
+      {isColormorph ? <ColorMorphBackground colors={theme.backgroundColors} /> : null}
+      {isBlackhole ? <BlackholeBackground colors={theme.backgroundColors} /> : null}
 
       {floatingDiscordWidgets.length > 0 ? (
         <FloatingDiscordWidgets widgets={floatingDiscordWidgets} theme={theme} locale={visitorLocale} />
@@ -185,7 +196,16 @@ export async function PublicPageBody({
         ) : null}
       </div>
       {textureOverlayStyle ? <div style={textureOverlayStyle} /> : null}
-      {textureOverlayClass ? <div className={textureOverlayClass} style={{ opacity: theme.textureOpacity }} /> : null}
+      {theme.textureType === "firefly" ? (
+        <FireflyOverlay
+          colors={theme.textureColors}
+          direction={theme.textureDirection}
+          density={theme.textureDensity}
+          opacity={theme.textureOpacity}
+        />
+      ) : textureOverlayClass ? (
+        <div className={textureOverlayClass} style={getTextureOverlayVars(theme)} />
+      ) : null}
     </div>
   );
 }

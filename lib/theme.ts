@@ -10,7 +10,10 @@ export type BackgroundType =
   | "pixel"
   | "lines"
   | "waves"
-  | "network";
+  | "network"
+  | "gravity"
+  | "colormorph"
+  | "blackhole";
 export type ButtonSurface = "solid" | "transparent" | "glass" | "blur" | "neumorphism" | "pixel";
 export type ButtonShadow = "none" | "sm" | "md" | "lg";
 export type ButtonHover = "none" | "scale" | "lift" | "glow" | "shine";
@@ -19,7 +22,10 @@ export type ButtonAlign = "left" | "center";
 export type AvatarShape = "circle" | "rounded" | "square";
 export type ProfileBorderStyle = "none" | "solid" | "fade";
 export type LinkIconPosition = "left" | "right" | "edge-left" | "edge-right";
-export type TextureType = "none" | "grain" | "noise" | "watermark" | "snow" | "sakura" | "particle";
+export type TextureType = "none" | "grain" | "noise" | "watermark" | "snow" | "sakura" | "particle" | "firefly";
+// Cuma dipakai textureType "particle" -- arah gerak dot-nya. "none" = diem di tempat,
+// cuma efek kedap-kedip (kayak stardust ambient), sisanya drift ke arah itu terus-menerus.
+export type TextureParticleDirection = "up" | "down" | "left" | "right" | "none";
 export type GroupLabelAlign = "left" | "center" | "right";
 // "wrap" beda sama yang lain -- bukan cuma gaya teks labelnya, tapi bikin border yang
 // ngelingkupin SELURUH grup (label + link-link di dalamnya), lihat components/group-container.tsx.
@@ -66,6 +72,12 @@ export type ThemeTokens = {
   linkIconPosition: LinkIconPosition;
   textureType: TextureType;
   textureOpacity: number; // 0-1
+  // Field di bawah OPSIONAL (cuma relevan pas textureType "particle") -- sengaja optional,
+  // bukan required, biar puluhan preset lama & tema tersimpan gak perlu diubah satu-satu
+  // (parseThemeTokens() nge-merge ke DEFAULT_THEME, jadi kosong = pakai default di bawah).
+  textureColors?: string[]; // hex, di-cycle bergantian buat multi-warna partikel
+  textureDirection?: TextureParticleDirection;
+  textureDensity?: number; // jumlah total titik partikel
   groupLabelAlign: GroupLabelAlign;
   groupLabelStyle: GroupLabelStyle;
   // Cuma relevan pas groupLabelStyle "wrap" -- true = bingkai ada isian background
@@ -1457,6 +1469,296 @@ export const THEME_PRESETS: ThemePreset[] = [
       textureOpacity: 0.15,
     },
   },
+  {
+    // Terinspirasi "Particleground"/particles.js -- constellation garis-titik merah gelap.
+    id: "plexus-crimson",
+    name: "Plexus Crimson",
+    description: "Dark red constellation network, plexus-style",
+    tokens: {
+      backgroundType: "network",
+      backgroundColors: ["#450a0a", "#fecaca", "#ffffff"],
+      backgroundImage: null,
+      text: "#fef2f2",
+      textMuted: "#fca5a5",
+      textShadow: false,
+      textBackdrop: false,
+      cardBackground: "rgba(255,255,255,0.08)",
+      cardBorder: "rgba(254,202,202,0.3)",
+      buttonText: "#ffffff",
+      fontFamily: "space-grotesk",
+      fontSize: 16,
+      fontWeight: 500,
+      letterSpacing: 0,
+      customFontUrl: null,
+      buttonSurface: "glass",
+      buttonBorderRadius: 12,
+      buttonBorderWidth: 1,
+      buttonShadow: "md",
+      buttonHover: "glow",
+      pageEntrance: "fade",
+      buttonAlign: "center",
+      groupLabelAlign: "center",
+      groupLabelStyle: "plain",
+      groupWrapBackground: true,
+      socialIconShape: "circle",
+      socialIconRadius: 16,
+      socialIconSurface: "filled",
+      containerWidth: 540,
+      profileAvatarShape: "circle",
+      profileBorderStyle: "solid",
+      profileBorderWidth: 3,
+      profileShadow: "lg",
+      profileShowBanner: false,
+      profileAvatarFloat: false,
+      linkIconPosition: "left",
+      textureType: "none",
+      textureOpacity: 0.15,
+    },
+  },
+  {
+    // Terinspirasi "CSS Particle Animation" (tonkotsuboy) -- titik teal ngambang pelan
+    // ke atas kayak kunang-kunang di langit malam.
+    id: "firefly-night",
+    name: "Firefly Night",
+    description: "Teal fireflies drifting upward in the dark",
+    tokens: {
+      backgroundType: "gradient",
+      backgroundColors: ["#021027", "#08202b"],
+      backgroundImage: null,
+      text: "#e0fdfa",
+      textMuted: "#5eead4",
+      textShadow: false,
+      textBackdrop: false,
+      cardBackground: "rgba(255,255,255,0.06)",
+      cardBorder: "rgba(94,234,212,0.25)",
+      buttonText: "#ecfeff",
+      fontFamily: "inter",
+      fontSize: 16,
+      fontWeight: 400,
+      letterSpacing: 0,
+      customFontUrl: null,
+      buttonSurface: "glass",
+      buttonBorderRadius: 9999,
+      buttonBorderWidth: 1,
+      buttonShadow: "sm",
+      buttonHover: "glow",
+      pageEntrance: "fade",
+      buttonAlign: "center",
+      groupLabelAlign: "center",
+      groupLabelStyle: "plain",
+      groupWrapBackground: true,
+      socialIconShape: "circle",
+      socialIconRadius: 16,
+      socialIconSurface: "filled",
+      containerWidth: 540,
+      profileAvatarShape: "circle",
+      profileBorderStyle: "fade",
+      profileBorderWidth: 2,
+      profileShadow: "md",
+      profileShowBanner: false,
+      profileAvatarFloat: true,
+      linkIconPosition: "left",
+      textureType: "firefly",
+      textureOpacity: 0.55,
+      textureColors: ["#5eead4", "#22d3ee", "#ffffff"],
+      textureDirection: "up",
+      textureDensity: 45,
+    },
+  },
+  {
+    // Terinspirasi "Gravity Points" (akm2) -- backgroundType "gravity" beneran (canvas
+    // interaktif: debu partikel + klik buat nambahin titik gravitasi yang narik & bisa
+    // gabung/collapse), BUKAN cuma texture overlay statis lagi.
+    id: "stardust-drift",
+    name: "Stardust Drift",
+    description: "Interactive gravity dust -- click to pull particles",
+    tokens: {
+      backgroundType: "gravity",
+      backgroundColors: ["#0b3336", "#67b5bf", "#ffc400"],
+      backgroundImage: null,
+      text: "#f0fdfa",
+      textMuted: "#99f6e4",
+      textShadow: false,
+      textBackdrop: false,
+      cardBackground: "rgba(255,255,255,0.07)",
+      cardBorder: "rgba(255,255,255,0.15)",
+      buttonText: "#ffffff",
+      fontFamily: "jetbrains-mono",
+      fontSize: 16,
+      fontWeight: 400,
+      letterSpacing: 0,
+      customFontUrl: null,
+      buttonSurface: "blur",
+      buttonBorderRadius: 10,
+      buttonBorderWidth: 1,
+      buttonShadow: "none",
+      buttonHover: "scale",
+      pageEntrance: "fade",
+      buttonAlign: "left",
+      groupLabelAlign: "left",
+      groupLabelStyle: "plain",
+      groupWrapBackground: true,
+      socialIconShape: "circle",
+      socialIconRadius: 16,
+      socialIconSurface: "filled",
+      containerWidth: 540,
+      profileAvatarShape: "circle",
+      profileBorderStyle: "none",
+      profileBorderWidth: 2,
+      profileShadow: "none",
+      profileShowBanner: false,
+      profileAvatarFloat: false,
+      linkIconPosition: "left",
+      textureType: "none",
+      textureOpacity: 0.15,
+    },
+  },
+  {
+    // backgroundType "blackhole" -- mekanik sama kayak Stardust Drift (klik/drag titik
+    // gravitasi, saling narik & gabung), tapi di-render stylized gaya Interstellar
+    // (piringan akresi miring + cincin cahaya ngebungkus).
+    id: "event-horizon",
+    name: "Event Horizon",
+    description: "Draggable stylized black holes -- click to spawn, drag to move",
+    tokens: {
+      backgroundType: "blackhole",
+      backgroundColors: ["#050608", "#fff4d6", "#ff8a3d"],
+      backgroundImage: null,
+      text: "#fdf6ec",
+      textMuted: "#d8c9ae",
+      textShadow: false,
+      textBackdrop: false,
+      cardBackground: "rgba(255,255,255,0.06)",
+      cardBorder: "rgba(255,180,110,0.25)",
+      buttonText: "#fdf6ec",
+      fontFamily: "space-grotesk",
+      fontSize: 16,
+      fontWeight: 500,
+      letterSpacing: 0,
+      customFontUrl: null,
+      buttonSurface: "blur",
+      buttonBorderRadius: 12,
+      buttonBorderWidth: 1,
+      buttonShadow: "lg",
+      buttonHover: "glow",
+      pageEntrance: "fade",
+      buttonAlign: "center",
+      groupLabelAlign: "center",
+      groupLabelStyle: "plain",
+      groupWrapBackground: true,
+      socialIconShape: "circle",
+      socialIconRadius: 16,
+      socialIconSurface: "filled",
+      containerWidth: 540,
+      profileAvatarShape: "circle",
+      profileBorderStyle: "solid",
+      profileBorderWidth: 2,
+      profileShadow: "lg",
+      profileShowBanner: false,
+      profileAvatarFloat: false,
+      linkIconPosition: "left",
+      textureType: "none",
+      textureOpacity: 0.15,
+    },
+  },
+  {
+    // Terinspirasi "Color Changin'" (alexzaworski) -- backgroundType "colormorph" beneran
+    // (canvas: klik di mana aja bikin warna meleber/reveal ke warna berikutnya di
+    // palette + cincin ripple + ledakan partikel), bukan cuma aurora blur statis.
+    id: "color-pulse",
+    name: "Color Pulse",
+    description: "Click anywhere to ripple-shift the background color",
+    tokens: {
+      backgroundType: "colormorph",
+      backgroundColors: ["#1a0f00", "#fb923c", "#f472b6", "#facc15", "#0ea5e9"],
+      backgroundImage: null,
+      text: "#fff7ed",
+      textMuted: "#fed7aa",
+      textShadow: false,
+      textBackdrop: false,
+      cardBackground: "rgba(255,255,255,0.1)",
+      cardBorder: "rgba(251,146,60,0.4)",
+      buttonText: "#fff7ed",
+      fontFamily: "sora",
+      fontSize: 16,
+      fontWeight: 500,
+      letterSpacing: 0,
+      customFontUrl: null,
+      buttonSurface: "glass",
+      buttonBorderRadius: 16,
+      buttonBorderWidth: 1,
+      buttonShadow: "lg",
+      buttonHover: "scale",
+      pageEntrance: "fade",
+      buttonAlign: "center",
+      groupLabelAlign: "center",
+      groupLabelStyle: "plain",
+      groupWrapBackground: true,
+      socialIconShape: "circle",
+      socialIconRadius: 16,
+      socialIconSurface: "filled",
+      containerWidth: 540,
+      profileAvatarShape: "circle",
+      profileBorderStyle: "fade",
+      profileBorderWidth: 3,
+      profileShadow: "lg",
+      profileShowBanner: false,
+      profileAvatarFloat: true,
+      linkIconPosition: "left",
+      textureType: "none",
+      textureOpacity: 0.15,
+    },
+  },
+  {
+    // Demo eksplisit fitur baru "particle" (multi-warna + arah + kepadatan) --
+    // confetti jatuh ke bawah, rainbow, rame -- kebalikan dari Firefly/Stardust yang tenang.
+    id: "confetti-rain",
+    name: "Confetti Rain",
+    description: "Colorful confetti falling downward",
+    tokens: {
+      backgroundType: "solid",
+      backgroundColors: ["#0f0a1e"],
+      backgroundImage: null,
+      text: "#f5f3ff",
+      textMuted: "#c4b5fd",
+      textShadow: false,
+      textBackdrop: false,
+      cardBackground: "rgba(255,255,255,0.08)",
+      cardBorder: "rgba(255,255,255,0.18)",
+      buttonText: "#ffffff",
+      fontFamily: "poppins",
+      fontSize: 16,
+      fontWeight: 600,
+      letterSpacing: 0,
+      customFontUrl: null,
+      buttonSurface: "solid",
+      buttonBorderRadius: 9999,
+      buttonBorderWidth: 0,
+      buttonShadow: "md",
+      buttonHover: "lift",
+      pageEntrance: "pop",
+      buttonAlign: "center",
+      groupLabelAlign: "center",
+      groupLabelStyle: "pill",
+      groupWrapBackground: true,
+      socialIconShape: "circle",
+      socialIconRadius: 16,
+      socialIconSurface: "filled",
+      containerWidth: 540,
+      profileAvatarShape: "circle",
+      profileBorderStyle: "solid",
+      profileBorderWidth: 3,
+      profileShadow: "md",
+      profileShowBanner: false,
+      profileAvatarFloat: false,
+      linkIconPosition: "left",
+      textureType: "particle",
+      textureOpacity: 0.65,
+      textureColors: ["#f472b6", "#a78bfa", "#22d3ee", "#facc15", "#4ade80"],
+      textureDirection: "down",
+      textureDensity: 100,
+    },
+  },
 ];
 
 export function parseThemeTokens(tokensJson: string | null | undefined): ThemeTokens {
@@ -1576,6 +1878,14 @@ export function getPageBackgroundStyle(tokens: ThemeTokens): React.CSSProperties
         backgroundSize: "28px 28px",
       };
     }
+    case "gravity":
+    case "colormorph":
+    case "blackhole":
+      // Base statis (flat color) sebelum JS canvas jalan -- animasi sungguhan lewat
+      // <GravityDustBackground>/<ColorMorphBackground>/<BlackholeBackground>, cuma di
+      // preview besar & halaman publik (bukan tiap thumbnail gallery, biar ringan),
+      // sama kayak "network".
+      return { ...base, backgroundColor: tokens.backgroundColors[0] };
     case "aurora":
     case "neon":
     case "solid":
@@ -1755,7 +2065,13 @@ function seigaihaDataUri(fill: string, stroke: string): string {
 // bukan cuma background polos di baliknya. pointerEvents none biar klik tombol
 // tetep tembus.
 export function getTextureOverlayStyle(tokens: ThemeTokens): React.CSSProperties | null {
-  if (tokens.textureType === "none" || tokens.textureType === "snow" || tokens.textureType === "sakura" || tokens.textureType === "particle")
+  if (
+    tokens.textureType === "none" ||
+    tokens.textureType === "snow" ||
+    tokens.textureType === "sakura" ||
+    tokens.textureType === "particle" ||
+    tokens.textureType === "firefly"
+  )
     return null;
 
   const base: React.CSSProperties = {
@@ -1787,4 +2103,76 @@ const TEXTURE_OVERLAY_CLASS: Partial<Record<TextureType, string>> = {
 
 export function getTextureOverlayClass(tokens: ThemeTokens): string | null {
   return TEXTURE_OVERLAY_CLASS[tokens.textureType] ?? null;
+}
+
+const PARTICLE_DEFAULT_COLORS = ["#fef08a", "#fde047"];
+const PARTICLE_DEFAULT_DENSITY = 54;
+
+// fromX/fromY/toX/toY dipasang sebagai custom property CSS ke @keyframes kl-particle-drift
+// (lihat app/globals.css) -- "none" tetep jalanin animasinya tapi start===end, jadi
+// dot-nya diem di tempat dan cuma keliatan efek kedap-kedip (twinkle)-nya doang.
+// Diukur relatif ke anchor CSS-nya (top:0; left:0 -- lihat .kl-particle-overlay::before
+// di globals.css). "110vh"/"110vw" = 10% kelewat sisi itu (mulai/berakhir di luar
+// viewport dikit biar transisinya mulus, gak keliatan "muncul tiba-tiba" di tepi).
+const PARTICLE_DIRECTION_VECTORS: Record<TextureParticleDirection, { fromX: string; fromY: string; toX: string; toY: string }> = {
+  up: { fromX: "0", fromY: "110vh", toX: "0", toY: "-10vh" },
+  down: { fromX: "0", fromY: "-10vh", toX: "0", toY: "110vh" },
+  left: { fromX: "110vw", fromY: "0", toX: "-10vw", toY: "0" },
+  right: { fromX: "-10vw", fromY: "0", toX: "110vw", toY: "0" },
+  none: { fromX: "0", fromY: "0", toX: "0", toY: "0" },
+};
+
+// Hash deterministik (bukan Math.random()) -- posisi partikel HARUS SAMA PERSIS di server
+// & client (overlay ini dirender sebagai style SSR biasa, beda dari NetworkBackground yang
+// boleh acak di useEffect client-only). PENTING: sengaja bit-integer (Math.imul/xor/shift),
+// BUKAN Math.sin/cos -- trig function itu "implementation-approximated" di spec ECMAScript,
+// hasilnya bisa beda 1 bit terakhir antara V8 di Node.js (server) vs V8 di Chrome (client),
+// yang cukup bikin React hydration mismatch (pernah kejadian, lihat firefly-overlay.tsx).
+// Operasi integer (Math.imul dkk) EXACT dan portable di semua engine JS yang comply spec.
+function particleHash(a: number, b: number): number {
+  let x = (Math.imul(a, 2654435761) ^ Math.imul(b, 2246822519)) | 0;
+  x = Math.imul(x ^ (x >>> 15), 0x85ebca6b);
+  x = Math.imul(x ^ (x >>> 13), 0xc2b2ae35);
+  x ^= x >>> 16;
+  return (x >>> 0) / 4294967296;
+}
+
+// Bikin daftar box-shadow "0 0 0 <n>px <warna>" yang di-spread ke posisi vw/vh acak
+// (tapi deterministik) -- ini trik yang sama kayak overlay lama, cuma sekarang jumlah
+// titik & warnanya diparameterin (bukan list angka yang di-hardcode).
+function particleShadowLayer(colors: string[], count: number, seedOffset: number): string {
+  const parts: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const x = (particleHash(i + seedOffset, 1) * 100).toFixed(1);
+    const y = (particleHash(i + seedOffset, 2) * 100).toFixed(1);
+    const color = colors[i % colors.length];
+    parts.push(`${x}vw ${y}vh 0 ${color}`);
+  }
+  return parts.join(", ");
+}
+
+// Style buat div PEMBAWA class overlay (getTextureOverlayClass) -- beda dari
+// getTextureOverlayStyle di atas yang buat div KOSONG terpisah (grain/noise/watermark).
+// Khusus "particle", di sini kita suntik custom property CSS (--kl-particle-*) yang
+// dipakai box-shadow & @keyframes-nya lewat var() di globals.css, biar warna/arah/
+// kepadatan bisa dikustom dari theme tanpa nulis ulang CSS-nya tiap kombinasi.
+export function getTextureOverlayVars(tokens: ThemeTokens): React.CSSProperties {
+  const style: React.CSSProperties = { opacity: tokens.textureOpacity };
+  if (tokens.textureType !== "particle") return style;
+
+  const colors = tokens.textureColors && tokens.textureColors.length > 0 ? tokens.textureColors : PARTICLE_DEFAULT_COLORS;
+  const density = tokens.textureDensity && tokens.textureDensity > 0 ? tokens.textureDensity : PARTICLE_DEFAULT_DENSITY;
+  const layer1Count = Math.round(density * 0.56);
+  const layer2Count = Math.max(0, density - layer1Count);
+  const dir = PARTICLE_DIRECTION_VECTORS[tokens.textureDirection ?? "up"];
+
+  return {
+    ...style,
+    ["--kl-particle-shadow-1" as string]: particleShadowLayer(colors, layer1Count, 1),
+    ["--kl-particle-shadow-2" as string]: particleShadowLayer(colors, layer2Count, 1000),
+    ["--kl-particle-from-x" as string]: dir.fromX,
+    ["--kl-particle-from-y" as string]: dir.fromY,
+    ["--kl-particle-to-x" as string]: dir.toX,
+    ["--kl-particle-to-y" as string]: dir.toY,
+  } as React.CSSProperties;
 }

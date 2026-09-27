@@ -4,6 +4,7 @@ import {
   getPageBackgroundStyle,
   getTextureOverlayClass,
   getTextureOverlayStyle,
+  getTextureOverlayVars,
   getTypographyStyle,
   type ThemeTokens,
 } from "@/lib/theme";
@@ -12,6 +13,10 @@ import type { PublicBoardData, PublicLink } from "@/lib/db/board";
 import { splitIconLinks } from "@/lib/link-render";
 import { LinkCard } from "@/components/link-card";
 import { NetworkBackground } from "@/components/network-background";
+import { GravityDustBackground } from "@/components/gravity-dust-background";
+import { ColorMorphBackground } from "@/components/color-morph-background";
+import { BlackholeBackground } from "@/components/blackhole-background";
+import { FireflyOverlay } from "@/components/firefly-overlay";
 import { ThemeProfileHeader } from "@/components/theme-profile-header";
 import { GroupContainer } from "@/components/group-container";
 import { SocialIconRow } from "@/components/social-icon-row";
@@ -55,6 +60,9 @@ export function PublicPagePreview({
 }) {
   const isAurora = tokens.backgroundType === "aurora";
   const isNetwork = tokens.backgroundType === "network";
+  const isGravity = tokens.backgroundType === "gravity";
+  const isColormorph = tokens.backgroundType === "colormorph";
+  const isBlackhole = tokens.backgroundType === "blackhole";
   const customFontFace = getCustomFontFaceCSS(tokens);
   const textureOverlayStyle = getTextureOverlayStyle(tokens);
   const textureOverlayClass = getTextureOverlayClass(tokens);
@@ -74,7 +82,12 @@ export function PublicPagePreview({
           getAnimatedBackgroundClass(tokens),
           className,
         )}
-        style={{ ...getPageBackgroundStyle(tokens), ...getTypographyStyle(tokens), color: tokens.text }}
+        // contain:layout -- bikin div ini jadi "containing block" sendiri buat descendant
+        // position:fixed (mis. overlay texture snow/sakura/particle/firefly, sengaja fixed
+        // biar nempel viewport di HALAMAN PUBLIK ASLI). Tanpa ini, "fixed" di preview kecil
+        // ini bakal lolos ngambang relatif ke SELURUH jendela browser dashboard, bukan cuma
+        // di dalam kotak preview HP-nya.
+        style={{ ...getPageBackgroundStyle(tokens), ...getTypographyStyle(tokens), color: tokens.text, contain: "layout" }}
       >
         {isAurora ? (
           <>
@@ -89,6 +102,9 @@ export function PublicPagePreview({
           </>
         ) : null}
         {isNetwork ? <NetworkBackground colors={tokens.backgroundColors} /> : null}
+        {isGravity ? <GravityDustBackground colors={tokens.backgroundColors} /> : null}
+        {isColormorph ? <ColorMorphBackground colors={tokens.backgroundColors} /> : null}
+        {isBlackhole ? <BlackholeBackground colors={tokens.backgroundColors} /> : null}
         <div className="relative z-10 flex w-full flex-col items-center">
           <ThemeProfileHeader theme={tokens} profile={profile} fallbackName={fallbackName} bannerPaddingRem={1.5} />
 
@@ -131,7 +147,16 @@ export function PublicPagePreview({
           ) : null}
         </div>
         {textureOverlayStyle ? <div style={textureOverlayStyle} /> : null}
-        {textureOverlayClass ? <div className={textureOverlayClass} style={{ opacity: tokens.textureOpacity }} /> : null}
+        {tokens.textureType === "firefly" ? (
+          <FireflyOverlay
+            colors={tokens.textureColors}
+            direction={tokens.textureDirection}
+            density={tokens.textureDensity}
+            opacity={tokens.textureOpacity}
+          />
+        ) : textureOverlayClass ? (
+          <div className={textureOverlayClass} style={getTextureOverlayVars(tokens)} />
+        ) : null}
       </div>
     </>
   );
