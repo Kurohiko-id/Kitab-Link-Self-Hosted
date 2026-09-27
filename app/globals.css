@@ -170,10 +170,12 @@
   }
 }
 .kl-aurora-blob-1 {
-  animation: kl-aurora-drift-1 18s ease-in-out infinite;
+  /* Dulu 18s -- gerakannya kelewat lambat & halus, orang lihat sekilas ngira gak
+     animasi sama sekali. Dipercepat jadi 9s biar kelihatan gerak dalam beberapa detik. */
+  animation: kl-aurora-drift-1 9s ease-in-out infinite;
 }
 .kl-aurora-blob-2 {
-  animation: kl-aurora-drift-2 22s ease-in-out infinite;
+  animation: kl-aurora-drift-2 11s ease-in-out infinite;
 }
 
 /* Efek background "lines" — garis diagonal bergerak, murni CSS. */
@@ -302,7 +304,13 @@
    murni CSS gak butuh JS/canvas. Posisi titik di-generate sekali (fixed), bukan
    di-randomize tiap render. Lihat getTextureOverlayClass di lib/theme.ts. */
 .kl-snow-overlay {
-  position: absolute;
+  /* fixed (BUKAN absolute) -- overlay ini dipasang di wrapper halaman yang tingginya
+     ngikutin SELURUH konten (bisa jauh lebih tinggi dari 1 layar kalau link-nya
+     banyak), padahal titik-titiknya di-posisiin pakai vh (relatif ke TINGGI LAYAR).
+     Kalau absolute, anchor-nya ke bawah wrapper yang tinggi itu -- jatuh di luar area
+     yang keliatan tanpa scroll jauh ke bawah. Fixed = anchor ke viewport, sesuai
+     asumsi vh yang dipakai. */
+  position: fixed;
   inset: 0;
   z-index: 30;
   pointer-events: none;
@@ -358,7 +366,8 @@
 /* Texture "sakura" -- sama trik box-shadow kayak snow, bedanya warna pink + goyang
    kiri-kanan pas jatuh (bukan lurus doang) biar kerasa kayak kelopak, bukan salju. */
 .kl-sakura-overlay {
-  position: absolute;
+  /* fixed, bukan absolute -- lihat komentar sama di .kl-snow-overlay. */
+  position: fixed;
   inset: 0;
   z-index: 30;
   pointer-events: none;
@@ -417,7 +426,8 @@
 /* Texture "particle" (magic particle) -- ngambang lambat ke atas + kedap-kedip
    (twinkle), beda dari snow/sakura yang jatuh ke bawah. */
 .kl-particle-overlay {
-  position: absolute;
+  /* fixed, bukan absolute -- lihat komentar sama di .kl-snow-overlay. */
+  position: fixed;
   inset: 0;
   z-index: 30;
   pointer-events: none;
@@ -427,7 +437,12 @@
 .kl-particle-overlay::after {
   content: "";
   position: absolute;
-  bottom: -10px;
+  /* top:0 (BUKAN bottom:-10px kayak sebelumnya) -- anchor harus konsisten buat SEMUA
+     arah (up/down/left/right/none), bukan cuma "up". Titik awal/akhir tiap arah
+     dihitung relatif dari anchor top-left ini lewat --kl-particle-from/to-x/y
+     (lihat PARTICLE_DIRECTION_VECTORS di lib/theme.ts). Anchor di bottom dulu bikin
+     arah selain "up" jatuh salah tempat (ke luar viewport, gak kelihatan sama sekali). */
+  top: 0;
   left: 0;
   width: 3px;
   height: 3px;
@@ -435,14 +450,20 @@
   background: transparent;
 }
 .kl-particle-overlay::before {
-  box-shadow: 77.3vw 71.2vh 0 #fef08a, 42.9vw 88vh 0 #fef08a, 82.5vw 8.5vh 0 #fef08a, 93.3vw 26.6vh 0 #fef08a,
-    13.8vw 26.5vh 0 #fef08a, 65.7vw 25.3vh 0 #fef08a, 43vw 4.5vh 0 #fef08a, 74vw 50vh 0 #fef08a,
-    11.1vw 74.1vh 0 #fef08a, 3.2vw 75.6vh 0 #fef08a, 87.4vw 87.6vh 0 #fef08a, 38.9vw 91.1vh 0 #fef08a,
-    14vw 40vh 0 #fef08a, 57vw 22vh 0 #fef08a, 13.8vw 51.5vh 0 #fef08a, 68.7vw 39.9vh 0 #fef08a,
-    35.9vw 8.9vh 0 #fef08a, 89.2vw 93.8vh 0 #fef08a, 10.8vw 15.9vh 0 #fef08a, 9.4vw 19.6vh 0 #fef08a,
-    79.3vw 13.7vh 0 #fef08a, 21.2vw 97.6vh 0 #fef08a, 44.2vw 61.5vh 0 #fef08a, 66.4vw 3.5vh 0 #fef08a,
-    32.1vw 72.4vh 0 #fef08a, 78vw 45.7vh 0 #fef08a, 98.7vw 28.1vh 0 #fef08a, 38.6vw 69vh 0 #fef08a,
-    96.3vw 54.4vh 0 #fef08a, 87.6vw 28.6vh 0 #fef08a;
+  /* Fallback (nilai default var()) = list titik asli sebelum overlay ini bisa
+     dikustom -- theme lama yang belum punya textureColors/textureDensity tetep
+     keliatan identik. Lihat getTextureOverlayVars() di lib/theme.ts buat nilai barunya. */
+  box-shadow: var(
+    --kl-particle-shadow-1,
+    77.3vw 71.2vh 0 #fef08a, 42.9vw 88vh 0 #fef08a, 82.5vw 8.5vh 0 #fef08a, 93.3vw 26.6vh 0 #fef08a,
+      13.8vw 26.5vh 0 #fef08a, 65.7vw 25.3vh 0 #fef08a, 43vw 4.5vh 0 #fef08a, 74vw 50vh 0 #fef08a,
+      11.1vw 74.1vh 0 #fef08a, 3.2vw 75.6vh 0 #fef08a, 87.4vw 87.6vh 0 #fef08a, 38.9vw 91.1vh 0 #fef08a,
+      14vw 40vh 0 #fef08a, 57vw 22vh 0 #fef08a, 13.8vw 51.5vh 0 #fef08a, 68.7vw 39.9vh 0 #fef08a,
+      35.9vw 8.9vh 0 #fef08a, 89.2vw 93.8vh 0 #fef08a, 10.8vw 15.9vh 0 #fef08a, 9.4vw 19.6vh 0 #fef08a,
+      79.3vw 13.7vh 0 #fef08a, 21.2vw 97.6vh 0 #fef08a, 44.2vw 61.5vh 0 #fef08a, 66.4vw 3.5vh 0 #fef08a,
+      32.1vw 72.4vh 0 #fef08a, 78vw 45.7vh 0 #fef08a, 98.7vw 28.1vh 0 #fef08a, 38.6vw 69vh 0 #fef08a,
+      96.3vw 54.4vh 0 #fef08a, 87.6vw 28.6vh 0 #fef08a
+  );
   animation:
     kl-particle-drift 14s linear infinite,
     kl-particle-twinkle 2.2s ease-in-out infinite;
@@ -450,22 +471,28 @@
 .kl-particle-overlay::after {
   width: 4px;
   height: 4px;
-  box-shadow: 46.2vw 35.5vh 0 #fde047, 19.4vw 91.1vh 0 #fde047, 11.9vw 11vh 0 #fde047, 15.3vw 39.1vh 0 #fde047,
-    8.2vw 13.6vh 0 #fde047, 0.8vw 45vh 0 #fde047, 84.2vw 42.2vh 0 #fde047, 7.4vw 95.8vh 0 #fde047,
-    61.1vw 75.1vh 0 #fde047, 14.2vw 97.8vh 0 #fde047, 88.8vw 34.9vh 0 #fde047, 13.2vw 79.6vh 0 #fde047,
-    50.6vw 72.6vh 0 #fde047, 21vw 64.6vh 0 #fde047, 19vw 45.4vh 0 #fde047, 15.9vw 62.7vh 0 #fde047,
-    33.1vw 48.6vh 0 #fde047, 56.6vw 21.1vh 0 #fde047, 82.5vw 37.1vh 0 #fde047, 1vw 35vh 0 #fde047,
-    47.7vw 79.7vh 0 #fde047, 27.3vw 69.8vh 0 #fde047, 90.3vw 62.9vh 0 #fde047, 81.3vw 19.8vh 0 #fde047;
+  box-shadow: var(
+    --kl-particle-shadow-2,
+    46.2vw 35.5vh 0 #fde047, 19.4vw 91.1vh 0 #fde047, 11.9vw 11vh 0 #fde047, 15.3vw 39.1vh 0 #fde047,
+      8.2vw 13.6vh 0 #fde047, 0.8vw 45vh 0 #fde047, 84.2vw 42.2vh 0 #fde047, 7.4vw 95.8vh 0 #fde047,
+      61.1vw 75.1vh 0 #fde047, 14.2vw 97.8vh 0 #fde047, 88.8vw 34.9vh 0 #fde047, 13.2vw 79.6vh 0 #fde047,
+      50.6vw 72.6vh 0 #fde047, 21vw 64.6vh 0 #fde047, 19vw 45.4vh 0 #fde047, 15.9vw 62.7vh 0 #fde047,
+      33.1vw 48.6vh 0 #fde047, 56.6vw 21.1vh 0 #fde047, 82.5vw 37.1vh 0 #fde047, 1vw 35vh 0 #fde047,
+      47.7vw 79.7vh 0 #fde047, 27.3vw 69.8vh 0 #fde047, 90.3vw 62.9vh 0 #fde047, 81.3vw 19.8vh 0 #fde047
+  );
   animation:
     kl-particle-drift 20s linear infinite,
     kl-particle-twinkle 3s ease-in-out infinite reverse;
 }
+/* Arah (up/down/left/right/none) dikirim lewat custom property --kl-particle-from-x/y
+   dan --kl-particle-to-x/y (lihat getTextureOverlayVars) -- fallback = arah "up" default
+   lama, DIUKUR ULANG relatif ke anchor top:0 (dulu bottom:-10px, lihat komentar di atas). */
 @keyframes kl-particle-drift {
   from {
-    transform: translateY(10px);
+    transform: translate(var(--kl-particle-from-x, 0), var(--kl-particle-from-y, 110vh));
   }
   to {
-    transform: translateY(-110vh);
+    transform: translate(var(--kl-particle-to-x, 0), var(--kl-particle-to-y, -10vh));
   }
 }
 @keyframes kl-particle-twinkle {
@@ -475,5 +502,20 @@
   }
   50% {
     opacity: 1;
+  }
+}
+
+/* Dipakai bareng oleh semua <span> di components/firefly-overlay.tsx -- posisi/arah
+   gerak tiap kunang-kunang beda (di-generate per-elemen di komponennya), tapi pulsa
+   nyala-redup + zoom in-out ini sama buat semua, jadi cukup satu keyframes bersama. */
+@keyframes kl-firefly-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(0.4);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(2.2);
   }
 }

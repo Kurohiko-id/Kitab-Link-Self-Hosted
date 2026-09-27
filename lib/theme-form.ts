@@ -12,6 +12,7 @@ import type {
   PageEntrance,
   ProfileBorderStyle,
   TextureType,
+  TextureParticleDirection,
   ThemeTokens,
 } from "@/lib/theme";
 import { processImage } from "@/lib/images/process-image";
@@ -31,6 +32,9 @@ export const VALID_BG_TYPES: BackgroundType[] = [
   "lines",
   "waves",
   "network",
+  "gravity",
+  "colormorph",
+  "blackhole",
 ];
 
 const VALID_BUTTON_SURFACES: ButtonSurface[] = ["solid", "transparent", "glass", "blur", "neumorphism", "pixel"];
@@ -41,7 +45,8 @@ const VALID_BUTTON_ALIGNS: ButtonAlign[] = ["left", "center"];
 const VALID_AVATAR_SHAPES: AvatarShape[] = ["circle", "rounded", "square"];
 const VALID_PROFILE_BORDER_STYLES: ProfileBorderStyle[] = ["none", "solid", "fade"];
 const VALID_LINK_ICON_POSITIONS: LinkIconPosition[] = ["left", "right", "edge-left", "edge-right"];
-const VALID_TEXTURE_TYPES: TextureType[] = ["none", "grain", "noise", "watermark", "snow", "sakura", "particle"];
+const VALID_TEXTURE_TYPES: TextureType[] = ["none", "grain", "noise", "watermark", "snow", "sakura", "particle", "firefly"];
+const VALID_PARTICLE_DIRECTIONS: TextureParticleDirection[] = ["up", "down", "left", "right", "none"];
 const VALID_GROUP_LABEL_ALIGNS: GroupLabelAlign[] = ["left", "center", "right"];
 const VALID_GROUP_LABEL_STYLES: GroupLabelStyle[] = ["plain", "lines", "pill", "underline", "wave", "wrap"];
 const VALID_SOCIAL_ICON_SURFACES: ThemeTokens["socialIconSurface"][] = ["filled", "transparent"];
@@ -152,6 +157,25 @@ export async function buildThemeTokensFromForm(current: ThemeTokens, formData: F
     ? Math.min(1, Math.max(0, textureOpacityRaw))
     : current.textureOpacity;
 
+  // Cuma relevan pas textureType "particle" -- lihat getTextureOverlayVars di lib/theme.ts.
+  const textureColorsRaw = formData.get("textureColors");
+  const textureColors =
+    textureColorsRaw === null
+      ? current.textureColors
+      : String(textureColorsRaw)
+          .split(",")
+          .map((c) => c.trim())
+          .filter(Boolean);
+  const textureDirection = pickEnum(
+    VALID_PARTICLE_DIRECTIONS,
+    formData.get("textureDirection"),
+    current.textureDirection ?? "up",
+  );
+  const textureDensityRaw = Number(formData.get("textureDensity"));
+  const textureDensity = Number.isFinite(textureDensityRaw)
+    ? Math.min(150, Math.max(6, textureDensityRaw))
+    : current.textureDensity;
+
   const groupLabelAlign = pickEnum(VALID_GROUP_LABEL_ALIGNS, formData.get("groupLabelAlign"), current.groupLabelAlign);
   const groupLabelStyle = pickEnum(VALID_GROUP_LABEL_STYLES, formData.get("groupLabelStyle"), current.groupLabelStyle);
   const groupWrapBackground = formData.get("groupWrapBackground") === "1";
@@ -204,6 +228,9 @@ export async function buildThemeTokensFromForm(current: ThemeTokens, formData: F
     linkIconPosition,
     textureType,
     textureOpacity,
+    textureColors,
+    textureDirection,
+    textureDensity,
     groupLabelAlign,
     groupLabelStyle,
     groupWrapBackground,
