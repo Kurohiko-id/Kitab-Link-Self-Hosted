@@ -32,13 +32,14 @@ function extractVideoId(html: string): string | null {
 
 export type YoutubeLiveStatus = { isLive: boolean; videoUrl: string | null };
 
-// Tanpa YouTube Data API: fetch halaman /live milik channel, baca videoDetails.isLive di
-// player response -- SATU-SATUNYA sinyal yang valid, cuma true SELAMA on-air (begitu stream
-// berhenti, YouTube langsung flip ke false meski videonya tetep ada). BUKAN "isLiveNow"
-// (field itu gak pernah ada di HTML-nya, verified manual) atau "isLiveContent"/"isLiveVideo"
-// dst (flag teknis lain, true juga buat video yang DULU live tapi udah kelar/jadi VOD).
-// isLive dicek DULUAN (bukan gate di canonical dulu kayak sebelumnya) -- canonical/videoId
-// cuma buat ambil URL video-nya, dan BOLEH gagal/rusak tanpa bikin status-nya salah.
+// Tanpa YouTube Data API: fetch halaman /live milik channel, baca
+// videoDetails.liveBroadcastDetails.isLiveNow di player response -- SATU-SATUNYA sinyal
+// yang valid, cuma true SELAMA on-air (begitu stream berhenti ATAU masih scheduled/belum
+// mulai, YouTube nunjukin false). BUKAN top-level "isLive" (itu punya widget viewCount --
+// "N menunggu"/"N watching", TETEP true buat stream yang masih SCHEDULED, bukan cuma yang
+// udah on-air -- verified manual 2026-09-27 abis kejadian ini kebaca "live" padahal masih
+// scheduled) atau "isLiveContent"/"isLiveVideo" dst (flag teknis lain, true juga buat video
+// yang DULU live tapi udah kelar/jadi VOD).
 // Return null kalau gagal cek (network error dll) — biar caller gak salah update status.
 export async function checkYoutubeLive(channelUrl: string): Promise<YoutubeLiveStatus | null> {
   try {
@@ -50,7 +51,7 @@ export async function checkYoutubeLive(channelUrl: string): Promise<YoutubeLiveS
     if (!res.ok) return null;
 
     const html = await res.text();
-    const isLiveNow = /"isLive":(true|false)/.exec(html)?.[1] === "true";
+    const isLiveNow = /"liveBroadcastDetails":\{"isLiveNow":(true|false)/.exec(html)?.[1] === "true";
     if (!isLiveNow) return { isLive: false, videoUrl: null };
 
     const canonical = extractCanonicalUrl(html);
