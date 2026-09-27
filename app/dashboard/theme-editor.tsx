@@ -16,7 +16,6 @@ import {
   getAnimatedBackgroundClass,
   getPageBackgroundStyle,
   getTextureOverlayStyle,
-  getTextureOverlayClass,
   parseThemeTokens,
   type ThemePreset,
   type ThemeTokens,
@@ -26,7 +25,8 @@ import type { Dictionary, Locale } from "@/lib/i18n";
 import type { ProfileData } from "@/lib/profile";
 import type { PublicBoardData } from "@/lib/db/board";
 import { DashboardPreviewPanel } from "@/components/dashboard-preview-panel";
-import { Pencil, Trash2, Save, Copy, FileCode, Check, Sparkles } from "lucide-react";
+import { ThemeKindPreview } from "@/components/theme-kind-preview";
+import { Pencil, Trash2, Save, Copy, FileCode, Check, Sparkles, Search, MousePointerClick } from "lucide-react";
 import {
   deleteThemeLibraryAction,
   duplicateThemeAction,
@@ -49,7 +49,8 @@ Return ONLY a valid JSON object -- no markdown code fences, no comments, no extr
 Every field below is OPTIONAL: omit anything you don't want to customize, it will fall back to a sensible default.
 
 Fields:
-- backgroundType: "solid" | "gradient" | "aurora" | "glass" | "neon" | "paper" | "pixel" | "lines" | "waves" | "network"
+- backgroundType: "solid" | "gradient" | "aurora" | "glass" | "neon" | "paper" | "pixel" | "lines" | "waves" | "network" | "gravity" | "colormorph" | "blackhole"
+  ("network" = animated constellation/plexus dots+lines; "gravity" = ambient drifting dust that visitors can click to add a gravity point pulling nearby dust; "colormorph" = background that ripple-transitions to a new palette color on click; "blackhole" = same click/drag gravity mechanic as "gravity" but rendered as a stylized Interstellar-style black hole with a tilted glowing accretion disk)
 - backgroundColors: string[] of CSS hex colors. Meaning depends on backgroundType -- solid/paper/neon use only [0]; gradient/glass use [0] and [1] for a linear-gradient; aurora uses [0] as the base + [1] and [2] as glowing blob colors.
 - text: hex color -- main text color
 - textMuted: hex color -- secondary/muted text color
@@ -76,8 +77,12 @@ Fields:
 - profileShowBanner: boolean
 - profileAvatarFloat: boolean -- subtle floating animation on the avatar
 - linkIconPosition: "left" | "right" | "edge-left" | "edge-right"
-- textureType: "none" | "grain" | "noise" | "watermark" | "snow" | "sakura" | "particle"
+- textureType: "none" | "grain" | "noise" | "watermark" | "snow" | "sakura" | "particle" | "firefly"
+  ("particle" = crisp flat twinkling dots; "firefly" = same but blurred/glowing bokeh look)
 - textureOpacity: number (0-1)
+- textureColors: string[] of CSS hex colors -- only used when textureType is "particle" or "firefly", cycles through them for a multi-color effect
+- textureDirection: "up" | "down" | "left" | "right" | "none" -- only used when textureType is "particle" or "firefly", movement direction ("none" = still, just twinkles)
+- textureDensity: number (6-150) -- only used when textureType is "particle" or "firefly", how many dots
 - groupLabelAlign: "left" | "center" | "right"
 - groupLabelStyle: "plain" | "lines" | "pill" | "underline" | "wave" | "wrap"
 - groupWrapBackground: boolean -- only relevant when groupLabelStyle is "wrap"
@@ -96,12 +101,63 @@ Example output:
 
 Now design a theme based on this description: `;
 
-// "8-Bit Retro" -> "8R", "Matcha Latte" -> "ML", "Solo" -> "SO".
-function initialsFromName(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return "?";
-  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
-  return (words[0][0] + words[1][0]).toUpperCase();
+// Kategori "seberapa hidup" background/texture-nya -- dipakai buat badge di gallery
+// card (biar keliatan dari preview-nya doang mana yang cuma warna diem, mana yang gerak
+// sendiri, mana yang bisa diklik/drag), BUKAN field baru di database, murni diturunkan
+// dari backgroundType/textureType yang udah ada.
+type ThemeKindCategory = "static" | "animated" | "interactive";
+const INTERACTIVE_BG: ThemeTokens["backgroundType"][] = ["network", "gravity", "colormorph", "blackhole"];
+const ANIMATED_BG: ThemeTokens["backgroundType"][] = ["aurora", "lines"];
+const ANIMATED_TEXTURE: ThemeTokens["textureType"][] = ["snow", "sakura", "particle", "firefly"];
+
+function getThemeKind(tokens: ThemeTokens, t: Dictionary): { category: ThemeKindCategory; label: string } {
+  const bgLabels: Partial<Record<ThemeTokens["backgroundType"], string>> = {
+    solid: t.theme.bgSolid,
+    gradient: t.theme.bgGradient,
+    aurora: t.theme.bgAurora,
+    glass: t.theme.bgGlass,
+    neon: t.theme.bgNeon,
+    paper: t.theme.bgPaper,
+    pixel: t.theme.bgPixel,
+    lines: t.theme.bgLines,
+    waves: t.theme.bgWaves,
+    network: t.theme.bgNetwork,
+    gravity: t.theme.bgGravity,
+    colormorph: t.theme.bgColormorph,
+    blackhole: t.theme.bgBlackhole,
+  };
+  const textureLabels: Partial<Record<ThemeTokens["textureType"], string>> = {
+    snow: t.theme.textureSnow,
+    sakura: t.theme.textureSakura,
+    particle: t.theme.textureParticle,
+    firefly: t.theme.textureFirefly,
+  };
+
+  if (INTERACTIVE_BG.includes(tokens.backgroundType)) {
+    return { category: "interactive", label: bgLabels[tokens.backgroundType] ?? tokens.backgroundType };
+  }
+  if (ANIMATED_BG.includes(tokens.backgroundType)) {
+    return { category: "animated", label: bgLabels[tokens.backgroundType] ?? tokens.backgroundType };
+  }
+  if (ANIMATED_TEXTURE.includes(tokens.textureType)) {
+    return { category: "animated", label: textureLabels[tokens.textureType] ?? tokens.textureType };
+  }
+  return { category: "static", label: bgLabels[tokens.backgroundType] ?? tokens.backgroundType };
+}
+
+const KIND_BADGE_CLASS: Record<ThemeKindCategory, string> = {
+  static: "bg-muted text-muted-foreground",
+  animated: "bg-chart-2/15 text-chart-2",
+  interactive: "bg-chart-4/15 text-chart-4",
+};
+const KIND_DOT_CLASS: Record<ThemeKindCategory, string> = {
+  static: "bg-muted-foreground",
+  animated: "bg-chart-2",
+  interactive: "bg-chart-4",
+};
+
+function kindCategoryLabel(category: ThemeKindCategory, t: Dictionary): string {
+  return category === "static" ? t.theme.kindStatic : category === "animated" ? t.theme.kindAnimated : t.theme.kindInteractive;
 }
 
 // Intl.RelativeTimeFormat (stdlib) ngurusin unit-picking + terjemahan ID/EN sendiri --
@@ -169,15 +225,16 @@ function ColorField({
   );
 }
 
-// Avatar swatch di kiri (bukan strip full-width lagi) -- render getPageBackgroundStyle+
-// texture beneran (bukan cuma dot warna polos) biar pattern kayak Japanese Wave tetep
-// keliatan, dan deskripsi singkat di kanan biar gak cuma ngandelin nama doang buat tau
-// "ini theme kayak apa". Tombol aksi dikasih border+warna (bukan flat bg-muted/plain text
-// lagi) biar jelas kebaca sebagai tombol, bukan cuma teks.
+// Preview sekarang FULL-WIDTH di atas card (bukan swatch kecil 56px di kiri lagi) --
+// render getPageBackgroundStyle+texture BENERAN (bukan cuma dot warna polos), plus 2
+// badge: pojok kanan-atas nulis teknik spesifiknya (mis. "Blackhole"), pojok kiri-bawah
+// nunjukin kategori umum (Static/Animated/Interactive) biar keliatan dari gallery-nya
+// doang mana yang cuma warna diem, mana yang gerak sendiri, mana yang bisa
+// diklik/drag -- sebelumnya cuma ada 1 titik warna kecil, gak kebaca sama sekali.
 // Card ini BUKAN satu <button> gede -- preset butuh 2 tombol (Apply/Edit) dan "Theme Saya"
 // butuh tombol Hapus di DALAM card yang sama, nested <button> di dalam <button> itu invalid
-// HTML. Wrapper jadi <div>, baris atas (avatar+nama+deskripsi, buat preview) jadi <button>
-// sendiri, tombol aksi di baris bawah jadi sibling-nya (di-indent pl-20 biar sejajar teks).
+// HTML. Wrapper jadi <div>, preview+nama+deskripsi jadi <button> sendiri, tombol aksi di
+// baris bawah jadi sibling-nya.
 function GalleryCard({
   name,
   description,
@@ -203,9 +260,8 @@ function GalleryCard({
   onDelete?: () => void;
   t: Dictionary;
 }) {
-  const accent = tokens.backgroundColors[1] || tokens.cardBorder || tokens.backgroundColors[0];
   const textureStyle = getTextureOverlayStyle(tokens);
-  const textureClass = getTextureOverlayClass(tokens);
+  const kind = getThemeKind(tokens, t);
 
   return (
     <div
@@ -216,26 +272,38 @@ function GalleryCard({
         active ? "border-primary" : "border-border hover:border-primary/50",
       )}
     >
-      <button type="button" onClick={onClick} className="flex w-full items-start gap-3 p-3 pb-2 text-left">
+      <button type="button" onClick={onClick} className="block w-full text-left">
         <div
-          className={cn("relative size-14 shrink-0 overflow-hidden rounded-xl", getAnimatedBackgroundClass(tokens))}
+          className={cn("relative h-24 w-full overflow-hidden", getAnimatedBackgroundClass(tokens))}
           style={getPageBackgroundStyle(tokens)}
         >
           {textureStyle ? <div style={textureStyle} /> : null}
-          {textureClass ? <div className={textureClass} style={{ opacity: tokens.textureOpacity }} /> : null}
+          {/* Efek asli (network/gravity/blackhole/particle/firefly/snow/sakura) di-generate
+              pakai satuan vw/vh buat halaman publik (selebar viewport) -- di card sekecil
+              ini vw/vh bikin titik-titiknya "terbang" jauh ke luar area, gak kelihatan.
+              ThemeKindPreview gambar ulang versi statis pakai piksel relatif ke card sendiri. */}
+          <ThemeKindPreview tokens={tokens} />
+          <span className="absolute top-2 right-2 max-w-[65%] truncate rounded-md bg-black/45 px-1.5 py-0.5 text-[10px] font-semibold text-white backdrop-blur-sm">
+            {kind.label}
+          </span>
           <span
-            className="absolute inset-x-1 bottom-1 rounded px-1 py-0.5 text-center text-[10px] font-bold text-white"
-            style={{ backgroundColor: "rgba(0,0,0,0.3)" }}
+            className={cn(
+              "absolute bottom-2 left-2 flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+              KIND_BADGE_CLASS[kind.category],
+            )}
           >
-            {isPreset ? "Aa" : initialsFromName(name)}
+            {kind.category === "interactive" ? (
+              <MousePointerClick className="size-2.5" />
+            ) : (
+              <span className="size-1.5 rounded-full bg-current" />
+            )}
+            {kindCategoryLabel(kind.category, t)}
           </span>
         </div>
-        <div className="min-w-0 flex-1 pt-0.5">
+        <div className="p-3 pb-2">
           <div className="flex items-center gap-1.5">
             <span className="min-w-0 flex-1 truncate text-sm font-semibold">{name}</span>
-            {isPreset ? (
-              <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: accent }} />
-            ) : active ? (
+            {!isPreset && active ? (
               <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold tracking-wide text-primary uppercase">
                 {t.theme.libraryActive}
               </span>
@@ -245,7 +313,7 @@ function GalleryCard({
         </div>
       </button>
 
-      <div className="flex items-center gap-2 pr-3 pb-3 pl-20 text-xs">
+      <div className="flex items-center gap-2 px-3 pb-3 text-xs">
         {isPreset ? (
           <>
             <button
@@ -289,6 +357,76 @@ function GalleryCard({
   );
 }
 
+const KIND_FILTERS: ThemeKindCategory[] = ["static", "animated", "interactive"];
+
+// Search + 3 chip kategori di atas satu grid gallery (dipakai terpisah buat Presets &
+// Theme Saya, masing-masing state-nya sendiri) -- biar gak perlu scroll puluhan card
+// rata cuma buat nyari yang animated/interactive doang.
+function GalleryToolbar({
+  query,
+  onQueryChange,
+  kindFilter,
+  onKindFilterChange,
+  resultCount,
+  totalCount,
+  t,
+}: {
+  query: string;
+  onQueryChange: (value: string) => void;
+  kindFilter: ThemeKindCategory | "all";
+  onKindFilterChange: (value: ThemeKindCategory | "all") => void;
+  resultCount: number;
+  totalCount: number;
+  t: Dictionary;
+}) {
+  return (
+    <div className="mt-2 mb-3 flex flex-wrap items-center gap-2">
+      <div className="flex min-w-[160px] flex-1 items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5">
+        <Search className="size-3.5 shrink-0 text-muted-foreground" />
+        <input
+          value={query}
+          onChange={(e) => onQueryChange(e.target.value)}
+          placeholder={t.theme.gallerySearchPlaceholder}
+          className="w-full min-w-0 bg-transparent text-xs outline-none placeholder:text-muted-foreground"
+        />
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        <button
+          type="button"
+          onClick={() => onKindFilterChange("all")}
+          className={cn(
+            "rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
+            kindFilter === "all"
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-border text-muted-foreground hover:border-primary/50",
+          )}
+        >
+          {t.theme.galleryFilterAll}
+        </button>
+        {KIND_FILTERS.map((kind) => (
+          <button
+            key={kind}
+            type="button"
+            onClick={() => onKindFilterChange(kind)}
+            className={cn(
+              "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
+              kindFilter === kind
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border text-muted-foreground hover:border-primary/50",
+            )}
+          >
+            <span className={cn("size-1.5 rounded-full", kindFilter === kind ? "bg-current" : KIND_DOT_CLASS[kind])} />
+            {kindCategoryLabel(kind, t)}
+          </button>
+        ))}
+      </div>
+      <span className="text-[11px] whitespace-nowrap text-muted-foreground">
+        {resultCount}/{totalCount}
+      </span>
+    </div>
+  );
+}
+
 export function ThemeEditor({
   pageId,
   activeThemeId,
@@ -315,6 +453,7 @@ export function ThemeEditor({
   const [editingId, setEditingId] = useState<number | null>(activeThemeId);
   const [tokens, setTokens] = useState<ThemeTokens>(initialTokens);
   const [colorsInput, setColorsInput] = useState(initialTokens.backgroundColors.join(", "));
+  const [textureColorsInput, setTextureColorsInput] = useState((initialTokens.textureColors ?? []).join(", "));
   const [name, setName] = useState(library.find((l) => l.id === activeThemeId)?.name ?? "");
   const [tab, setTab] = useState<Tab>("background");
   const customizeRef = useRef<HTMLDivElement>(null);
@@ -328,6 +467,12 @@ export function ThemeEditor({
   const [previewPreset, setPreviewPreset] = useState<ThemePreset | null>(null);
   const [aiPromptCopied, setAiPromptCopied] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+  // Filter+cari kebutuhan terpisah antara Presets (~40 card) dan Theme Saya (bisa numpuk
+  // banyak duplikat) -- state independen biar ganti tab gak saling reset satu sama lain.
+  const [presetQuery, setPresetQuery] = useState("");
+  const [presetKindFilter, setPresetKindFilter] = useState<ThemeKindCategory | "all">("all");
+  const [libraryQuery, setLibraryQuery] = useState("");
+  const [libraryKindFilter, setLibraryKindFilter] = useState<ThemeKindCategory | "all">("all");
 
   // Manual (bukan <form action={importThemeAction.bind(...)}>) -- butuh baca return
   // value action-nya buat nampilin notif error (JSON invalid / bukan objek theme),
@@ -367,6 +512,7 @@ export function ThemeEditor({
     const freshTokens = activeLib ? parseThemeTokens(activeLib.tokensJson) : DEFAULT_THEME;
     setTokens(freshTokens);
     setColorsInput(freshTokens.backgroundColors.join(", "));
+    setTextureColorsInput((freshTokens.textureColors ?? []).join(", "));
     setName(activeLib?.name ?? "");
   }
 
@@ -375,6 +521,17 @@ export function ThemeEditor({
     setTokens((prev) => ({
       ...prev,
       backgroundColors: raw
+        .split(",")
+        .map((c) => c.trim())
+        .filter(Boolean),
+    }));
+  }
+
+  function updateTextureColors(raw: string) {
+    setTextureColorsInput(raw);
+    setTokens((prev) => ({
+      ...prev,
+      textureColors: raw
         .split(",")
         .map((c) => c.trim())
         .filter(Boolean),
@@ -396,6 +553,7 @@ export function ThemeEditor({
     setSyncedActiveId(created.id);
     setTokens(preset.tokens);
     setColorsInput(preset.tokens.backgroundColors.join(", "));
+    setTextureColorsInput((preset.tokens.textureColors ?? []).join(", "));
     setName(created.name);
     setPreviewPreset(null);
     if (thenEdit) setOuterTab("custom");
@@ -409,6 +567,7 @@ export function ThemeEditor({
     setSyncedActiveId(theme.id);
     setTokens(freshTokens);
     setColorsInput(freshTokens.backgroundColors.join(", "));
+    setTextureColorsInput((freshTokens.textureColors ?? []).join(", "));
     setName(theme.name);
     setOuterTab("custom");
     router.refresh();
@@ -481,6 +640,23 @@ export function ThemeEditor({
   };
   const isPresetSelected = editingId === null;
 
+  const filteredPresets = THEME_PRESETS.filter((preset) => {
+    const kind = getThemeKind(preset.tokens, t);
+    if (presetKindFilter !== "all" && kind.category !== presetKindFilter) return false;
+    const q = presetQuery.trim().toLowerCase();
+    if (!q) return true;
+    return preset.name.toLowerCase().includes(q) || preset.description.toLowerCase().includes(q);
+  });
+
+  const libraryWithTokens = library.map((theme) => ({ theme, tokens: parseThemeTokens(theme.tokensJson) }));
+  const filteredLibrary = libraryWithTokens.filter(({ theme, tokens }) => {
+    const kind = getThemeKind(tokens, t);
+    if (libraryKindFilter !== "all" && kind.category !== libraryKindFilter) return false;
+    const q = libraryQuery.trim().toLowerCase();
+    if (!q) return true;
+    return theme.name.toLowerCase().includes(q);
+  });
+
   return (
     // Kolom kiri SENGAJA flexible (bukan lebar tetap) -- dulu ada 3 kolom lebar-tetap
     // (preset 42rem + customize + preview 20rem) yang berebut ruang, bikin kolom
@@ -511,24 +687,37 @@ export function ThemeEditor({
           <div>
             <h2 className="text-sm font-semibold">{t.theme.presetsTitle}</h2>
             <p className="mt-0.5 text-xs text-muted-foreground">{t.theme.presetsPreviewHint}</p>
+            <GalleryToolbar
+              query={presetQuery}
+              onQueryChange={setPresetQuery}
+              kindFilter={presetKindFilter}
+              onKindFilterChange={setPresetKindFilter}
+              resultCount={filteredPresets.length}
+              totalCount={THEME_PRESETS.length}
+              t={t}
+            />
             {/* auto-fill minmax -- biar jumlah kolom nyesuaiin lebar layar sendiri (misal
                 18:9/ultrawide bisa muat 3+), gak kepatok 2 kolom padahal ruangnya cukup. */}
-            <div className="mt-2 grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3">
-              {THEME_PRESETS.map((preset) => (
-                <GalleryCard
-                  key={preset.id}
-                  name={preset.name}
-                  description={preset.description}
-                  tokens={preset.tokens}
-                  active={previewPreset?.id === preset.id}
-                  isPreset
-                  onClick={() => handleClickPreset(preset)}
-                  onApply={() => commitPreset(preset, false)}
-                  onEdit={() => commitPreset(preset, true)}
-                  t={t}
-                />
-              ))}
-            </div>
+            {filteredPresets.length > 0 ? (
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3">
+                {filteredPresets.map((preset) => (
+                  <GalleryCard
+                    key={preset.id}
+                    name={preset.name}
+                    description={preset.description}
+                    tokens={preset.tokens}
+                    active={previewPreset?.id === preset.id}
+                    isPreset
+                    onClick={() => handleClickPreset(preset)}
+                    onApply={() => commitPreset(preset, false)}
+                    onEdit={() => commitPreset(preset, true)}
+                    t={t}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="py-8 text-center text-sm text-muted-foreground">{t.theme.galleryNoResults}</p>
+            )}
           </div>
         ) : null}
 
@@ -548,22 +737,35 @@ export function ThemeEditor({
                   </Button>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">{t.theme.customDesc}</p>
-                <div className="mt-2 grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3">
-                  {library.map((theme) => (
-                    <GalleryCard
-                      key={theme.id}
-                      name={theme.name}
-                      tokens={parseThemeTokens(theme.tokensJson)}
-                      active={theme.id === editingId}
-                      isPreset={false}
-                      createdLabel={formatRelativeTime(theme.createdAt, locale)}
-                      onClick={() => handleClickLibrary(theme)}
-                      onEdit={() => handleClickLibrary(theme)}
-                      onDelete={() => handleDeleteLibrary(theme.id)}
-                      t={t}
-                    />
-                  ))}
-                </div>
+                <GalleryToolbar
+                  query={libraryQuery}
+                  onQueryChange={setLibraryQuery}
+                  kindFilter={libraryKindFilter}
+                  onKindFilterChange={setLibraryKindFilter}
+                  resultCount={filteredLibrary.length}
+                  totalCount={library.length}
+                  t={t}
+                />
+                {filteredLibrary.length > 0 ? (
+                  <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3">
+                    {filteredLibrary.map(({ theme, tokens }) => (
+                      <GalleryCard
+                        key={theme.id}
+                        name={theme.name}
+                        tokens={tokens}
+                        active={theme.id === editingId}
+                        isPreset={false}
+                        createdLabel={formatRelativeTime(theme.createdAt, locale)}
+                        onClick={() => handleClickLibrary(theme)}
+                        onEdit={() => handleClickLibrary(theme)}
+                        onDelete={() => handleDeleteLibrary(theme.id)}
+                        t={t}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="py-8 text-center text-sm text-muted-foreground">{t.theme.galleryNoResults}</p>
+                )}
               </div>
             ) : null}
 
@@ -648,6 +850,9 @@ export function ThemeEditor({
                   <option value="lines">{t.theme.bgLines}</option>
                   <option value="waves">{t.theme.bgWaves}</option>
                   <option value="network">{t.theme.bgNetwork}</option>
+                  <option value="gravity">{t.theme.bgGravity}</option>
+                  <option value="colormorph">{t.theme.bgColormorph}</option>
+                  <option value="blackhole">{t.theme.bgBlackhole}</option>
                 </SelectField>
               </div>
 
@@ -699,6 +904,7 @@ export function ThemeEditor({
                     <option value="snow">{t.theme.textureSnow}</option>
                     <option value="sakura">{t.theme.textureSakura}</option>
                     <option value="particle">{t.theme.textureParticle}</option>
+                    <option value="firefly">{t.theme.textureFirefly}</option>
                   </SelectField>
                 </div>
                 <div className="flex flex-col gap-1.5">
@@ -715,6 +921,52 @@ export function ThemeEditor({
                   />
                 </div>
               </div>
+
+              {tokens.textureType === "particle" || tokens.textureType === "firefly" ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="col-span-2 flex flex-col gap-1.5">
+                    <Label htmlFor="textureColors">{t.theme.textureColors}</Label>
+                    <Input
+                      id="textureColors"
+                      name="textureColors"
+                      value={textureColorsInput}
+                      onChange={(e) => updateTextureColors(e.target.value)}
+                      placeholder="#fef08a, #fde047, #f472b6"
+                      className="font-mono text-xs"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="textureDirection">{t.theme.textureDirection}</Label>
+                    <SelectField
+                      id="textureDirection"
+                      name="textureDirection"
+                      value={tokens.textureDirection ?? "up"}
+                      onChange={(e) =>
+                        setTokens((prev) => ({ ...prev, textureDirection: e.target.value as ThemeTokens["textureDirection"] }))
+                      }
+                    >
+                      <option value="up">{t.theme.directionUp}</option>
+                      <option value="down">{t.theme.directionDown}</option>
+                      <option value="left">{t.theme.directionLeft}</option>
+                      <option value="right">{t.theme.directionRight}</option>
+                      <option value="none">{t.theme.directionNone}</option>
+                    </SelectField>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="textureDensity">{t.theme.textureDensity}</Label>
+                    <Input
+                      id="textureDensity"
+                      name="textureDensity"
+                      type="number"
+                      step={2}
+                      min={6}
+                      max={150}
+                      value={tokens.textureDensity ?? 54}
+                      onChange={(e) => setTokens((prev) => ({ ...prev, textureDensity: Number(e.target.value) }))}
+                    />
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div className={cn("mt-3 flex-col gap-3", tab === "typography" ? "flex" : "hidden")}>
