@@ -32,6 +32,13 @@ COPY . .
 # module, jadi butuh path yang valid (walau isinya gak dipakai, /tmp cukup) biar gak
 # gagal karena folder data/ belum ada di dalam container build.
 ENV DATABASE_PATH=/tmp/build.db
+
+# Batesin heap V8 pas build -- tanpa ini, Node nebak default max-old-space-size dari RAM
+# HOST (bukan dari limit container), jadi di VPS kecil yang jalanin banyak container
+# bareng, next build bisa ngabisin RAM sampe container TETANGGA (app lain di VPS yang
+# sama) ke-starve/unresponsive. 768MB cukup buat build project ini; naikin kalau nanti
+# next build gagal "JavaScript heap out of memory".
+ENV NODE_OPTIONS=--max-old-space-size=768
 RUN npx next build
 
 # ─── runner stage ─────────────────────────────────────────────────────
