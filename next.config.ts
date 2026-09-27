@@ -21,6 +21,15 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "8mb",
     },
+
+    // Default-nya Next.js nyalain beberapa compile worker PARALEL sebanyak jumlah CPU
+    // core yang KEBACA (bukan yang dijatah container) -- di VPS kecil yang jalanin
+    // banyak container bareng, tiap worker itu proses Node terpisah (NODE_OPTIONS heap
+    // cap di Dockerfile cuma ngiket 1 proses, bukan totalnya), jadi `next build` bisa
+    // nyedot RAM jauh lebih banyak dari yang keiket, bikin container tetangga starve.
+    // cpus:1 maksa build serial (1 worker doang) -- lebih lambat, tapi puncak RAM-nya
+    // predictable & keiket.
+    cpus: 1,
   },
 
   // Migration files (.sql + meta/_journal.json) dibaca via fs.readFileSync di runtime
