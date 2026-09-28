@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { linkGroups, links, scheduledRules } from "@/lib/db/schema";
 import { checkYoutubeLive } from "@/lib/youtube-live";
+import { getYoutubeApiKeyForPage } from "@/lib/youtube-api-key";
 import { evaluateWeeklySchedule, type WeeklyScheduleConfig } from "@/lib/schedule-evaluate";
 import { logActivity } from "@/lib/db/activity-log";
 
@@ -52,8 +53,19 @@ export async function checkAndApplyScheduledRule(rule: ScheduledRuleRow): Promis
     const config = JSON.parse(rule.configJson) as { channelUrl?: string };
     if (!config.channelUrl) return false;
 
-    const status = await checkYoutubeLive(config.channelUrl);
+    const apiKey = await getYoutubeApiKeyForPage(rule.pageId);
+    let status = await checkYoutubeLive(config.channelUrl, apiKey);
     if (status === null) return false; // gagal cek (network error dll) — jangan ubah apapun, coba lagi nanti
+
+    // Transisi ke live ngubah visibility group/link di halaman publik -- efek yang
+    // KELIATAN pengunjung, jadi sebelum di-apply, cek ulang sekali. Kalau bacaan kedua
+    // beda/gagal, diemin (biarin cron 2 menit berikutnya yang mutusin) daripada nge-show
+    // group/link dari 1 bacaan yang belum tentu bener.
+    if (status.isLive && rule.lastState !== "live") {
+      const confirm = await checkYoutubeLive(config.channelUrl, apiKey);
+      if (confirm === null || !confirm.isLive) return false;
+      status = confirm;
+    }
 
     await applyRuleState(rule, status.isLive);
     return true;
