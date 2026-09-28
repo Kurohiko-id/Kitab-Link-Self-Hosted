@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "node --import tsx --test lib/**/*.test.ts",
     "db:seed": "tsx scripts/seed-user.ts",
     "yt:check": "node scripts/check-youtube-live.mjs"
   },
