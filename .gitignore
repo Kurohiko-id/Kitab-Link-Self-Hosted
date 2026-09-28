@@ -49,3 +49,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# graphify (/graphify skill) -- peta struktur kode lokal, bukan bagian app, jangan ke-push
+/graphify-out/
