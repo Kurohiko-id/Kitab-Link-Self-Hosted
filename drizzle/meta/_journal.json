@@ -225,6 +225,13 @@
       "when": 1790459067256,
       "tag": "0031_curved_talon",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1790571181969,
+      "tag": "0032_sudden_madrox",
+      "breakpoints": true
     }
   ]
 }

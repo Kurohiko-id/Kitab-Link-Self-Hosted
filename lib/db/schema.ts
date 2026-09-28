@@ -37,6 +37,10 @@ export const users = sqliteTable("users", {
   totpSecret: text("totp_secret"),
   totpEnabled: integer("totp_enabled", { mode: "boolean" }).notNull().default(false),
   totpBackupCodesJson: text("totp_backup_codes_json"),
+  // YouTube Data API key (OPSIONAL, lihat lib/youtube-live.ts) -- di-ENCRYPT kayak totpSecret
+  // (encryptSecret purpose "youtube-api-key"). Null = deteksi live pakai scraping HTML, yang
+  // bisa ke-blokir anti-bot YouTube dari IP datacenter/VPS.
+  youtubeApiKey: text("youtube_api_key"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
