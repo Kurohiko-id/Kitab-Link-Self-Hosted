@@ -3,8 +3,11 @@
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { scheduledRules } from "@/lib/db/schema";
+import { scheduledRules, users } from "@/lib/db/schema";
 import { requireOwnedPage } from "@/lib/db/pages";
+import { requireSession } from "@/lib/auth/require-session";
+import { validateYoutubeApiKey } from "@/lib/youtube-live";
+import { encryptYoutubeApiKey } from "@/lib/youtube-api-key";
 import type { ScheduleMode } from "@/lib/schedule-evaluate";
 import { checkAndApplyScheduledRule } from "@/lib/scheduled-rules";
 
@@ -87,4 +90,25 @@ export async function refreshScheduledRuleAction(pageId: number, ruleId: number)
   revalidatePath("/dashboard");
   if (!ok) return { error: "Gagal cek status (coba lagi sebentar)." };
   return {};
+}
+
+// Key dites ke Google DULU sebelum disimpen -- key salah / YouTube Data API belum di-enable
+// langsung throw, ActionForm nampilin pesan gagal di form (bukan kesimpen tapi diem-diem
+// gak jalan, yang cuma ketahuan dari docker logs).
+export async function saveYoutubeApiKeyAction(formData: FormData) {
+  const session = await requireSession();
+  const apiKey = String(formData.get("apiKey") ?? "").trim();
+  if (!apiKey) return;
+
+  const error = await validateYoutubeApiKey(apiKey);
+  if (error) throw new Error(error);
+
+  await db.update(users).set({ youtubeApiKey: encryptYoutubeApiKey(apiKey) }).where(eq(users.id, session.userId));
+  revalidatePath("/dashboard");
+}
+
+export async function clearYoutubeApiKeyAction() {
+  const session = await requireSession();
+  await db.update(users).set({ youtubeApiKey: null }).where(eq(users.id, session.userId));
+  revalidatePath("/dashboard");
 }

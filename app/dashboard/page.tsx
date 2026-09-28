@@ -56,7 +56,7 @@ import { NotificationBell } from "./notification-bell";
 import { getContentFeedsForPage } from "@/lib/db/content-feeds";
 import { ContentFeedsSection } from "./content-feeds-section";
 import { logout } from "../login/actions";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Board } from "./board";
@@ -68,7 +68,14 @@ import { isStreamerModeOn } from "@/lib/streamer-mode";
 import { EditingPageBadge } from "@/components/editing-page-badge";
 import { TokenCreator } from "./token-creator";
 import { createWebhookAction, deleteWebhook, revokeApiToken, sendTestWebhookEvent } from "./integrations-actions";
-import { createWeeklyScheduleRule, createYoutubeLiveRule, deleteScheduledRule, refreshScheduledRuleAction } from "./automation-actions";
+import {
+  clearYoutubeApiKeyAction,
+  createWeeklyScheduleRule,
+  createYoutubeLiveRule,
+  deleteScheduledRule,
+  refreshScheduledRuleAction,
+  saveYoutubeApiKeyAction,
+} from "./automation-actions";
 import { saveLiveBadgeAction, deleteLiveBadgeAction, refreshLiveBadgeAction } from "./live-badge-actions";
 import { RefreshStatusButton } from "@/components/refresh-status-button";
 import { ActionForm } from "@/components/action-form";
@@ -469,6 +476,7 @@ export default async function DashboardPage({
                 rules={scheduledRules}
                 feeds={contentFeeds}
                 liveBadge={liveBadge}
+                hasYoutubeApiKey={Boolean(user?.youtubeApiKey)}
                 t={t}
                 locale={locale}
               />
@@ -991,6 +999,7 @@ function AutomationSection({
   rules,
   feeds,
   liveBadge,
+  hasYoutubeApiKey,
   t,
   locale,
 }: {
@@ -999,6 +1008,7 @@ function AutomationSection({
   rules: Awaited<ReturnType<typeof getScheduledRulesForPage>>;
   feeds: Awaited<ReturnType<typeof getContentFeedsForPage>>;
   liveBadge: Awaited<ReturnType<typeof getLiveBadgeForPage>>;
+  hasYoutubeApiKey: boolean;
   t: Dictionary;
   locale: Locale;
 }) {
@@ -1014,6 +1024,61 @@ function AutomationSection({
 
   return (
     <div className="flex flex-col gap-6">
+      <SectionCard title={t.automation.youtubeApiKeyTitle} description={t.automation.youtubeApiKeyDesc}>
+        <div className="flex flex-col gap-3">
+          <ActionForm
+            errorMessage={t.automation.youtubeApiKeyInvalid}
+            action={saveYoutubeApiKeyAction}
+            className="flex flex-wrap items-end gap-2"
+          >
+            <div className="flex flex-1 flex-col gap-1.5">
+              <Label htmlFor="youtubeApiKey">API key</Label>
+              {/* Key tersimpan GAK pernah dikirim balik ke browser -- kolom selalu kosong,
+                  status "tersimpan" dari boolean doang. Isi baru = ganti key lama. */}
+              <Input
+                id="youtubeApiKey"
+                name="apiKey"
+                type="password"
+                autoComplete="off"
+                placeholder={t.automation.youtubeApiKeyPlaceholder}
+              />
+            </div>
+            <Button type="submit">{t.common.save}</Button>
+          </ActionForm>
+          <div className="flex items-center justify-between rounded-lg border bg-muted/50 px-3 py-2.5 text-xs text-muted-foreground">
+            <span>{hasYoutubeApiKey ? t.automation.youtubeApiKeySet : t.automation.youtubeApiKeyNotSet}</span>
+            {hasYoutubeApiKey ? (
+              <form action={clearYoutubeApiKeyAction}>
+                <Button type="submit" size="sm" variant="outline">
+                  {t.common.delete}
+                </Button>
+              </form>
+            ) : null}
+          </div>
+          {/* <details> bawaan HTML -- buka/tutup tanpa JS, tetep Server Component. */}
+          <details className="group">
+            <summary className={`${buttonVariants({ variant: "outline", size: "sm" })} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
+              {t.automation.youtubeApiKeyTutorial}
+            </summary>
+            <div className="mt-3 flex flex-col gap-3 rounded-lg border px-4 py-3 text-sm">
+              <ol className="list-decimal space-y-1.5 pl-5 text-muted-foreground">
+                {t.automation.youtubeApiKeySteps.map((step) => (
+                  <li key={step}>{step}</li>
+                ))}
+              </ol>
+              <a
+                href="https://console.cloud.google.com/apis/library/youtube.googleapis.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${buttonVariants({ size: "sm" })} self-start`}
+              >
+                {t.automation.youtubeApiKeyOpenConsole}
+              </a>
+            </div>
+          </details>
+        </div>
+      </SectionCard>
+
       <SectionCard title={t.automation.liveBadgeTitle} description={t.automation.liveBadgeDesc}>
         <div className="flex flex-col gap-3">
           <ActionForm errorMessage={t.common.saveFailed} action={saveLiveBadgeAction.bind(null, pageId)} className="flex flex-wrap items-end gap-2">
