@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { links, pages } from "@/lib/db/schema";
 import { requireOwnedPage } from "@/lib/db/pages";
+import { getOwnedIds } from "@/lib/db/owned-rows";
 import { parseProfileData } from "@/lib/profile";
 import { BRAND_ICONS } from "@/lib/icons";
 import type { IconPosition } from "@/lib/db/board";
@@ -94,12 +95,14 @@ export async function saveSocialLinksAction(
     .select()
     .from(links)
     .where(and(eq(links.pageId, pageId), eq(links.displayStyle, "icon")));
+  const owned = await getOwnedIds(pageId);
+  const ownedItems = (items: SocialLinkItem[]) => items.filter((item) => !item.id || owned.links.has(item.id));
   const existingTop = existingRows.filter((row) => row.iconPosition !== "bottom");
   const existingBottom = existingRows.filter((row) => row.iconPosition === "bottom");
 
   db.transaction((tx) => {
-    reconcilePosition(tx, pageId, "top", top, existingTop);
-    reconcilePosition(tx, pageId, "bottom", bottom, existingBottom);
+    reconcilePosition(tx, pageId, "top", ownedItems(top), existingTop);
+    reconcilePosition(tx, pageId, "bottom", ownedItems(bottom), existingBottom);
   });
 
   const profile = parseProfileData(page.profileJson);
