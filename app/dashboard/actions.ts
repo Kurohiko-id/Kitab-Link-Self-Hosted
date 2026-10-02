@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { linkGroups, links } from "@/lib/db/schema";
 import { requireOwnedPage } from "@/lib/db/pages";
+import { findOwnedGroup, getOwnedIds, requireOwnedGroup, requireOwnedLink } from "@/lib/db/owned-rows";
 import type { DisplayStyle, LinkType } from "@/lib/db/board";
 import { processImage } from "@/lib/images/process-image";
 import { deleteImage, saveFile, saveImage } from "@/lib/images/storage";
@@ -62,9 +63,9 @@ export async function renameGroup(pageId: number, groupId: number, name: string)
   await requireOwnedPage(pageId);
   const trimmed = name.trim();
   if (!trimmed) return;
-  const [existing] = await db.select().from(linkGroups).where(eq(linkGroups.id, groupId)).limit(1);
+  const existing = await requireOwnedGroup(pageId, groupId);
   await db.update(linkGroups).set({ name: trimmed }).where(eq(linkGroups.id, groupId));
-  if (existing && existing.name !== trimmed) {
+  if (existing.name !== trimmed) {
     logActivity(pageId, "group_renamed", `${existing.name} -> ${trimmed}`);
   }
   revalidatePath("/dashboard");
@@ -72,49 +73,44 @@ export async function renameGroup(pageId: number, groupId: number, name: string)
 
 export async function deleteGroup(pageId: number, groupId: number) {
   await requireOwnedPage(pageId);
-  const [existing] = await db.select().from(linkGroups).where(eq(linkGroups.id, groupId)).limit(1);
+  const existing = await requireOwnedGroup(pageId, groupId);
   await db.delete(linkGroups).where(eq(linkGroups.id, groupId));
-  logActivity(pageId, "group_deleted", existing?.name ?? null);
+  logActivity(pageId, "group_deleted", existing.name);
   revalidatePath("/dashboard");
 }
 
 export async function toggleGroupVisibility(pageId: number, groupId: number, isVisible: boolean) {
   await requireOwnedPage(pageId);
-  const [updated] = await db
-    .update(linkGroups)
-    .set({ isVisible })
-    .where(eq(linkGroups.id, groupId))
-    .returning({ name: linkGroups.name });
-  logActivity(pageId, isVisible ? "group_shown" : "group_hidden", updated?.name ?? null);
+  const existing = await requireOwnedGroup(pageId, groupId);
+  await db.update(linkGroups).set({ isVisible }).where(eq(linkGroups.id, groupId));
+  logActivity(pageId, isVisible ? "group_shown" : "group_hidden", existing.name);
   revalidatePath("/dashboard");
 }
 
 export async function deleteLink(pageId: number, linkId: number) {
   await requireOwnedPage(pageId);
-  const [existing] = await db.select().from(links).where(eq(links.id, linkId)).limit(1);
+  const existing = await requireOwnedLink(pageId, linkId);
   await db.delete(links).where(eq(links.id, linkId));
-  await deleteImage(existing?.thumbnailPath);
-  await deleteImage(existing?.imageContentPath);
-  if (existing?.linkType === "file" && isLocalUploadPath(existing.url)) {
+  await deleteImage(existing.thumbnailPath);
+  await deleteImage(existing.imageContentPath);
+  if (existing.linkType === "file" && isLocalUploadPath(existing.url)) {
     await deleteImage(existing.url);
   }
-  logActivity(pageId, "link_deleted", existing?.title ?? null);
+  logActivity(pageId, "link_deleted", existing.title);
   revalidatePath("/dashboard");
 }
 
 export async function toggleLinkActive(pageId: number, linkId: number, isActive: boolean) {
   await requireOwnedPage(pageId);
-  const [updated] = await db
-    .update(links)
-    .set({ isActive })
-    .where(eq(links.id, linkId))
-    .returning({ title: links.title });
-  logActivity(pageId, isActive ? "link_shown" : "link_hidden", updated?.title ?? null);
+  const existing = await requireOwnedLink(pageId, linkId);
+  await db.update(links).set({ isActive }).where(eq(links.id, linkId));
+  logActivity(pageId, isActive ? "link_shown" : "link_hidden", existing.title);
   revalidatePath("/dashboard");
 }
 
 export async function toggleLinkFeatured(pageId: number, linkId: number, featured: boolean) {
   await requireOwnedPage(pageId);
+  await requireOwnedLink(pageId, linkId);
   await db.update(links).set({ featured }).where(eq(links.id, linkId));
   revalidatePath("/dashboard");
 }
@@ -164,6 +160,10 @@ export async function saveLinkAction(
   const icon = String(formData.get("icon") ?? "") || null;
   const target = String(formData.get("target") ?? "ungrouped");
   const groupId = target.startsWith("group:") ? Number(target.slice("group:".length)) : null;
+  // Group bisa kehapus di tab lain pas modal masih kebuka -> error rapi, bukan throw.
+  if (groupId !== null && !(await findOwnedGroup(pageId, groupId))) {
+    return { error: "Grup tidak ditemukan, mungkin sudah dihapus. Muat ulang halaman." };
+  }
   const featured = formData.get("featured") === "1";
   const utmSource = String(formData.get("utmSource") ?? "").trim() || null;
   const utmMedium = String(formData.get("utmMedium") ?? "").trim() || null;
@@ -221,10 +221,10 @@ export async function saveLinkAction(
   };
 
   if (linkId) {
-    const [existing] = await db.select().from(links).where(eq(links.id, linkId)).limit(1);
+    const existing = await requireOwnedLink(pageId, linkId);
     // Upload baru menang kalau ada; kalau gak ada tapi user minta hapus, kosongkan; kalau gak dua-duanya, biarkan.
-    const finalThumbnailPath = newThumbnailPath ?? (removeThumbnail ? null : existing?.thumbnailPath ?? null);
-    const finalContentPath = newContentPath ?? (removeContentImage ? null : existing?.imageContentPath ?? null);
+    const finalThumbnailPath = newThumbnailPath ?? (removeThumbnail ? null : existing.thumbnailPath ?? null);
+    const finalContentPath = newContentPath ?? (removeContentImage ? null : existing.imageContentPath ?? null);
     await db
       .update(links)
       .set({ ...values, thumbnailPath: finalThumbnailPath, imageContentPath: finalContentPath })
@@ -301,19 +301,23 @@ async function maybeFetchOgImage(
 export async function persistBoard(input: PersistBoardInput) {
   await requireOwnedPage(input.pageId);
 
+  const owned = await getOwnedIds(input.pageId);
+  const ownedLinks = (ids: number[]) => ids.filter((id) => owned.links.has(id));
+  const groupOrder = input.groupOrder.filter((id) => owned.groups.has(id));
+
   db.transaction((tx) => {
-    input.groupOrder.forEach((groupId, index) => {
+    groupOrder.forEach((groupId, index) => {
       tx.update(linkGroups).set({ orderIndex: index }).where(eq(linkGroups.id, groupId)).run();
     });
 
-    input.groupOrder.forEach((groupId) => {
-      const linkIds = input.groups[groupId] ?? [];
+    groupOrder.forEach((groupId) => {
+      const linkIds = ownedLinks(input.groups[groupId] ?? []);
       linkIds.forEach((linkId, index) => {
         tx.update(links).set({ groupId, orderIndex: index }).where(eq(links.id, linkId)).run();
       });
     });
 
-    input.ungrouped.forEach((linkId, index) => {
+    ownedLinks(input.ungrouped).forEach((linkId, index) => {
       tx.update(links).set({ groupId: null, orderIndex: index }).where(eq(links.id, linkId)).run();
     });
   });
