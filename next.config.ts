@@ -17,9 +17,10 @@ const nextConfig: NextConfig = {
   // gampang lebih gede dari itu, request-nya ditolak duluan sebelum sempet ke validasi
   // ukuran kita sendiri (MAX_OG_IMAGE_BYTES dst di settings-actions.ts, sampai 5MB).
   // 8MB kasih headroom buat overhead multipart + upload avatar&banner bareng di 1 form.
+  // 20MB karena import theme v2 membawa aset base64 (batas aset 15MB + overhead).
   experimental: {
     serverActions: {
-      bodySizeLimit: "8mb",
+      bodySizeLimit: "20mb",
     },
 
     // Default-nya Next.js nyalain beberapa compile worker PARALEL sebanyak jumlah CPU
