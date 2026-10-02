@@ -94,6 +94,7 @@ export async function deleteLink(pageId: number, linkId: number) {
   const [existing] = await db.select().from(links).where(eq(links.id, linkId)).limit(1);
   await db.delete(links).where(eq(links.id, linkId));
   await deleteImage(existing?.thumbnailPath);
+  await deleteImage(existing?.imageContentPath);
   if (existing?.linkType === "file" && isLocalUploadPath(existing.url)) {
     await deleteImage(existing.url);
   }
@@ -172,6 +173,8 @@ export async function saveLinkAction(
   // gak kepake karena kolom lain juga banyak yang "cuma relevan buat displayStyle X").
   const imageHideBorder = formData.get("imageHideBorder") === "1";
   const imageHideBackground = formData.get("imageHideBackground") === "1";
+  const imageShowTitle = formData.get("imageShowTitle") === "1";
+  const imageShowContent = formData.get("imageShowContent") === "1";
   const imageRadiusRaw = String(formData.get("imageRadius") ?? "").trim();
   const imageRadiusParsed = imageRadiusRaw === "" ? NaN : Number(imageRadiusRaw);
   const imageRadius = Number.isFinite(imageRadiusParsed) ? imageRadiusParsed : null;
@@ -185,9 +188,13 @@ export async function saveLinkAction(
 
   const removeThumbnail = formData.get("removeThumbnail") === "1";
 
+  const removeContentImage = formData.get("removeContentImage") === "1";
+
   let newThumbnailPath: string | null = null;
+  let newContentPath: string | null = null;
   try {
     newThumbnailPath = await uploadLinkImage(formData.get("thumbnail"));
+    newContentPath = await uploadLinkImage(formData.get("contentImage"));
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Upload gambar gagal." };
   }
@@ -206,6 +213,8 @@ export async function saveLinkAction(
     utmCampaign,
     imageHideBorder,
     imageHideBackground,
+    imageShowTitle,
+    imageShowContent,
     imageRadius,
     imageShadow,
   };
@@ -214,7 +223,14 @@ export async function saveLinkAction(
     const [existing] = await db.select().from(links).where(eq(links.id, linkId)).limit(1);
     // Upload baru menang kalau ada; kalau gak ada tapi user minta hapus, kosongkan; kalau gak dua-duanya, biarkan.
     const finalThumbnailPath = newThumbnailPath ?? (removeThumbnail ? null : existing?.thumbnailPath ?? null);
-    await db.update(links).set({ ...values, thumbnailPath: finalThumbnailPath }).where(eq(links.id, linkId));
+    const finalContentPath = newContentPath ?? (removeContentImage ? null : existing?.imageContentPath ?? null);
+    await db
+      .update(links)
+      .set({ ...values, thumbnailPath: finalThumbnailPath, imageContentPath: finalContentPath })
+      .where(eq(links.id, linkId));
+    if ((newContentPath || removeContentImage) && existing?.imageContentPath) {
+      await deleteImage(existing.imageContentPath);
+    }
     if ((newThumbnailPath || removeThumbnail) && existing?.thumbnailPath) {
       await deleteImage(existing.thumbnailPath);
     }
@@ -228,7 +244,7 @@ export async function saveLinkAction(
     const existingLinks = await db.select().from(links).where(eq(links.pageId, pageId));
     const [created] = await db
       .insert(links)
-      .values({ pageId, ...values, thumbnailPath: newThumbnailPath, orderIndex: existingLinks.length })
+      .values({ pageId, ...values, thumbnailPath: newThumbnailPath, imageContentPath: newContentPath, orderIndex: existingLinks.length })
       .returning();
     await maybeFetchOgImage(created.id, displayStyle, url, newThumbnailPath);
     logActivity(pageId, "link_created", created.title);

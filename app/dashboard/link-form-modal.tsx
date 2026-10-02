@@ -116,6 +116,7 @@ export function LinkFormModal({
   const inlineDiscordWidgets = discordWidgets.filter((w) => w.placementMode === "inline");
   const [icon, setIcon] = useState(state?.mode === "edit" ? (state.link.icon ?? "") : "");
   const [removeThumbnail, setRemoveThumbnail] = useState(false);
+  const [removeContentImage, setRemoveContentImage] = useState(false);
   const [linkType, setLinkType] = useState<LinkType>(state?.mode === "edit" ? state.link.linkType : "url");
   const [displayStyle, setDisplayStyle] = useState<DisplayStyle>(state?.mode === "edit" ? state.link.displayStyle : "pill");
   const [selectedWidgetId, setSelectedWidgetId] = useState(() => {
@@ -146,6 +147,15 @@ export function LinkFormModal({
   });
   const [featured, setFeatured] = useState(state?.mode === "edit" ? state.link.featured : false);
   const [mediaTab, setMediaTab] = useState<MediaTab>("thumbnail");
+  // Section "Image / Icon" dipakai dua mode: displayStyle biasa (thumbnailPath) dan "image" +
+  // toggle show-content (gambar kecil terpisah dari banner -> imageContentPath/contentImage).
+  const isImageStyle = displayStyle === "image";
+  const existingMediaPath =
+    state?.mode === "edit" ? (isImageStyle ? state.link.imageContentPath : state.link.thumbnailPath) : null;
+  const removeMedia = isImageStyle ? removeContentImage : removeThumbnail;
+  const setRemoveMedia = isImageStyle ? setRemoveContentImage : setRemoveThumbnail;
+  const [imageShowTitle, setImageShowTitle] = useState(state?.mode === "edit" ? state.link.imageShowTitle : false);
+  const [imageShowContent, setImageShowContent] = useState(state?.mode === "edit" ? state.link.imageShowContent : false);
   const [imageHideBorder, setImageHideBorder] = useState(state?.mode === "edit" ? state.link.imageHideBorder : false);
   const [imageHideBackground, setImageHideBackground] = useState(state?.mode === "edit" ? state.link.imageHideBackground : false);
   const [target, setTarget] = useState(() => {
@@ -425,66 +435,6 @@ export function LinkFormModal({
             ) : null}
           </div>
 
-          {linkType !== "discord_widget" && displayStyle !== "image" ? (
-            <div className="flex flex-col gap-1.5">
-              <Label>{t.linkModal.mediaLabel}</Label>
-              <div className="flex flex-wrap gap-1 rounded-lg bg-muted p-1">
-                {MEDIA_TABS.map((key) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setMediaTab(key)}
-                    className={cn(
-                      "rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
-                      mediaTab === key ? "bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {key === "thumbnail" && t.linkModal.mediaTabThumbnail}
-                    {key === "icon" && t.linkModal.mediaTabIcon}
-                    {key === "emoji" && t.linkModal.mediaTabEmoji}
-                  </button>
-                ))}
-              </div>
-
-              {mediaTab === "thumbnail" ? (
-                <div className="flex flex-col gap-2 rounded-lg border bg-muted/50 p-3">
-                  {state.mode === "edit" && state.link.thumbnailPath && !removeThumbnail ? (
-                    <div className="flex items-center gap-2">
-                      {/* eslint-disable-next-line @next/next/no-img-element -- preview thumbnail yang sudah diupload */}
-                      <img
-                        src={`/uploads/${state.link.thumbnailPath}`}
-                        alt=""
-                        className="size-14 rounded-lg object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setRemoveThumbnail(true)}
-                        className="flex items-center gap-1 text-xs font-medium text-destructive transition-colors hover:text-destructive/80"
-                      >
-                        <Trash2 className="size-3.5" />
-                        {t.linkModal.removeThumbnail}
-                      </button>
-                    </div>
-                  ) : null}
-                  <CropFileInput
-                    id="thumbnail"
-                    name="thumbnail"
-                    aspect={displayStyle === "rich" ? 16 / 9 : 1}
-                    className={FILE_INPUT_CLASS}
-                    t={t}
-                  />
-                </div>
-              ) : null}
-
-              {mediaTab === "icon" ? <IconPicker value={icon} onChange={setIcon} t={t} showEmoji={false} /> : null}
-
-              {mediaTab === "emoji" ? <EmojiPicker value={icon} onChange={setIcon} t={t} /> : null}
-
-              <input type="hidden" name="removeThumbnail" value={removeThumbnail ? "1" : ""} />
-              <input type="hidden" name="icon" value={icon} />
-            </div>
-          ) : null}
-
           {linkType !== "discord_widget" && displayStyle === "image" ? (
             <div className="flex flex-col gap-3 rounded-lg border bg-muted/50 p-3">
               <p className="text-xs text-muted-foreground">
@@ -522,7 +472,6 @@ export function LinkFormModal({
                 />
               </div>
               <input type="hidden" name="removeThumbnail" value={removeThumbnail ? "1" : ""} />
-              <input type="hidden" name="icon" value="" />
 
               <div className="mt-1 flex flex-col gap-2 border-t pt-3">
                 <Label className="text-xs font-medium">{t.linkModal.imageOverrideLabel}</Label>
@@ -566,6 +515,85 @@ export function LinkFormModal({
                 </div>
               </div>
             </div>
+          ) : null}
+
+          {linkType !== "discord_widget" && displayStyle === "image" ? (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm">{t.linkModal.imageShowTitleLabel}</p>
+                <Switch checked={imageShowTitle} onCheckedChange={setImageShowTitle} />
+                <input type="hidden" name="imageShowTitle" value={imageShowTitle ? "1" : ""} />
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm">{t.linkModal.imageShowContentLabel}</p>
+                <Switch checked={imageShowContent} onCheckedChange={setImageShowContent} />
+                <input type="hidden" name="imageShowContent" value={imageShowContent ? "1" : ""} />
+              </div>
+            </div>
+          ) : null}
+
+          {linkType !== "discord_widget" && (displayStyle !== "image" || imageShowContent) ? (
+            <div className="flex flex-col gap-1.5">
+              <Label>{t.linkModal.mediaLabel}</Label>
+              <div className="flex flex-wrap gap-1 rounded-lg bg-muted p-1">
+                {MEDIA_TABS.map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setMediaTab(key)}
+                    className={cn(
+                      "rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+                      mediaTab === key ? "bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {key === "thumbnail" && t.linkModal.mediaTabThumbnail}
+                    {key === "icon" && t.linkModal.mediaTabIcon}
+                    {key === "emoji" && t.linkModal.mediaTabEmoji}
+                  </button>
+                ))}
+              </div>
+
+              {mediaTab === "thumbnail" ? (
+                <div className="flex flex-col gap-2 rounded-lg border bg-muted/50 p-3">
+                  {state.mode === "edit" && existingMediaPath && !removeMedia ? (
+                    <div className="flex items-center gap-2">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- preview thumbnail yang sudah diupload */}
+                      <img
+                        src={`/uploads/${existingMediaPath}`}
+                        alt=""
+                        className="size-14 rounded-lg object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setRemoveMedia(true)}
+                        className="flex items-center gap-1 text-xs font-medium text-destructive transition-colors hover:text-destructive/80"
+                      >
+                        <Trash2 className="size-3.5" />
+                        {t.linkModal.removeThumbnail}
+                      </button>
+                    </div>
+                  ) : null}
+                  <CropFileInput
+                    id={isImageStyle ? "contentImage" : "thumbnail"}
+                    name={isImageStyle ? "contentImage" : "thumbnail"}
+                    aspect={displayStyle === "rich" ? 16 / 9 : 1}
+                    className={FILE_INPUT_CLASS}
+                    t={t}
+                  />
+                </div>
+              ) : null}
+
+              {mediaTab === "icon" ? <IconPicker value={icon} onChange={setIcon} t={t} showEmoji={false} /> : null}
+
+              {mediaTab === "emoji" ? <EmojiPicker value={icon} onChange={setIcon} t={t} /> : null}
+
+              <input type="hidden" name={isImageStyle ? "removeContentImage" : "removeThumbnail"} value={removeMedia ? "1" : ""} />
+              <input type="hidden" name="icon" value={icon} />
+            </div>
+          ) : null}
+
+          {linkType !== "discord_widget" && displayStyle === "image" && !imageShowContent ? (
+            <input type="hidden" name="icon" value="" />
           ) : null}
 
           <input type="hidden" name="featured" value={featured ? "1" : ""} />
