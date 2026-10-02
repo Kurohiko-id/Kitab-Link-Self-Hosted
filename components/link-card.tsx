@@ -280,6 +280,14 @@ export function LinkCard({
   // gak dipaksa upscale melar).
   if (link.displayStyle === "image") {
     const imageStyle: React.CSSProperties = { ...buttonStyle };
+    // Icon/emoji menang atas gambar kecil (sama kayak prioritas LinkGlyph) -- bukan LinkGlyph
+    // langsung karena thumbnailPath di sini = banner utama, dan favicon otomatis gak relevan.
+    const overlayGlyph = !link.imageShowContent ? null : link.icon ? (
+      <LinkIconRenderer value={link.icon} className="size-5 shrink-0" />
+    ) : link.imageContentPath ? (
+      // eslint-disable-next-line @next/next/no-img-element -- gambar sudah diproses jadi webp sendiri, bukan kandidat next/image
+      <img src={`/uploads/${link.imageContentPath}`} alt="" className="size-8 shrink-0 rounded-md object-cover" />
+    ) : null;
     if (link.imageHideBorder) imageStyle.borderWidth = 0;
     if (link.imageHideBackground) {
       imageStyle.backgroundColor = "transparent";
@@ -295,12 +303,29 @@ export function LinkCard({
         rel="noopener noreferrer"
         download={linkHref.isDownload || undefined}
         title={link.title}
-        className={cn("block w-full overflow-hidden", sharedClassName)}
+        className={cn("relative block w-full overflow-hidden", sharedClassName)}
         style={imageStyle}
       >
         {link.thumbnailPath ? (
           // eslint-disable-next-line @next/next/no-img-element -- gambar sudah diproses jadi webp sendiri, bukan kandidat next/image
           <img src={`/uploads/${link.thumbnailPath}`} alt="" className="h-auto max-w-full" />
+        ) : null}
+        {/* Judul + icon/emoji ditumpuk di atas gambar. Glyph: lihat overlayGlyph di atas. text-shadow biar kebaca di gambar terang/gelap. */}
+        {link.imageShowTitle || overlayGlyph ? (
+          <span
+            className={cn(
+              "absolute inset-0 flex items-center gap-2 px-5 font-medium [text-shadow:0_1px_4px_rgba(0,0,0,0.6)] [&_svg]:drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]",
+              isEdge ? "justify-between" : alignClass,
+            )}
+          >
+            {iconFirst ? overlayGlyph : null}
+            {link.imageShowTitle ? (
+              <span className={isEdge ? cn("flex-1", alignClass.includes("text-left") ? "text-left" : "text-center") : undefined}>
+                {link.title}
+              </span>
+            ) : null}
+            {!iconFirst ? overlayGlyph : null}
+          </span>
         ) : null}
       </a>
     );
