@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { linkGroups, links, pages, themes } from "@/lib/db/schema";
 import { requireOwnedPage } from "@/lib/db/pages";
 import { getBoardData } from "@/lib/db/board";
-import { stripLink, type BackupLink } from "@/lib/backup-link";
+import { restoreLinkRow, stripLink, type BackupLink } from "@/lib/backup-link";
 import { getThemeForPage, uniqueThemeName } from "@/lib/db/theme";
 import { parseThemeTokens, type ThemeTokens } from "@/lib/theme";
 import { parseProfileData, DEFAULT_PROFILE, type ProfileData } from "@/lib/profile";
@@ -110,7 +110,7 @@ export async function importPageDataAction(
     await db.delete(linkGroups).where(eq(linkGroups.pageId, pageId));
 
     for (const [index, link] of backup.links.ungrouped.entries()) {
-      await db.insert(links).values({ ...link, pageId, groupId: null, thumbnailPath: null, imageButtonId: null, orderIndex: index });
+      await db.insert(links).values({ ...restoreLinkRow(link), pageId, groupId: null, thumbnailPath: null, imageButtonId: null, orderIndex: index });
     }
     for (const [groupIndex, group] of backup.links.groups.entries()) {
       const [createdGroup] = await db
@@ -118,7 +118,7 @@ export async function importPageDataAction(
         .values({ pageId, name: group.name, isVisible: group.isVisible, orderIndex: groupIndex })
         .returning();
       for (const [linkIndex, link] of group.links.entries()) {
-        await db.insert(links).values({ ...link, pageId, groupId: createdGroup.id, thumbnailPath: null, imageButtonId: null, orderIndex: linkIndex });
+        await db.insert(links).values({ ...restoreLinkRow(link), pageId, groupId: createdGroup.id, thumbnailPath: null, imageButtonId: null, orderIndex: linkIndex });
       }
     }
     importedParts.push("links");

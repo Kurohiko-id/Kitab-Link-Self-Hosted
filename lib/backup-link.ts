@@ -1,4 +1,5 @@
 import type { BoardLink } from "@/lib/db/board";
+import { serializeLinkOverride } from "@/lib/link-style";
 
 // imageButtonId SENGAJA dibuang juga: id itu cuma valid di library user/instance asalnya,
 // kalau ikut ke backup lalu di-import ke page lain dia nunjuk image button milik orang
@@ -12,4 +13,12 @@ export function stripLink(link: BoardLink): BackupLink {
   delete rest.thumbnailPath;
   delete rest.imageButtonId;
   return rest as BackupLink;
+}
+
+// Baris siap insert dari BackupLink: styleOverride (objek) diganti kolom JSON tersanitasi.
+// Backup lama (sebelum fitur ini) gak punya field-nya -> undefined -> null. Nilai dari file
+// orang lain TIDAK dipercaya: selalu lewat sanitizeLinkOverride.
+export function restoreLinkRow(link: BackupLink): Omit<BackupLink, "styleOverride"> & { styleOverrideJson: string | null } {
+  const { styleOverride, ...rest } = link;
+  return { ...rest, styleOverrideJson: serializeLinkOverride(styleOverride) };
 }
