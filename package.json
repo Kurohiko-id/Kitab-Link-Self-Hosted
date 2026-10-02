@@ -26,7 +26,7 @@
     "node-cron": "^4.6.0",
     "otplib": "^13.5.0",
     "qrcode": "^1.5.4",
-    "react": "19.2.8",
+    "react": "19.3.0",
     "react-dom": "19.2.8",
     "react-easy-crop": "^6.2.3",
     "recharts": "^3.10.1",
