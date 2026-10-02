@@ -123,6 +123,10 @@ export const links = sqliteTable("links", {
   // gak ngaruh ke displayStyle lain.
   imageHideBorder: integer("image_hide_border", { mode: "boolean" }).notNull().default(false),
   imageHideBackground: integer("image_hide_background", { mode: "boolean" }).notNull().default(false),
+  // imageShowTitle = judul ditumpuk di atas gambar; imageShowContent = icon/emoji/gambar kecil ditumpuk di atas gambar. Dua-duanya independen.
+  imageShowTitle: integer("image_show_title", { mode: "boolean" }).notNull().default(false),
+  imageShowContent: integer("image_show_content", { mode: "boolean" }).notNull().default(false),
+  imageContentPath: text("image_content_path"),
   imageRadius: integer("image_radius"),
   imageShadow: text("image_shadow", { enum: ["theme", "none", "sm", "md", "lg"] })
     .notNull()

@@ -1,0 +1,1 @@
+ALTER TABLE `links` ADD `image_show_title` integer DEFAULT false NOT NULL;
