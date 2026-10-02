@@ -147,7 +147,8 @@ export async function saveLinkAction(
       if (file.size > MAX_LINK_FILE_BYTES) {
         return { error: "File terlalu besar (maks 20MB)." };
       }
-      const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
+      const rawExt = file.name.includes(".") ? (file.name.split(".").pop()?.toLowerCase() ?? "") : "";
+      const ext = /^[a-z0-9]{1,8}$/.test(rawExt) ? rawExt : "bin";
       const buffer = Buffer.from(await file.arrayBuffer());
       newLinkFilePath = await saveFile(buffer, "link-files", ext);
       url = newLinkFilePath;
