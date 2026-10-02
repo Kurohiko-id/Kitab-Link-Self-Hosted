@@ -1,6 +1,7 @@
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "./index";
 import { imageButtons, linkGroups, links, pages } from "./schema";
+import { sanitizeLinkOverride, type LinkStyleOverride } from "@/lib/link-style";
 
 export type DisplayStyle = "pill" | "rich" | "icon" | "image";
 // "theme" = ikut theme.buttonShadow seperti biasa, sisanya override manual per-link.
@@ -28,6 +29,8 @@ export type BoardLink = {
   // Path EFEKTIF: image button yang dipilih (kalau ada), kalau enggak thumbnailPath milik link.
   thumbnailPath: string | null;
   imageButtonId: number | null;
+  // Override gaya per link (sudah tersanitasi), null = ikut theme. Lihat lib/link-style.ts.
+  styleOverride: LinkStyleOverride | null;
   imageHideBorder: boolean;
   imageHideBackground: boolean;
   imageShowTitle: boolean;
@@ -96,6 +99,7 @@ export async function getBoardData(pageId: number): Promise<BoardData> {
       isActive: link.isActive,
       thumbnailPath: buttonPath ?? link.thumbnailPath,
       imageButtonId: link.imageButtonId,
+      styleOverride: sanitizeLinkOverride(link.styleOverrideJson),
       imageHideBorder: link.imageHideBorder,
       imageHideBackground: link.imageHideBackground,
       imageShowTitle: link.imageShowTitle,
@@ -157,6 +161,7 @@ export type PublicLink = {
   utmMedium: string | null;
   utmCampaign: string | null;
   iconPosition: IconPosition;
+  styleOverride: LinkStyleOverride | null;
 };
 export type PublicGroup = { id: number; name: string; links: PublicLink[] };
 export type PublicBoardData = { groups: PublicGroup[]; ungrouped: PublicLink[] };
@@ -189,6 +194,7 @@ export async function getPublicBoardData(pageId: number): Promise<PublicBoardDat
       url: link.url,
       description: link.description,
       thumbnailPath: buttonPath ?? link.thumbnailPath,
+      styleOverride: sanitizeLinkOverride(link.styleOverrideJson),
       imageHideBorder: link.imageHideBorder,
       imageHideBackground: link.imageHideBackground,
       imageShowTitle: link.imageShowTitle,

@@ -42,6 +42,7 @@ const PLACEHOLDER_LINK_BASE = {
   utmMedium: null,
   utmCampaign: null,
   iconPosition: "top" as const,
+  styleOverride: null,
 };
 const PLACEHOLDER_LINKS: PublicLink[] = [
   { ...PLACEHOLDER_LINK_BASE, id: -1, title: "Example Link", url: "https://example.com" },
