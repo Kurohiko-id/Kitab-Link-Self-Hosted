@@ -4,13 +4,13 @@
 // ponytail: reset kalau server restart, cukup buat nahan brute-force kasar di 1 proses
 // yang sama, upgrade ke store persisten kalau nanti jalan multi-instance.
 //
-// PENTING soal ukuran Map: key di sini WAJIB dari domain terbatas (id numerik page/user) atau
-// dibatasi eviction-nya kalau nanti diganti jadi key bebas (IP/email attacker-controlled) --
-// tanpa itu Map ini bisa tumbuh gak terbatas (memory leak beneran). cleanupExpired() dipanggil
-// tiap recordFailedAttempt buat nyapu entry basi, jadi ukurannya cuma proporsional sama jumlah
-// attacker AKTIF dalam WINDOW_MS terakhir, bukan seumur hidup proses.
+// Soal ukuran Map: sebagian key berasal dari input bebas (username di "login:" dan
+// "reset-request:"). Pertumbuhannya dibatasi dua lapis: cleanupExpired() nyapu entry basi tiap
+// recordFailedAttempt (jadi ukuran ~ jumlah key unik dalam WINDOW_MS terakhir, bukan seumur
+// hidup proses), dan MAX_KEYS jadi batas keras kalau ada banjir key unik dalam 1 window.
 const MAX_ATTEMPTS = 8;
 const WINDOW_MS = 5 * 60 * 1000; // 5 menit
+const MAX_KEYS = 10_000;
 
 const attempts = new Map<string, { count: number; windowStart: number }>();
 
@@ -35,6 +35,10 @@ export function recordFailedAttempt(key: string): void {
   cleanupExpired();
   const entry = attempts.get(key);
   if (!entry || Date.now() - entry.windowStart > WINDOW_MS) {
+    // Map iterasi urut insert, jadi key pertama = yang paling lama. Cuma evict buat key baru.
+    if (!entry && attempts.size >= MAX_KEYS) {
+      attempts.delete(attempts.keys().next().value!);
+    }
     attempts.set(key, { count: 1, windowStart: Date.now() });
     return;
   }
