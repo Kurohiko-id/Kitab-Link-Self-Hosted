@@ -10,6 +10,8 @@ import { processImage } from "@/lib/images/process-image";
 import { deleteImage, saveFile, saveImage } from "@/lib/images/storage";
 import { fetchOgImageBuffer } from "@/lib/images/og-image";
 import { logActivity } from "@/lib/db/activity-log";
+import { readImageButtonWebp } from "@/lib/images/image-button-input";
+import { createImageButton, requireOwnedImageButton } from "@/lib/db/image-buttons";
 
 const MAX_THUMBNAIL_WIDTH = 800;
 const MAX_LINK_FILE_BYTES = 20 * 1024 * 1024; // 20MB, cukup buat PDF/dokumen umum
@@ -130,7 +132,7 @@ export async function saveLinkAction(
   _prevState: SaveLinkState,
   formData: FormData,
 ): Promise<SaveLinkState> {
-  await requireOwnedPage(pageId);
+  const page = await requireOwnedPage(pageId);
 
   const title = String(formData.get("title") ?? "").trim();
   let url = String(formData.get("url") ?? "").trim();
@@ -200,6 +202,30 @@ export async function saveLinkAction(
     return { error: err instanceof Error ? err.message : "Upload gambar gagal." };
   }
 
+  // Card style Image: gambar datang dari library (imageButtonId) ATAU upload baru yang wajib
+  // berlabel dan otomatis masuk library. Style lain gak pakai image button sama sekali.
+  let imageButtonId: number | null = null;
+  if (displayStyle === "image") {
+    const newFile = formData.get("newImageButtonFile");
+    if (newFile instanceof File && newFile.size > 0) {
+      const newLabel = String(formData.get("newImageButtonLabel") ?? "").trim();
+      if (!newLabel) return { error: "Label wajib diisi untuk gambar yang diupload." };
+      const input = await readImageButtonWebp(formData, "newImageButtonFile");
+      if ("error" in input) return { error: input.error };
+      imageButtonId = (await createImageButton(page.userId, newLabel, input.webp)).id;
+    } else {
+      const picked = Number(formData.get("imageButtonId"));
+      if (Number.isInteger(picked) && picked > 0) {
+        await requireOwnedImageButton(page.userId, picked); // tolak id milik user lain
+        imageButtonId = picked;
+      }
+    }
+    if (imageButtonId === null) {
+      const [current] = linkId ? await db.select().from(links).where(eq(links.id, linkId)).limit(1) : [];
+      if (!current?.thumbnailPath) return { error: "Pilih image button atau upload gambar baru." };
+    }
+  }
+
   const values = {
     title,
     url,
@@ -218,6 +244,7 @@ export async function saveLinkAction(
     imageShowContent,
     imageRadius,
     imageShadow,
+    imageButtonId,
   };
 
   if (linkId) {

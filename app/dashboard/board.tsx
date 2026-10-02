@@ -44,6 +44,7 @@ import { getDictionary, type Dictionary, type Locale } from "@/lib/i18n";
 import type { ThemeTokens } from "@/lib/theme";
 import type { ProfileData } from "@/lib/profile";
 import type { DiscordWidgetRow } from "@/lib/db/discord-widget";
+import type { ImageButtonRow } from "@/lib/db/image-buttons";
 import { DashboardPreviewPanel } from "@/components/dashboard-preview-panel";
 import {
   createGroup,
@@ -335,6 +336,7 @@ export function Board({
   openLinkId,
   socialPreviewBoard,
   discordWidgets,
+  imageButtons,
 }: {
   pageId: number;
   initialData: BoardData;
@@ -345,6 +347,7 @@ export function Board({
   clickCounts: Record<number, number>;
   openLinkId?: number | null;
   discordWidgets: DiscordWidgetRow[];
+  imageButtons: ImageButtonRow[];
   // getBoardData (initialData) sengaja gak nyertain link displayStyle "icon" (baris
   // sosmed) -- ini sumber TERPISAH (getPublicBoardData, nyertain semua link) khusus
   // buat nyuplai baris icon sosmed ke preview HP di bawah, biar previewnya konsisten
@@ -706,6 +709,7 @@ export function Board({
         pageId={pageId}
         groups={groupOptions}
         discordWidgets={discordWidgets}
+        imageButtons={imageButtons}
         containerWidth={tokens.containerWidth}
         state={modalState}
         t={t}

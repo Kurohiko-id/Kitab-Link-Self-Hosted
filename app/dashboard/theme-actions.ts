@@ -10,6 +10,9 @@ import { requireSession } from "@/lib/auth/require-session";
 import { parseThemeTokens, type ThemeTokens } from "@/lib/theme";
 import { buildThemeTokensFromForm } from "@/lib/theme-form";
 import { logActivity } from "@/lib/db/activity-log";
+import { convertBundleImages, isBundle, parseBundle } from "@/lib/theme-bundle";
+import { saveFont, saveImage } from "@/lib/images/storage";
+import { createImageButton, uniqueImageButtonLabel } from "@/lib/db/image-buttons";
 
 // Klik preset di gallery -> langsung jadi entry baru di library user (gak pernah edit
 // definisi preset itu sendiri), sekaligus diaktifkan buat page yang lagi dibuka.
@@ -58,7 +61,9 @@ export async function deleteThemeLibraryAction(themeId: number) {
   revalidatePath("/[slug]", "page");
 }
 
-export type ImportThemeResult = { error: "empty" | "invalid_json" | "wrong_format" } | { error?: undefined };
+export type ImportThemeResult =
+  | { error: "empty" | "invalid_json" | "wrong_format" | "too_large" | "bad_asset" }
+  | { error?: undefined };
 
 export async function importThemeAction(pageId: number, formData: FormData): Promise<ImportThemeResult> {
   const page = await requireOwnedPage(pageId);
@@ -78,7 +83,24 @@ export async function importThemeAction(pageId: number, formData: FormData): Pro
   }
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return { error: "wrong_format" };
 
-  const next = parseThemeTokens(JSON.stringify(parsed));
+  let importedTokens: unknown = parsed;
+  if (isBundle(parsed)) {
+    const bundle = parseBundle(parsed);
+    if ("error" in bundle) return { error: bundle.error };
+    // Semua gambar dikonversi DULU; baru kalau semuanya valid ada yang ditulis.
+    const converted = await convertBundleImages(bundle);
+    if ("error" in converted) return { error: converted.error };
+    const tokens: Record<string, unknown> = { ...bundle.tokens };
+    if (converted.background) tokens.backgroundImage = await saveImage(converted.background, "theme-backgrounds");
+    if (bundle.font) tokens.customFontUrl = await saveFont(bundle.font.data, bundle.font.ext);
+    for (const button of converted.buttons) {
+      const label = await uniqueImageButtonLabel(page.userId, button.label);
+      await createImageButton(page.userId, label, button.webp);
+    }
+    importedTokens = tokens;
+  }
+
+  const next = parseThemeTokens(JSON.stringify(importedTokens));
   const name = await uniqueThemeName(page.userId, "Imported theme");
   const [created] = await db
     .insert(themes)

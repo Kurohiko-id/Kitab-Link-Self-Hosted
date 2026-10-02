@@ -19,6 +19,7 @@ import type { BoardLink, DisplayStyle, LinkType } from "@/lib/db/board";
 import type { Dictionary, Locale } from "@/lib/i18n";
 import { parseAccordionItems, parseCountdownData, type AccordionItem } from "@/lib/link-render";
 import type { DiscordWidgetRow } from "@/lib/db/discord-widget";
+import type { ImageButtonRow } from "@/lib/db/image-buttons";
 import { saveLinkAction } from "./actions";
 
 type MediaTab = "thumbnail" | "icon" | "emoji";
@@ -83,6 +84,7 @@ export function LinkFormModal({
   pageId,
   groups,
   discordWidgets,
+  imageButtons,
   containerWidth,
   state,
   t,
@@ -94,6 +96,7 @@ export function LinkFormModal({
   pageId: number;
   groups: { id: number; name: string }[];
   discordWidgets: DiscordWidgetRow[];
+  imageButtons: ImageButtonRow[];
   // Cuma buat teks hint displayStyle "image" ("lebar gambar maks Xpx") -- ikut lebar
   // halaman publik dari theme aktif, lihat lib/theme.ts containerWidth.
   containerWidth: number;
@@ -158,6 +161,7 @@ export function LinkFormModal({
   const [imageShowContent, setImageShowContent] = useState(state?.mode === "edit" ? state.link.imageShowContent : false);
   const [imageHideBorder, setImageHideBorder] = useState(state?.mode === "edit" ? state.link.imageHideBorder : false);
   const [imageHideBackground, setImageHideBackground] = useState(state?.mode === "edit" ? state.link.imageHideBackground : false);
+  const [imageButtonId, setImageButtonId] = useState<number | null>(state?.mode === "edit" ? state.link.imageButtonId : null);
   const [target, setTarget] = useState(() => {
     if (state?.mode === "edit") return state.link.groupId ? `group:${state.link.groupId}` : "ungrouped";
     if (state?.mode === "create" && state.groupId) return `group:${state.groupId}`;
@@ -442,36 +446,42 @@ export function LinkFormModal({
               </p>
 
               <div className="flex flex-col gap-2">
-                <Label className="text-xs">{t.linkModal.imageMainLabel}</Label>
-                {state.mode === "edit" && state.link.thumbnailPath && !removeThumbnail ? (
-                  // Ditumpuk ke bawah, BUKAN sebaris sama gambarnya -- banner yang lebar
-                  // bikin tombol hapusnya kedorong keluar modal kalau sebaris.
-                  <div className="flex flex-col items-start gap-1.5">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- preview gambar yang sudah diupload */}
-                    <img
-                      src={`/uploads/${state.link.thumbnailPath}`}
-                      alt=""
-                      className="max-h-14 w-auto max-w-full rounded-lg object-contain"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setRemoveThumbnail(true)}
-                      className="flex items-center gap-1 text-xs font-medium text-destructive transition-colors hover:text-destructive/80"
-                    >
-                      <Trash2 className="size-3.5" />
-                      {t.linkModal.removeThumbnail}
-                    </button>
+                <Label className="text-xs">{t.linkModal.imagePickerLabel}</Label>
+                {imageButtons.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">{t.linkModal.imagePickerEmpty}</p>
+                ) : (
+                  <div className="grid max-h-56 grid-cols-2 gap-2 overflow-y-auto">
+                    {imageButtons.map((button) => (
+                      <button
+                        key={button.id}
+                        type="button"
+                        onClick={() => setImageButtonId(button.id)}
+                        className={cn(
+                          "flex flex-col gap-1 rounded-lg border bg-card p-2 text-left transition-colors",
+                          imageButtonId === button.id ? "border-primary ring-2 ring-primary/30" : "hover:bg-muted",
+                        )}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element -- gambar sudah webp */}
+                        <img src={`/uploads/${button.path}`} alt="" className="max-h-12 w-full rounded object-contain" />
+                        <span className="truncate text-xs font-medium">{button.label}</span>
+                      </button>
+                    ))}
                   </div>
-                ) : null}
+                )}
+                <input type="hidden" name="imageButtonId" value={imageButtonId ?? ""} />
+              </div>
+
+              <div className="flex flex-col gap-2 border-t pt-3">
+                <Label className="text-xs">{t.linkModal.imageUploadNewLabel}</Label>
+                <Input name="newImageButtonLabel" placeholder={t.linkModal.imageNewLabelPlaceholder} />
                 <HeightCropFileInput
-                  id="thumbnail"
-                  name="thumbnail"
+                  id="newImageButtonFile"
+                  name="newImageButtonFile"
                   outputWidth={containerWidth}
                   className={FILE_INPUT_CLASS}
                   t={t}
                 />
               </div>
-              <input type="hidden" name="removeThumbnail" value={removeThumbnail ? "1" : ""} />
 
               <div className="mt-1 flex flex-col gap-2 border-t pt-3">
                 <Label className="text-xs font-medium">{t.linkModal.imageOverrideLabel}</Label>
