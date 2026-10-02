@@ -11,7 +11,7 @@ Self-hosted link-in-bio platform (alternatif Linktree), terinspirasi dari LinkBr
 - Image processing: sharp (semua upload wajib dikonversi ke WebP)
 - Scheduler: node-cron di dalam proses yang sama (jangan bikin service terpisah)
 - Charts: Recharts
-- Validation: Zod
+- Validation: manual (parsing FormData + whitelist) — Zod belum diadopsi
 
 ## Prinsip Non-Negotiable
 1. **Easy to deploy** — harus tetap bisa `docker run` satu baris tanpa setup manual. Migration database WAJIB otomatis jalan di container startup (lewat entrypoint script), user tidak boleh disuruh jalanin `drizzle-kit migrate` manual.
