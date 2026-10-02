@@ -15,6 +15,7 @@ export type SocialLinksByPosition = { top: SocialLinkItem[]; bottom: SocialLinkI
 // Link "icon" (lihat lib/db/board.ts's DisplayStyle) yang udah ada buat page ini,
 // dipecah per posisi -- atas dan bawah punya daftarnya sendiri-sendiri, independen.
 export async function getSocialLinksForPage(pageId: number): Promise<SocialLinksByPosition> {
+  await requireOwnedPage(pageId);
   const rows = await db
     .select()
     .from(links)
