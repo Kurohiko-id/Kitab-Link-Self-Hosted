@@ -29,3 +29,28 @@ test("thumbnailPath efektif = path image button, fallback ke thumbnailPath link;
   const pub = await getPublicBoardData(page.id);
   assert.equal(pub.ungrouped[0].thumbnailPath, "image-buttons/b.webp");
 });
+
+test("styleOverride diparse dari kolom; link lama & JSON korup -> null; key asing dibuang", async () => {
+  process.env.DATABASE_PATH = ":memory:";
+  const { db } = await import("./index");
+  const { migrate } = await import("drizzle-orm/better-sqlite3/migrator");
+  migrate(db, { migrationsFolder: path.join(process.cwd(), "drizzle") });
+  const { users, pages, links } = await import("./schema");
+  const { getBoardData, getPublicBoardData } = await import("./board");
+
+  const [user] = await db.insert(users).values({ username: "u-style", passwordHash: "x" }).returning();
+  const [page] = await db.insert(pages).values({ userId: user.id, slug: "p-style" }).returning();
+  await db.insert(links).values([
+    { pageId: page.id, title: "Biasa", url: "https://a.test", orderIndex: 0 },
+    { pageId: page.id, title: "Custom", url: "https://b.test", orderIndex: 1, styleOverrideJson: '{"fontSize":22,"evil":1}' },
+    { pageId: page.id, title: "Korup", url: "https://c.test", orderIndex: 2, styleOverrideJson: "{bukan json" },
+  ]);
+
+  const board = await getBoardData(page.id);
+  assert.equal(board.ungrouped[0].styleOverride, null);
+  assert.deepEqual(board.ungrouped[1].styleOverride, { fontSize: 22 });
+  assert.equal(board.ungrouped[2].styleOverride, null);
+
+  const pub = await getPublicBoardData(page.id);
+  assert.deepEqual(pub.ungrouped[1].styleOverride, { fontSize: 22 });
+});
