@@ -31,11 +31,13 @@ test("link/group page B ditolak kalau dipanggil dengan pageId A, diterima dengan
   assert.equal(await rows.findOwnedGroup(pageA.id, groupB.id), undefined);
   await assert.rejects(rows.requireOwnedLink(pageA.id, linkB.id));
   await assert.rejects(rows.requireOwnedGroup(pageA.id, groupB.id));
-  await assert.rejects(rows.assertOwnedIds(pageA.id, { linkIds: [linkB.id] }));
-  await assert.rejects(rows.assertOwnedIds(pageA.id, { groupIds: [groupB.id] }));
-
   assert.equal((await rows.requireOwnedLink(pageB.id, linkB.id)).id, linkB.id);
   assert.equal((await rows.requireOwnedGroup(pageB.id, groupB.id)).id, groupB.id);
-  await rows.assertOwnedIds(pageB.id, { linkIds: [linkB.id], groupIds: [groupB.id] });
-  await rows.assertOwnedIds(pageA.id, {});
+
+  const ownedA = await rows.getOwnedIds(pageA.id);
+  assert.equal(ownedA.links.has(linkB.id), false);
+  assert.equal(ownedA.groups.has(groupB.id), false);
+  const ownedB = await rows.getOwnedIds(pageB.id);
+  assert.equal(ownedB.links.has(linkB.id), true);
+  assert.equal(ownedB.groups.has(groupB.id), true);
 });
