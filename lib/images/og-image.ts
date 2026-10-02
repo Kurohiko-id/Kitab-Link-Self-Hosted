@@ -1,3 +1,4 @@
+import { assertSafeUrl } from "@/lib/safe-url";
 import { extractYoutubeId } from "@/lib/link-render";
 
 const OG_IMAGE_PATTERNS = [
@@ -9,6 +10,7 @@ const FETCH_TIMEOUT_MS = 5000;
 
 async function fetchImageBuffer(imageUrl: string): Promise<Buffer | null> {
   try {
+    await assertSafeUrl(imageUrl);
     const res = await fetch(imageUrl, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
     if (!res.ok) return null;
     if (!(res.headers.get("content-type") ?? "").startsWith("image/")) return null;
@@ -43,6 +45,7 @@ export async function fetchOgImageBuffer(pageUrl: string): Promise<Buffer | null
   }
 
   try {
+    await assertSafeUrl(pageUrl);
     const pageRes = await fetch(pageUrl, {
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       headers: {
