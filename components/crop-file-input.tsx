@@ -48,6 +48,7 @@ export function CropFileInput({
   round = false,
   className,
   t,
+  onFileChange,
 }: {
   id?: string;
   name: string;
@@ -56,6 +57,9 @@ export function CropFileInput({
   round?: boolean;
   className?: string;
   t: Dictionary;
+  // Opsional: hasil crop (atau null kalau dibatalin/dikosongkan) -- buat pratinjau gambar yang
+  // belum disimpan (mis. panggung di modal link). File-nya tetap ke form lewat input ini.
+  onFileChange?: (file: File | null) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [rawSrc, setRawSrc] = useState<string | null>(null);
@@ -66,6 +70,7 @@ export function CropFileInput({
 
   function handleSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    if (!file) onFileChange?.(null);
     if (!file || !file.type.startsWith("image/")) return;
     setRawFile(file);
     setRawSrc(URL.createObjectURL(file));
@@ -92,11 +97,13 @@ export function CropFileInput({
     const dt = new DataTransfer();
     dt.items.add(cropped);
     inputRef.current.files = dt.files;
+    onFileChange?.(cropped);
     closeDialog();
   }
 
   function handleCancel() {
     if (inputRef.current) inputRef.current.value = "";
+    onFileChange?.(null);
     closeDialog();
   }
 

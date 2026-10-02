@@ -24,6 +24,11 @@ import { FONT_LIBRARY } from "@/lib/font-library";
 import type { Dictionary, Locale } from "@/lib/i18n";
 import type { ProfileData } from "@/lib/profile";
 import type { PublicBoardData } from "@/lib/db/board";
+import type { ImageButtonRow } from "@/lib/db/image-buttons";
+import { ImageButtonLibrary } from "./image-button-library";
+import { listImageButtonsForExportAction } from "./image-button-actions";
+import { exportThemeBundleAction } from "./theme-bundle-actions";
+import { ThemeExportDialog, downloadJson, type ExportRow } from "./theme-export-dialog";
 import { DashboardPreviewPanel } from "@/components/dashboard-preview-panel";
 import { ThemeKindPreview } from "@/components/theme-kind-preview";
 import { Pencil, Trash2, Save, Copy, FileCode, Check, Sparkles, Search, MousePointerClick } from "lucide-react";
@@ -36,7 +41,7 @@ import {
 } from "./theme-actions";
 
 type Tab = "background" | "typography" | "button" | "profile" | "social" | "groups" | "colors";
-type OuterTab = "presets" | "custom" | "import";
+type OuterTab = "presets" | "custom" | "images" | "import";
 type LibraryTheme = { id: number; name: string; tokensJson: string; createdAt: Date };
 
 // Context siap-tempel buat AI (ChatGPT/Claude/dll) -- user tinggal copy, jelasin gaya
@@ -435,6 +440,7 @@ export function ThemeEditor({
   profile,
   fallbackName,
   previewBoard,
+  imageButtons,
   t,
   locale,
 }: {
@@ -445,6 +451,7 @@ export function ThemeEditor({
   profile: ProfileData;
   fallbackName: string;
   previewBoard: PublicBoardData;
+  imageButtons: ImageButtonRow[];
   t: Dictionary;
   locale: Locale;
 }) {
@@ -460,6 +467,7 @@ export function ThemeEditor({
   // Selalu mulai dari gallery Presets (bukan Custom) -- biar gampang liat-liat/bandingin
   // preset dulu tiap buka tab Theme, gak langsung nyemplung ke theme yang lagi dipake.
   const [outerTab, setOuterTab] = useState<OuterTab>("presets");
+  const [exportRows, setExportRows] = useState<ExportRow[] | null>(null);
   // Preset yang lagi "dicoba liat" doang di preview kanan -- BEDA sama tokens/editingId
   // (itu punya theme beneran yang lagi diedit). Klik preset TIDAK langsung duplicate+apply
   // lagi (dulu gini, keluhan user: bolak-balik & numpuk duplicate cuma buat ngecek
@@ -486,6 +494,8 @@ export function ThemeEditor({
     if (result.error === "empty") setImportError(t.theme.importErrorEmpty);
     else if (result.error === "invalid_json") setImportError(t.theme.importErrorInvalidJson);
     else if (result.error === "wrong_format") setImportError(t.theme.importErrorWrongFormat);
+    else if (result.error === "too_large") setImportError(t.theme.importErrorTooLarge);
+    else if (result.error === "bad_asset") setImportError(t.theme.importErrorBadAsset);
     else {
       form.reset();
       router.refresh();
@@ -614,14 +624,16 @@ export function ThemeEditor({
     router.refresh();
   }
 
-  function exportJson() {
-    const blob = new Blob([JSON.stringify(tokens, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${(name || "theme").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+  // Tanpa image button di library -> langsung download (gak perlu dialog pilih apa-apa).
+  async function exportJson() {
+    if (!editingId) return;
+    const rows = await listImageButtonsForExportAction(editingId);
+    if (rows.length === 0) {
+      const result = await exportThemeBundleAction(tokens, []);
+      if ("json" in result) downloadJson(result.json, name);
+      return;
+    }
+    setExportRows(rows.map((r) => ({ id: r.id, label: r.label, path: r.path, usedInTheme: r.usedInTheme })));
   }
 
   const TAB_LABELS: Record<Tab, string> = {
@@ -636,6 +648,7 @@ export function ThemeEditor({
   const OUTER_TAB_LABELS: Record<OuterTab, string> = {
     presets: t.theme.presetsTitle,
     custom: t.theme.customTitle,
+    images: t.imageButtons.tabTitle,
     import: t.theme.importTitle,
   };
   const isPresetSelected = editingId === null;
@@ -666,7 +679,7 @@ export function ThemeEditor({
     <div className="flex flex-col gap-6 xl:flex-row xl:gap-4">
       <div className="flex min-w-0 flex-1 flex-col gap-6">
         <div className="flex flex-wrap gap-1 rounded-xl border bg-card p-1.5 shadow-sm">
-          {(["presets", "custom", "import"] as OuterTab[]).map((key) => (
+          {(["presets", "custom", "images", "import"] as OuterTab[]).map((key) => (
             <button
               key={key}
               type="button"
@@ -1488,6 +1501,10 @@ export function ThemeEditor({
           </>
         ) : null}
 
+        {outerTab === "images" ? (
+          <ImageButtonLibrary buttons={imageButtons} containerWidth={tokens.containerWidth} t={t} />
+        ) : null}
+
         {outerTab === "import" ? (
           <div className="flex flex-col gap-4">
             <div className="rounded-xl border bg-card p-5 shadow-sm">
@@ -1527,6 +1544,10 @@ export function ThemeEditor({
           </div>
         ) : null}
       </div>
+
+      {exportRows ? (
+        <ThemeExportDialog rows={exportRows} tokens={tokens} themeName={name} t={t} onClose={() => setExportRows(null)} />
+      ) : null}
 
       {!isPresetSelected || previewPreset ? (
         <DashboardPreviewPanel

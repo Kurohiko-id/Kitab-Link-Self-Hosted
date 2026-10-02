@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ChevronDown, Plus, Star, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,14 @@ import type { BoardLink, DisplayStyle, LinkType } from "@/lib/db/board";
 import type { Dictionary, Locale } from "@/lib/i18n";
 import { parseAccordionItems, parseCountdownData, type AccordionItem } from "@/lib/link-render";
 import type { DiscordWidgetRow } from "@/lib/db/discord-widget";
+import type { ImageButtonRow } from "@/lib/db/image-buttons";
+import type { LinkStyleOverride } from "@/lib/link-style";
+import type { ThemeTokens } from "@/lib/theme";
+import { LinkStyleOverrideSection } from "./link-style-override";
+import { LinkStyleStage } from "./link-style-stage";
 import { saveLinkAction } from "./actions";
+import { createImageButtonAction } from "./image-button-actions";
+import { useObjectUrl } from "./use-object-url";
 
 type MediaTab = "thumbnail" | "icon" | "emoji";
 const MEDIA_TABS: MediaTab[] = ["thumbnail", "icon", "emoji"];
@@ -83,7 +91,9 @@ export function LinkFormModal({
   pageId,
   groups,
   discordWidgets,
+  imageButtons,
   containerWidth,
+  theme,
   state,
   t,
   locale,
@@ -94,9 +104,12 @@ export function LinkFormModal({
   pageId: number;
   groups: { id: number; name: string }[];
   discordWidgets: DiscordWidgetRow[];
+  imageButtons: ImageButtonRow[];
   // Cuma buat teks hint displayStyle "image" ("lebar gambar maks Xpx") -- ikut lebar
   // halaman publik dari theme aktif, lihat lib/theme.ts containerWidth.
   containerWidth: number;
+  // Theme page aktif: titik awal nilai override (disalin saat kelompok dinyalakan).
+  theme: ThemeTokens;
   state: LinkModalState | null;
   t: Dictionary;
   locale: Locale;
@@ -158,6 +171,9 @@ export function LinkFormModal({
   const [imageShowContent, setImageShowContent] = useState(state?.mode === "edit" ? state.link.imageShowContent : false);
   const [imageHideBorder, setImageHideBorder] = useState(state?.mode === "edit" ? state.link.imageHideBorder : false);
   const [imageHideBackground, setImageHideBackground] = useState(state?.mode === "edit" ? state.link.imageHideBackground : false);
+  const [imageButtonId, setImageButtonId] = useState<number | null>(state?.mode === "edit" ? state.link.imageButtonId : null);
+  const [title, setTitle] = useState(state?.mode === "edit" ? state.link.title : "");
+  const [styleOverride, setStyleOverride] = useState<LinkStyleOverride | null>(state?.mode === "edit" ? state.link.styleOverride : null);
   const [target, setTarget] = useState(() => {
     if (state?.mode === "edit") return state.link.groupId ? `group:${state.link.groupId}` : "ungrouped";
     if (state?.mode === "create" && state.groupId) return `group:${state.groupId}`;
@@ -199,6 +215,21 @@ export function LinkFormModal({
     setAccordionItems((prev) => prev.filter((_, i) => i !== index));
   }
 
+  // Pratinjau gambar yang baru dipilih (hasil crop, belum disimpan) buat panggung preview:
+  // gambar kecil (thumbnail/icon) dan banner card style Image dipisah. Hook-hook ini harus
+  // SEBELUM early return di bawah (aturan hooks).
+  const [pendingMediaUrl, handleMediaFile] = useObjectUrl();
+  const [bannerFileUrl, setBannerFile] = useObjectUrl();
+  // Upload image baru (card style Image): disimpan ke library lewat tombol sendiri, bukan nunggu
+  // Save form -- biar jelas kapan gambarnya udah masuk dan langsung terpilih.
+  const router = useRouter();
+  const [newLabel, setNewLabel] = useState("");
+  const [newFile, setNewFile] = useState<File | null>(null);
+  const [uploadKey, setUploadKey] = useState(0);
+  const [savingNew, setSavingNew] = useState(false);
+  const [newImageError, setNewImageError] = useState<string | null>(null);
+  const [newImageSaved, setNewImageSaved] = useState(false);
+
   if (!state) return null;
 
   const linkId = state.mode === "edit" ? state.link.id : null;
@@ -207,6 +238,44 @@ export function LinkFormModal({
     const created = await onCreateGroup(name);
     setQuickAddGroupOpen(false);
     if (created) setTarget(`group:${created.id}`);
+  }
+
+  function handleNewFile(file: File | null) {
+    setNewFile(file);
+    setBannerFile(file);
+    setNewImageSaved(false);
+    setNewImageError(null);
+  }
+
+  async function handleSaveNewImage() {
+    if (!newFile || !newLabel.trim()) return;
+    setSavingNew(true);
+    setNewImageError(null);
+    const fd = new FormData();
+    fd.set("label", newLabel.trim());
+    fd.set("image", newFile);
+    const result = await createImageButtonAction(fd);
+    setSavingNew(false);
+    if (result.error || result.id === undefined) {
+      setNewImageError(result.error ?? "Gambar gagal disimpan.");
+      return;
+    }
+    // Langsung terpilih; daftar image button (props dari server) ikut ke-refresh biar kartunya muncul.
+    setImageButtonId(result.id);
+    setNewLabel("");
+    handleNewFile(null);
+    setUploadKey((k) => k + 1);
+    setNewImageSaved(true);
+    router.refresh();
+  }
+
+  // onSubmit manual (BUKAN <form action>): React 19 mereset form otomatis begitu action selesai,
+  // termasuk pas action-nya balikin error validasi -- input file/URL jadi kosong dan <select>
+  // Card style balik ke opsi pertama (Pill) di layar. Dengan onSubmit, form cuma ke-reset
+  // kalau modalnya memang ditutup (sukses simpan).
+  function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    return handleSubmit(new FormData(e.currentTarget));
   }
 
   async function handleSubmit(formData: FormData) {
@@ -230,10 +299,10 @@ export function LinkFormModal({
           <DialogTitle>{state.mode === "edit" ? t.linkModal.editTitle : t.linkModal.addTitle}</DialogTitle>
         </DialogHeader>
 
-        <form id="link-form" action={handleSubmit} className="mt-2 flex flex-col gap-5">
+        <form id="link-form" onSubmit={handleFormSubmit} className="mt-2 flex flex-col gap-5">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="title">{t.linkModal.titleLabel}</Label>
-            <Input id="title" name="title" defaultValue={state.mode === "edit" ? state.link.title : ""} required />
+            <Input id="title" name="title" value={title} onChange={(e) => setTitle(e.target.value)} required />
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -442,36 +511,70 @@ export function LinkFormModal({
               </p>
 
               <div className="flex flex-col gap-2">
-                <Label className="text-xs">{t.linkModal.imageMainLabel}</Label>
-                {state.mode === "edit" && state.link.thumbnailPath && !removeThumbnail ? (
-                  // Ditumpuk ke bawah, BUKAN sebaris sama gambarnya -- banner yang lebar
-                  // bikin tombol hapusnya kedorong keluar modal kalau sebaris.
-                  <div className="flex flex-col items-start gap-1.5">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- preview gambar yang sudah diupload */}
-                    <img
-                      src={`/uploads/${state.link.thumbnailPath}`}
-                      alt=""
-                      className="max-h-14 w-auto max-w-full rounded-lg object-contain"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setRemoveThumbnail(true)}
-                      className="flex items-center gap-1 text-xs font-medium text-destructive transition-colors hover:text-destructive/80"
-                    >
-                      <Trash2 className="size-3.5" />
-                      {t.linkModal.removeThumbnail}
-                    </button>
+                <Label className="text-xs">{t.linkModal.imagePickerLabel}</Label>
+                {imageButtons.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">{t.linkModal.imagePickerEmpty}</p>
+                ) : (
+                  <div className="grid max-h-56 grid-cols-2 gap-2 overflow-y-auto">
+                    {imageButtons.map((button) => (
+                      <button
+                        key={button.id}
+                        type="button"
+                        onClick={() => setImageButtonId(button.id)}
+                        className={cn(
+                          "flex flex-col gap-1 rounded-lg border bg-card p-2 text-left transition-colors",
+                          imageButtonId === button.id ? "border-primary ring-2 ring-primary/30" : "hover:bg-muted",
+                        )}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element -- gambar sudah webp */}
+                        <img src={`/uploads/${button.path}`} alt="" className="max-h-12 w-full rounded object-contain" />
+                        <span className="truncate text-xs font-medium">{button.label}</span>
+                      </button>
+                    ))}
                   </div>
-                ) : null}
-                <HeightCropFileInput
-                  id="thumbnail"
-                  name="thumbnail"
-                  outputWidth={containerWidth}
-                  className={FILE_INPUT_CLASS}
-                  t={t}
-                />
+                )}
+                <input type="hidden" name="imageButtonId" value={imageButtonId ?? ""} />
               </div>
-              <input type="hidden" name="removeThumbnail" value={removeThumbnail ? "1" : ""} />
+
+              <div className="flex flex-col gap-2 border-t pt-3">
+                <Label className="text-xs">{t.linkModal.imageUploadNewLabel}</Label>
+                <Input
+                  name="newImageButtonLabel"
+                  value={newLabel}
+                  onChange={(e) => {
+                    setNewLabel(e.target.value);
+                    setNewImageSaved(false);
+                  }}
+                  placeholder={t.linkModal.imageNewLabelPlaceholder}
+                />
+                <div className="flex items-center gap-2">
+                  <div className="min-w-0 flex-1">
+                    {/* key: abis disimpan, input file di-mount ulang biar kosong lagi. */}
+                    <HeightCropFileInput
+                      key={uploadKey}
+                      id="newImageButtonFile"
+                      name="newImageButtonFile"
+                      outputWidth={containerWidth}
+                      className={FILE_INPUT_CLASS}
+                      t={t}
+                      onFileChange={handleNewFile}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={!newFile || !newLabel.trim() || savingNew}
+                    onClick={handleSaveNewImage}
+                  >
+                    {t.linkModal.imageSaveNew}
+                  </Button>
+                </div>
+                {newFile && !newLabel.trim() ? (
+                  <p className="text-xs text-muted-foreground">{t.linkModal.imageSaveHint}</p>
+                ) : null}
+                {newImageError ? <p className="text-xs font-medium text-destructive">{newImageError}</p> : null}
+                {newImageSaved ? <p className="text-xs font-medium text-primary">{t.linkModal.imageSavedNotice}</p> : null}
+              </div>
 
               <div className="mt-1 flex flex-col gap-2 border-t pt-3">
                 <Label className="text-xs font-medium">{t.linkModal.imageOverrideLabel}</Label>
@@ -540,7 +643,11 @@ export function LinkFormModal({
                   <button
                     key={key}
                     type="button"
-                    onClick={() => setMediaTab(key)}
+                    onClick={() => {
+                      setMediaTab(key);
+                      // Input file-nya ikut ke-unmount pas ganti tab -> pilihan lama gak bakal kekirim.
+                      handleMediaFile(null);
+                    }}
                     className={cn(
                       "rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
                       mediaTab === key ? "bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-foreground",
@@ -579,6 +686,7 @@ export function LinkFormModal({
                     aspect={displayStyle === "rich" ? 16 / 9 : 1}
                     className={FILE_INPUT_CLASS}
                     t={t}
+                    onFileChange={handleMediaFile}
                   />
                 </div>
               ) : null}
@@ -597,6 +705,52 @@ export function LinkFormModal({
           ) : null}
 
           <input type="hidden" name="featured" value={featured ? "1" : ""} />
+
+          {/* Gaya khusus link: setelah Image / Icon, sebelum UTM. Panggung preview-nya (sticky)
+              ada di dalam section ini, bukan di preview HP kanan. */}
+          {displayStyle !== "icon" ? (
+            <>
+              <LinkStyleOverrideSection
+                theme={theme}
+                value={styleOverride}
+                onChange={setStyleOverride}
+                t={t}
+                stage={
+                  <LinkStyleStage
+                    theme={theme}
+                    override={styleOverride}
+                    t={t}
+                    locale={locale}
+                    link={{
+                      title,
+                      displayStyle,
+                      icon: icon || null,
+                      featured,
+                      // Image: banner = image button terpilih, gambar kecil = hasil crop baru atau
+                      // yang tersimpan. Lainnya: thumbnail = hasil crop baru atau yang tersimpan.
+                      thumbnailPath:
+                        displayStyle === "image"
+                          ? (bannerFileUrl ??
+                            imageButtons.find((b) => b.id === imageButtonId)?.path ??
+                            (state.mode === "edit" ? state.link.thumbnailPath : null))
+                          : (pendingMediaUrl ??
+                            (state.mode === "edit" && !removeThumbnail ? state.link.thumbnailPath : null)),
+                      imageContentPath:
+                        displayStyle === "image"
+                          ? (pendingMediaUrl ??
+                            (state.mode === "edit" && !removeContentImage ? state.link.imageContentPath : null))
+                          : null,
+                      imageHideBorder,
+                      imageHideBackground,
+                      imageShowTitle,
+                      imageShowContent,
+                    }}
+                  />
+                }
+              />
+              <input type="hidden" name="styleOverride" value={styleOverride ? JSON.stringify(styleOverride) : ""} />
+            </>
+          ) : null}
 
           {linkType === "url" ? (
             <details className="group rounded-lg border p-3">
@@ -627,9 +781,16 @@ export function LinkFormModal({
             </details>
           ) : null}
 
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
         </form>
         </div>
+
+        {/* Error simpan ditaruh di sini (di luar area scroll, tepat di atas footer), bukan di
+            akhir form: kalau di akhir form harus scroll lewat semua section buat lihat pesannya. */}
+        {error ? (
+          <p role="alert" className="border-t border-destructive/30 bg-destructive/10 px-6 py-2 text-sm font-medium text-destructive">
+            {error}
+          </p>
+        ) : null}
 
         {/* DialogFooter default-nya "-mx-4 -mb-4" buat nyamain sama padding p-4 bawaan
             DialogContent -- di sini DialogContent udah p-0 (scroll area sendiri yang p-6),

@@ -34,6 +34,7 @@ import {
   type BreakdownRow,
 } from "@/lib/db/analytics";
 import { getApiTokensForUser, getWebhooksForUser } from "@/lib/db/integrations";
+import { listImageButtons } from "@/lib/db/image-buttons";
 import { getScheduledRulesForPage } from "@/lib/db/automation";
 import { getLiveBadgeForPage } from "@/lib/db/live-badges";
 import { getDiscordWidgetsForPage } from "@/lib/db/discord-widget";
@@ -243,6 +244,8 @@ export default async function DashboardPage({
     activeTab === "theme" || activeTab === "links" || activeTab === "profile" || activeTab === "integrations"
       ? await getThemeForPage(activePage.id)
       : null;
+  const imageButtonLibrary =
+    activeTab === "theme" || activeTab === "links" ? await listImageButtons(session.userId) : [];
   const [themeLibrary, themePreviewBoard] =
     activeTab === "theme"
       ? await Promise.all([getThemeLibrary(session.userId), getPublicBoardData(activePage.id)])
@@ -419,6 +422,7 @@ export default async function DashboardPage({
                 openLinkId={openLinkParam ? Number(openLinkParam) : null}
                 socialPreviewBoard={linksSocialBoard}
                 discordWidgets={discordWidgets}
+                imageButtons={imageButtonLibrary}
               />
             ) : null}
             {activeTab === "profile" && themeTokens && profilePreviewBoard && profileSocialLinks ? (
@@ -436,6 +440,7 @@ export default async function DashboardPage({
                 tokens={themeTokens}
                 library={themeLibrary}
                 previewBoard={themePreviewBoard}
+                imageButtons={imageButtonLibrary}
                 t={t}
                 locale={locale}
               />
@@ -676,6 +681,7 @@ function ThemeSection({
   tokens,
   library,
   previewBoard,
+  imageButtons,
   t,
   locale,
 }: {
@@ -683,6 +689,7 @@ function ThemeSection({
   tokens: ThemeTokens;
   library: Awaited<ReturnType<typeof getThemeLibrary>>;
   previewBoard: Awaited<ReturnType<typeof getPublicBoardData>>;
+  imageButtons: Awaited<ReturnType<typeof listImageButtons>>;
   t: Dictionary;
   locale: Locale;
 }) {
@@ -697,6 +704,7 @@ function ThemeSection({
         profile={parseProfileData(page.profileJson)}
         fallbackName={page.slug}
         previewBoard={previewBoard}
+        imageButtons={imageButtons}
         t={t}
         locale={locale}
       />
