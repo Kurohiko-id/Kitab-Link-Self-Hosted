@@ -37,19 +37,17 @@ export async function requireOwnedGroup(pageId: number, groupId: number) {
   return row;
 }
 
-// Buat operasi batch (persistBoard, social links): semua ID dari client harus milik pageId.
-// Dipanggil SEBELUM db.transaction (transaksi better-sqlite3 sync, gak bisa await di dalamnya).
-export async function assertOwnedIds(pageId: number, ids: { linkIds?: number[]; groupIds?: number[] }) {
-  if (ids.linkIds?.length) {
-    const owned = new Set(
-      (await db.select({ id: links.id }).from(links).where(eq(links.pageId, pageId))).map((r) => r.id),
-    );
-    if (ids.linkIds.some((id) => !owned.has(id))) throw new Error("Ada link yang bukan milik page ini.");
-  }
-  if (ids.groupIds?.length) {
-    const owned = new Set(
-      (await db.select({ id: linkGroups.id }).from(linkGroups).where(eq(linkGroups.pageId, pageId))).map((r) => r.id),
-    );
-    if (ids.groupIds.some((id) => !owned.has(id))) throw new Error("Ada grup yang bukan milik page ini.");
-  }
+// Buat operasi batch (persistBoard, social links): ID dari client yang bukan milik pageId
+// (basi karena kehapus di tab lain, atau milik page lain) DIBUANG, bukan throw -- tab basi itu
+// skenario normal. Yang penting ID asing gak pernah sampai ke WHERE write. Dipanggil SEBELUM
+// db.transaction (transaksi better-sqlite3 sync, gak bisa await di dalamnya).
+export async function getOwnedIds(pageId: number) {
+  const [linkRows, groupRows] = await Promise.all([
+    db.select({ id: links.id }).from(links).where(eq(links.pageId, pageId)),
+    db.select({ id: linkGroups.id }).from(linkGroups).where(eq(linkGroups.pageId, pageId)),
+  ]);
+  return {
+    links: new Set(linkRows.map((r) => r.id)),
+    groups: new Set(groupRows.map((r) => r.id)),
+  };
 }
