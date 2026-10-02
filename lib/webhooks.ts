@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { and, eq, lte } from "drizzle-orm";
+import { assertSafeUrl } from "@/lib/safe-url";
 import { db } from "@/lib/db";
 import { webhookQueue, webhooks } from "@/lib/db/schema";
 
@@ -23,6 +24,7 @@ async function deliverOne(
   webhook: typeof webhooks.$inferSelect,
 ) {
   try {
+    await assertSafeUrl(webhook.targetUrl);
     const res = await fetch(webhook.targetUrl, {
       method: "POST",
       headers: {
@@ -31,6 +33,7 @@ async function deliverOne(
         "X-KitabLink-Event": webhook.eventType,
       },
       body: queueRow.payloadJson,
+      redirect: "error", // redirect bisa nyasar ke alamat yang assertSafeUrl tolak
       signal: AbortSignal.timeout(10_000),
     });
 

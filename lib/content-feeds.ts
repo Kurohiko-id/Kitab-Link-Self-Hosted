@@ -1,5 +1,6 @@
 import Parser from "rss-parser";
 import { eq } from "drizzle-orm";
+import { assertSafeUrl } from "@/lib/safe-url";
 import { db } from "@/lib/db";
 import { contentFeeds, links } from "@/lib/db/schema";
 import { processImage } from "@/lib/images/process-image";
@@ -56,6 +57,7 @@ const MAX_THUMBNAIL_WIDTH = 800;
 
 async function tryFetchThumbnail(url: string): Promise<string | null> {
   try {
+    await assertSafeUrl(url);
     const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (!res.ok) return null;
     if (!(res.headers.get("content-type") ?? "").startsWith("image/")) return null;
@@ -68,6 +70,7 @@ async function tryFetchThumbnail(url: string): Promise<string | null> {
 }
 
 async function processSingleFeed(feed: ContentFeedRow) {
+  await assertSafeUrl(feed.feedUrl);
   const parsed = await parser.parseURL(feed.feedUrl);
   const items = parsed.items ?? [];
   if (items.length === 0) return;
@@ -137,6 +140,7 @@ export async function processContentFeeds(): Promise<void> {
 // feed yang bisa di-parse sebelum disimpen, biar gak nyimpen config yang bakal selalu gagal.
 export async function validateFeedUrl(feedUrl: string): Promise<{ ok: true; title: string } | { ok: false }> {
   try {
+    await assertSafeUrl(feedUrl);
     const parsed = await parser.parseURL(feedUrl);
     return { ok: true, title: parsed.title ?? feedUrl };
   } catch {
