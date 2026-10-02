@@ -711,6 +711,7 @@ export function Board({
         discordWidgets={discordWidgets}
         imageButtons={imageButtons}
         containerWidth={tokens.containerWidth}
+        theme={tokens}
         state={modalState}
         t={t}
         locale={locale}

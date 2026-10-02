@@ -12,6 +12,7 @@ import { fetchOgImageBuffer } from "@/lib/images/og-image";
 import { logActivity } from "@/lib/db/activity-log";
 import { readImageButtonWebp } from "@/lib/images/image-button-input";
 import { createImageButton, requireOwnedImageButton } from "@/lib/db/image-buttons";
+import { serializeLinkOverride } from "@/lib/link-style";
 
 const MAX_THUMBNAIL_WIDTH = 800;
 const MAX_LINK_FILE_BYTES = 20 * 1024 * 1024; // 20MB, cukup buat PDF/dokumen umum
@@ -226,6 +227,10 @@ export async function saveLinkAction(
     }
   }
 
+  // Override gaya per link: SELALU disanitasi di server (form bisa dipalsukan), dan baris
+  // sosmed (displayStyle "icon") gak punya gaya per link.
+  const styleOverrideJson = displayStyle === "icon" ? null : serializeLinkOverride(formData.get("styleOverride"));
+
   const values = {
     title,
     url,
@@ -245,6 +250,7 @@ export async function saveLinkAction(
     imageRadius,
     imageShadow,
     imageButtonId,
+    styleOverrideJson,
   };
 
   if (linkId) {
