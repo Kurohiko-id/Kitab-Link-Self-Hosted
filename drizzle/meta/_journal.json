@@ -232,6 +232,27 @@
       "when": 1790571181969,
       "tag": "0032_sudden_madrox",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "6",
+      "when": 1790919487193,
+      "tag": "0033_nostalgic_thor",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "6",
+      "when": 1790919824065,
+      "tag": "0034_dry_madame_hydra",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "6",
+      "when": 1790920045290,
+      "tag": "0035_flaky_supernaut",
+      "breakpoints": true
     }
   ]
 }
