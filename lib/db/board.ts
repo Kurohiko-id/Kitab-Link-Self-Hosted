@@ -28,6 +28,9 @@ export type BoardLink = {
   thumbnailPath: string | null;
   imageHideBorder: boolean;
   imageHideBackground: boolean;
+  imageShowTitle: boolean;
+  imageShowContent: boolean;
+  imageContentPath: string | null;
   imageRadius: number | null;
   imageShadow: ImageShadow;
   displayStyle: DisplayStyle;
@@ -87,6 +90,9 @@ export async function getBoardData(pageId: number): Promise<BoardData> {
       thumbnailPath: link.thumbnailPath,
       imageHideBorder: link.imageHideBorder,
       imageHideBackground: link.imageHideBackground,
+      imageShowTitle: link.imageShowTitle,
+      imageShowContent: link.imageShowContent,
+      imageContentPath: link.imageContentPath,
       imageRadius: link.imageRadius,
       imageShadow: link.imageShadow,
       displayStyle: link.displayStyle,
@@ -130,6 +136,9 @@ export type PublicLink = {
   thumbnailPath: string | null;
   imageHideBorder: boolean;
   imageHideBackground: boolean;
+  imageShowTitle: boolean;
+  imageShowContent: boolean;
+  imageContentPath: string | null;
   imageRadius: number | null;
   imageShadow: ImageShadow;
   displayStyle: DisplayStyle;
@@ -173,6 +182,9 @@ export async function getPublicBoardData(pageId: number): Promise<PublicBoardDat
       thumbnailPath: link.thumbnailPath,
       imageHideBorder: link.imageHideBorder,
       imageHideBackground: link.imageHideBackground,
+      imageShowTitle: link.imageShowTitle,
+      imageShowContent: link.imageShowContent,
+      imageContentPath: link.imageContentPath,
       imageRadius: link.imageRadius,
       imageShadow: link.imageShadow,
       displayStyle: link.displayStyle,
