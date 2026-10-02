@@ -9,7 +9,7 @@ import { requireSession } from "@/lib/auth/require-session";
 import { createApiToken } from "@/lib/auth/api-tokens";
 import { enqueueWebhookEvent } from "@/lib/webhooks";
 
-const VALID_SCOPES = ["links:read", "links:write"] as const;
+const VALID_SCOPES = ["links:read", "links:write", "discord:read", "discord:write"] as const;
 type Scope = (typeof VALID_SCOPES)[number];
 
 export async function createApiTokenAction(name: string, scopes: string[]) {
