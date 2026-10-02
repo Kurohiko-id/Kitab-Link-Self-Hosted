@@ -12,9 +12,11 @@ import {
   getEntranceClass,
   getSocialIconShapeClass,
   getSocialIconStyle,
+  getTypographyStyle,
   SHADOW_PRESETS,
   type ThemeTokens,
 } from "@/lib/theme";
+import { hasTypographyOverride, resolveLinkTheme } from "@/lib/link-style";
 import type { PublicLink } from "@/lib/db/board";
 import { getLinkHref, parseAccordionItems, parseCountdownData, parseDiscordWidgetId, extractYoutubeId } from "@/lib/link-render";
 import { brandIconForUrl } from "@/lib/icons";
@@ -37,6 +39,10 @@ const DEFAULT_ICON_BY_TYPE: Partial<Record<PublicLink["linkType"], string>> = {
   countdown: "generic:Timer",
   discord_widget: "brand:discord",
 };
+
+// Path upload relatif -> URL publik. blob:/data: dilewatkan apa adanya: dipakai panggung preview
+// di modal link buat gambar yang baru dipilih tapi belum disimpan (path dari DB gak pernah begitu).
+const uploadSrc = (path: string) => (/^(?:blob|data):/.test(path) ? path : `/uploads/${path}`);
 
 function faviconUrl(pageUrl: string): string | null {
   try {
@@ -63,7 +69,7 @@ export function LinkGlyph({ link, className = "size-5 shrink-0" }: { link: Glyph
   }
   if (link.thumbnailPath) {
     // eslint-disable-next-line @next/next/no-img-element -- gambar sudah diproses jadi webp sendiri, bukan kandidat next/image
-    return <img src={`/uploads/${link.thumbnailPath}`} alt="" className={cn(className, "rounded-md object-cover")} />;
+    return <img src={uploadSrc(link.thumbnailPath)} alt="" className={cn(className, "rounded-md object-cover")} />;
   }
   const defaultIcon = DEFAULT_ICON_BY_TYPE[link.linkType];
   if (defaultIcon) {
@@ -81,7 +87,7 @@ export function LinkGlyph({ link, className = "size-5 shrink-0" }: { link: Glyph
 
 export function LinkCard({
   link,
-  theme,
+  theme: pageTheme,
   index,
   locale = "en",
 }: {
@@ -90,6 +96,10 @@ export function LinkCard({
   index: number;
   locale?: PublicLocale;
 }) {
+  // Override per link (lib/link-style.ts) digabung ke theme page DI SINI, sekali, supaya
+  // semua getter di bawah (kartu, hover, entrance, alignment, posisi icon) dan komponen anak
+  // (accordion/countdown/discord) otomatis ikut. Tanpa override, theme-nya objek yang sama.
+  const theme = resolveLinkTheme(pageTheme, link.styleOverride);
   // borderRadius/borderWidth/boxShadow/backdropFilter semua diatur lewat buttonStyle
   // (dari theme, bukan hardcoded per displayStyle lagi) -> shape/surface tombol full
   // dikontrol dari dashboard. Featured nambah ring lebih TEBEL warna theme.cardBorder
@@ -98,6 +108,9 @@ export function LinkCard({
   // palet theme apapun (japanese wave tetep biru-navy terang, bukan ikut jadi ungu).
   const buttonStyle = {
     ...getCardStyle(theme),
+    // Typography halaman diwarisi dari container (bukan dari getCardStyle) -> baru ditimpa
+    // di kartu kalau link ini punya override typography.
+    ...(hasTypographyOverride(link.styleOverride) ? getTypographyStyle(theme) : {}),
     ...({ "--kl-index": index, "--kl-glow-color": theme.cardBorder } as React.CSSProperties),
     ...(link.featured
       ? {
@@ -222,7 +235,7 @@ export function LinkCard({
       >
         {link.thumbnailPath ? (
           // eslint-disable-next-line @next/next/no-img-element -- gambar sudah diproses jadi webp sendiri, bukan kandidat next/image
-          <img src={`/uploads/${link.thumbnailPath}`} alt="" className="aspect-video w-full object-cover" />
+          <img src={uploadSrc(link.thumbnailPath)} alt="" className="aspect-video w-full object-cover" />
         ) : null}
         <div className={cn("flex flex-col gap-1 p-4", alignClass)}>
           <span className="font-medium">{link.title}</span>
@@ -286,7 +299,7 @@ export function LinkCard({
       <LinkIconRenderer value={link.icon} className="size-5 shrink-0" />
     ) : link.imageContentPath ? (
       // eslint-disable-next-line @next/next/no-img-element -- gambar sudah diproses jadi webp sendiri, bukan kandidat next/image
-      <img src={`/uploads/${link.imageContentPath}`} alt="" className="size-8 shrink-0 rounded-md object-cover" />
+      <img src={uploadSrc(link.imageContentPath)} alt="" className="size-8 shrink-0 rounded-md object-cover" />
     ) : null;
     if (link.imageHideBorder) imageStyle.borderWidth = 0;
     if (link.imageHideBackground) {
@@ -308,7 +321,7 @@ export function LinkCard({
       >
         {link.thumbnailPath ? (
           // eslint-disable-next-line @next/next/no-img-element -- gambar sudah diproses jadi webp sendiri, bukan kandidat next/image
-          <img src={`/uploads/${link.thumbnailPath}`} alt="" className="h-auto max-w-full" />
+          <img src={uploadSrc(link.thumbnailPath)} alt="" className="h-auto max-w-full" />
         ) : null}
         {/* Judul + icon/emoji ditumpuk di atas gambar. Glyph: lihat overlayGlyph di atas. text-shadow biar kebaca di gambar terang/gelap. */}
         {link.imageShowTitle || overlayGlyph ? (
