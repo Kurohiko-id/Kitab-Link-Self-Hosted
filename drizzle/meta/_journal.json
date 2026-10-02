@@ -253,6 +253,20 @@
       "when": 1790920045290,
       "tag": "0035_flaky_supernaut",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "6",
+      "when": 1790940843089,
+      "tag": "0036_tricky_namor",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "6",
+      "when": 1790943930988,
+      "tag": "0037_youthful_penance",
+      "breakpoints": true
     }
   ]
 }

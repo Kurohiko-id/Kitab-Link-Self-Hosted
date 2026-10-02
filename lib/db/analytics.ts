@@ -1,6 +1,6 @@
-import { and, count, eq, gte, inArray } from "drizzle-orm";
+import { and, count, eq, gte, inArray, sql } from "drizzle-orm";
 import { db } from "./index";
-import { analyticsEvents, links, pages } from "./schema";
+import { analyticsEvents, imageButtons, links, pages } from "./schema";
 import type { LinkType } from "./board";
 
 type EventMeta = { referrer?: string | null; deviceType?: "mobile" | "tablet" | "desktop"; country?: string | null };
@@ -211,12 +211,13 @@ async function getAnalyticsForPages(
         id: links.id,
         title: links.title,
         icon: links.icon,
-        thumbnailPath: links.thumbnailPath,
+        thumbnailPath: sql<string | null>`coalesce(${imageButtons.path}, ${links.thumbnailPath})`,
         linkType: links.linkType,
         url: links.url,
         pageId: links.pageId,
       })
       .from(links)
+      .leftJoin(imageButtons, eq(links.imageButtonId, imageButtons.id))
       .where(inArray(links.pageId, pageIds)),
   ]);
 

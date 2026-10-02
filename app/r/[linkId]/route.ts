@@ -35,6 +35,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ link
     url: link.url,
     description: link.description,
     thumbnailPath: link.thumbnailPath,
+    styleOverride: null, // cuma buat hitung href, gaya gak dipakai di sini
     imageHideBorder: link.imageHideBorder,
     imageHideBackground: link.imageHideBackground,
     imageShowTitle: link.imageShowTitle,

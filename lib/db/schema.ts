@@ -96,6 +96,20 @@ export const linkGroups = sqliteTable("link_groups", {
   isVisible: integer("is_visible", { mode: "boolean" }).notNull().default(true),
 });
 
+// Library gambar berlabel milik user. Link displayStyle "image" nunjuk ke sini lewat
+// links.imageButtonId -- ganti gambar di sini otomatis ngubah SEMUA link yang pakai.
+export const imageButtons = sqliteTable("image_buttons", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  label: text("label").notNull(),
+  path: text("path").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
 export const links = sqliteTable("links", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   pageId: integer("page_id")
@@ -117,6 +131,14 @@ export const links = sqliteTable("links", {
     .notNull()
     .default("pill"),
   thumbnailPath: text("thumbnail_path"),
+  // Kalau terisi (cuma displayStyle "image"), gambar tombol diambil dari image_buttons.path
+  // dan thumbnailPath diabaikan. Dihapus image button-nya -> set null (tapi UI nolak hapus
+  // selama masih dipakai, lihat deleteImageButton).
+  imageButtonId: integer("image_button_id").references(() => imageButtons.id, { onDelete: "set null" }),
+  // Subset token theme (whitelist, lihat lib/link-style.ts) yang menimpa theme page khusus
+  // link ini. null = ikut theme sepenuhnya. Selalu lewat sanitizeLinkOverride sebelum disimpan
+  // maupun setelah dibaca -- jangan pernah dipercaya mentah.
+  styleOverrideJson: text("style_override_json"),
   // Override tampilan tombol khusus displayStyle "image" -- gambar itu sendiri udah jadi
   // "wajah" tombolnya, jadi border/background/shadow dari theme kadang malah ganggu (nutup
   // sudut gambar, nambah bingkai gak diinginkan). Null/"theme" = ikut theme seperti biasa,
