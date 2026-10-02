@@ -1,6 +1,6 @@
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "./index";
-import { linkGroups, links, pages } from "./schema";
+import { imageButtons, linkGroups, links, pages } from "./schema";
 
 export type DisplayStyle = "pill" | "rich" | "icon" | "image";
 // "theme" = ikut theme.buttonShadow seperti biasa, sisanya override manual per-link.
@@ -25,7 +25,9 @@ export type BoardLink = {
   url: string;
   description: string | null;
   isActive: boolean;
+  // Path EFEKTIF: image button yang dipilih (kalau ada), kalau enggak thumbnailPath milik link.
   thumbnailPath: string | null;
+  imageButtonId: number | null;
   imageHideBorder: boolean;
   imageHideBackground: boolean;
   imageShowTitle: boolean;
@@ -62,7 +64,12 @@ export async function getBoardData(pageId: number): Promise<BoardData> {
       .from(linkGroups)
       .where(eq(linkGroups.pageId, pageId))
       .orderBy(asc(linkGroups.orderIndex)),
-    db.select().from(links).where(eq(links.pageId, pageId)).orderBy(asc(links.orderIndex)),
+    db
+      .select({ link: links, buttonPath: imageButtons.path })
+      .from(links)
+      .leftJoin(imageButtons, eq(links.imageButtonId, imageButtons.id))
+      .where(eq(links.pageId, pageId))
+      .orderBy(asc(links.orderIndex)),
   ]);
 
   const groups: BoardGroup[] = groupRows.map((group) => ({
@@ -74,7 +81,7 @@ export async function getBoardData(pageId: number): Promise<BoardData> {
   const groupById = new Map(groups.map((group) => [group.id, group]));
   const ungrouped: BoardLink[] = [];
 
-  for (const link of linkRows) {
+  for (const { link, buttonPath } of linkRows) {
     // displayStyle "icon" = baris icon sosmed, dikelola sendiri lewat Profile > Social
     // Links (lihat social-links-actions.ts), bukan bagian dari list link biasa -> jangan
     // ikut ditampilin di board Links & Groups (sesuai hint di link-form-modal.tsx).
@@ -87,7 +94,8 @@ export async function getBoardData(pageId: number): Promise<BoardData> {
       url: link.url,
       description: link.description,
       isActive: link.isActive,
-      thumbnailPath: link.thumbnailPath,
+      thumbnailPath: buttonPath ?? link.thumbnailPath,
+      imageButtonId: link.imageButtonId,
       imageHideBorder: link.imageHideBorder,
       imageHideBackground: link.imageHideBackground,
       imageShowTitle: link.imageShowTitle,
@@ -163,8 +171,9 @@ export async function getPublicBoardData(pageId: number): Promise<PublicBoardDat
       .where(and(eq(linkGroups.pageId, pageId), eq(linkGroups.isVisible, true)))
       .orderBy(asc(linkGroups.orderIndex)),
     db
-      .select()
+      .select({ link: links, buttonPath: imageButtons.path })
       .from(links)
+      .leftJoin(imageButtons, eq(links.imageButtonId, imageButtons.id))
       .where(and(eq(links.pageId, pageId), eq(links.isActive, true)))
       .orderBy(asc(links.orderIndex)),
   ]);
@@ -173,13 +182,13 @@ export async function getPublicBoardData(pageId: number): Promise<PublicBoardDat
   const groupById = new Map(groups.map((group) => [group.id, group]));
   const ungrouped: PublicLink[] = [];
 
-  for (const link of linkRows) {
+  for (const { link, buttonPath } of linkRows) {
     const entry: PublicLink = {
       id: link.id,
       title: link.title,
       url: link.url,
       description: link.description,
-      thumbnailPath: link.thumbnailPath,
+      thumbnailPath: buttonPath ?? link.thumbnailPath,
       imageHideBorder: link.imageHideBorder,
       imageHideBackground: link.imageHideBackground,
       imageShowTitle: link.imageShowTitle,

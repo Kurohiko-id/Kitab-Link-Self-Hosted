@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { linkGroups, links, pages, themes } from "@/lib/db/schema";
 import { requireOwnedPage } from "@/lib/db/pages";
-import { getBoardData, type BoardLink } from "@/lib/db/board";
+import { getBoardData } from "@/lib/db/board";
+import { stripLink, type BackupLink } from "@/lib/backup-link";
 import { getThemeForPage, uniqueThemeName } from "@/lib/db/theme";
 import { parseThemeTokens, type ThemeTokens } from "@/lib/theme";
 import { parseProfileData, DEFAULT_PROFILE, type ProfileData } from "@/lib/profile";
@@ -21,7 +22,6 @@ const BACKUP_VERSION = 3;
 export type BackupScope = { theme: boolean; profile: boolean; links: boolean };
 export type ImportScope = { theme: boolean; profile: boolean; links: boolean };
 
-type BackupLink = Omit<BoardLink, "id" | "groupId" | "thumbnailPath">;
 type BackupLinks = { groups: { name: string; isVisible: boolean; links: BackupLink[] }[]; ungrouped: BackupLink[] };
 
 export type PageBackup = {
@@ -31,14 +31,6 @@ export type PageBackup = {
   profile?: ProfileData;
   links?: BackupLinks;
 };
-
-function stripLink(link: BoardLink): BackupLink {
-  const rest: Partial<BoardLink> = { ...link };
-  delete rest.id;
-  delete rest.groupId;
-  delete rest.thumbnailPath;
-  return rest as BackupLink;
-}
 
 export async function exportPageDataAction(pageId: number, scope: BackupScope): Promise<PageBackup> {
   const page = await requireOwnedPage(pageId);
@@ -118,7 +110,7 @@ export async function importPageDataAction(
     await db.delete(linkGroups).where(eq(linkGroups.pageId, pageId));
 
     for (const [index, link] of backup.links.ungrouped.entries()) {
-      await db.insert(links).values({ ...link, pageId, groupId: null, thumbnailPath: null, orderIndex: index });
+      await db.insert(links).values({ ...link, pageId, groupId: null, thumbnailPath: null, imageButtonId: null, orderIndex: index });
     }
     for (const [groupIndex, group] of backup.links.groups.entries()) {
       const [createdGroup] = await db
@@ -126,7 +118,7 @@ export async function importPageDataAction(
         .values({ pageId, name: group.name, isVisible: group.isVisible, orderIndex: groupIndex })
         .returning();
       for (const [linkIndex, link] of group.links.entries()) {
-        await db.insert(links).values({ ...link, pageId, groupId: createdGroup.id, thumbnailPath: null, orderIndex: linkIndex });
+        await db.insert(links).values({ ...link, pageId, groupId: createdGroup.id, thumbnailPath: null, imageButtonId: null, orderIndex: linkIndex });
       }
     }
     importedParts.push("links");
