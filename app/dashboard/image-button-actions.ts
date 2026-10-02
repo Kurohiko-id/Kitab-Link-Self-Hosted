@@ -14,15 +14,16 @@ import { requireOwnedTheme } from "@/lib/db/theme";
 
 type Result = { error?: string };
 
-export async function createImageButtonAction(formData: FormData): Promise<Result> {
+// id image button baru ikut dikembalikan: form link langsung milih-nya setelah disimpan.
+export async function createImageButtonAction(formData: FormData): Promise<Result & { id?: number }> {
   const session = await requireSession();
   const label = String(formData.get("label") ?? "").trim();
   if (!label) return { error: "Label wajib diisi." };
   const input = await readImageButtonWebp(formData);
   if ("error" in input) return { error: input.error };
-  await createImageButton(session.userId, label, input.webp);
+  const created = await createImageButton(session.userId, label, input.webp);
   revalidatePath("/dashboard");
-  return {};
+  return { id: created.id };
 }
 
 export async function replaceImageButtonImageAction(id: number, formData: FormData): Promise<Result> {

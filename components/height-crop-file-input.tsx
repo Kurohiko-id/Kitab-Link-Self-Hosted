@@ -25,10 +25,14 @@ export function HeightCropFileInput({
   outputWidth,
   className,
   t,
+  onFileChange,
 }: {
   id?: string;
   name: string;
   accept?: string;
+  // Opsional: hasil crop (atau null kalau dibatalin/dikosongkan) -- buat tahu ada gambar yang
+  // udah siap dan buat pratinjau yang belum disimpan. File-nya tetap ke form lewat input ini.
+  onFileChange?: (file: File | null) => void;
   // Lebar halaman publik (theme.containerWidth) -- dipakai buat nerjemahin tinggi crop
   // ke tinggi NYATA tombol nanti di halaman. Tanpa ini, angka tingginya dalam px gambar
   // asli dan nyasar jauh (gambar 1920px yang di-crop 56px cuma jadi ~16px di halaman).
@@ -104,6 +108,7 @@ export function HeightCropFileInput({
 
   function handleSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    if (!file) onFileChange?.(null);
     if (!file || !file.type.startsWith("image/")) return;
     setRawFile(file);
     setRawSrc(URL.createObjectURL(file));
@@ -185,11 +190,13 @@ export function HeightCropFileInput({
     const dt = new DataTransfer();
     dt.items.add(cropped);
     inputRef.current.files = dt.files;
+    onFileChange?.(cropped);
     closeDialog();
   }
 
   function handleCancel() {
     if (inputRef.current) inputRef.current.value = "";
+    onFileChange?.(null);
     closeDialog();
   }
 
