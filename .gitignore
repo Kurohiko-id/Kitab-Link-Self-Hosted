@@ -38,6 +38,7 @@ yarn-error.log*
 /data/*.db-*
 /data/uploads/
 /data/.secret
+/data-backup-*/
 
 # vercel
 .vercel
