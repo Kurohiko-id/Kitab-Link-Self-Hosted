@@ -1,0 +1,1 @@
+ALTER TABLE `links` ADD `style_override_json` text;

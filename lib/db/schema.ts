@@ -135,6 +135,10 @@ export const links = sqliteTable("links", {
   // dan thumbnailPath diabaikan. Dihapus image button-nya -> set null (tapi UI nolak hapus
   // selama masih dipakai, lihat deleteImageButton).
   imageButtonId: integer("image_button_id").references(() => imageButtons.id, { onDelete: "set null" }),
+  // Subset token theme (whitelist, lihat lib/link-style.ts) yang menimpa theme page khusus
+  // link ini. null = ikut theme sepenuhnya. Selalu lewat sanitizeLinkOverride sebelum disimpan
+  // maupun setelah dibaca -- jangan pernah dipercaya mentah.
+  styleOverrideJson: text("style_override_json"),
   // Override tampilan tombol khusus displayStyle "image" -- gambar itu sendiri udah jadi
   // "wajah" tombolnya, jadi border/background/shadow dari theme kadang malah ganggu (nutup
   // sudut gambar, nambah bingkai gak diinginkan). Null/"theme" = ikut theme seperti biasa,
