@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { linkGroups, links } from "@/lib/db/schema";
 import { requireOwnedPage } from "@/lib/db/pages";
-import { assertOwnedIds, findOwnedGroup, requireOwnedGroup, requireOwnedLink } from "@/lib/db/owned-rows";
+import { findOwnedGroup, getOwnedIds, requireOwnedGroup, requireOwnedLink } from "@/lib/db/owned-rows";
 import type { DisplayStyle, LinkType } from "@/lib/db/board";
 import { processImage } from "@/lib/images/process-image";
 import { deleteImage, saveFile, saveImage } from "@/lib/images/storage";
@@ -301,23 +301,23 @@ async function maybeFetchOgImage(
 export async function persistBoard(input: PersistBoardInput) {
   await requireOwnedPage(input.pageId);
 
-  const groupIds = input.groupOrder;
-  const linkIds = [...input.ungrouped, ...groupIds.flatMap((groupId) => input.groups[groupId] ?? [])];
-  await assertOwnedIds(input.pageId, { groupIds, linkIds });
+  const owned = await getOwnedIds(input.pageId);
+  const ownedLinks = (ids: number[]) => ids.filter((id) => owned.links.has(id));
+  const groupOrder = input.groupOrder.filter((id) => owned.groups.has(id));
 
   db.transaction((tx) => {
-    input.groupOrder.forEach((groupId, index) => {
+    groupOrder.forEach((groupId, index) => {
       tx.update(linkGroups).set({ orderIndex: index }).where(eq(linkGroups.id, groupId)).run();
     });
 
-    input.groupOrder.forEach((groupId) => {
-      const linkIds = input.groups[groupId] ?? [];
+    groupOrder.forEach((groupId) => {
+      const linkIds = ownedLinks(input.groups[groupId] ?? []);
       linkIds.forEach((linkId, index) => {
         tx.update(links).set({ groupId, orderIndex: index }).where(eq(links.id, linkId)).run();
       });
     });
 
-    input.ungrouped.forEach((linkId, index) => {
+    ownedLinks(input.ungrouped).forEach((linkId, index) => {
       tx.update(links).set({ groupId: null, orderIndex: index }).where(eq(links.id, linkId)).run();
     });
   });
