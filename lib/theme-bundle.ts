@@ -68,7 +68,7 @@ export async function convertBundleImages(
   bundle: ParsedBundle,
 ): Promise<{ background: Buffer | null; buttons: { label: string; webp: Buffer }[] } | { error: "bad_asset" }> {
   try {
-    const background = bundle.background ? await processImage(bundle.background.data, 1600) : null;
+    const background = bundle.background ? await processImage(bundle.background.data, 1600, true) : null;
     const buttons: { label: string; webp: Buffer }[] = [];
     for (const button of bundle.buttons) {
       buttons.push({ label: button.label, webp: await processImage(button.image.data, 1600) });
