@@ -23,6 +23,11 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "20mb",
     },
 
+    // Karena ada proxy.ts, Next nge-buffer body request di memori dan MOTONG di 10MB
+    // (default) -- upload di atas itu (mis. GIF background 11MB) bikin Server Action gagal
+    // "Unexpected end of form" walau bodySizeLimit di atas udah 20mb. Samain 20mb.
+    proxyClientMaxBodySize: "20mb",
+
     // Default-nya Next.js nyalain beberapa compile worker PARALEL sebanyak jumlah CPU
     // core yang KEBACA (bukan yang dijatah container) -- di VPS kecil yang jalanin
     // banyak container bareng, tiap worker itu proses Node terpisah (NODE_OPTIONS heap
