@@ -120,7 +120,7 @@ export async function PublicPageBody({
       ) : null}
 
       <div
-        className="relative z-10 mx-auto flex w-full flex-col items-center p-8"
+        className="relative z-10 mx-auto flex w-full flex-1 flex-col items-center p-8"
         style={{ maxWidth: `${theme.containerWidth}px` }}
       >
         <ThemeProfileHeader theme={theme} profile={profile} fallbackName={page.slug} bannerPaddingRem={2} />
@@ -180,7 +180,7 @@ export async function PublicPageBody({
         ) : null}
 
         {profile.footerText || profile.privacyPolicyContent || profile.watermarkEnabled ? (
-          <div className="mt-8 flex flex-col items-center gap-1 text-center text-xs opacity-60">
+          <div className="mt-auto flex flex-col items-center gap-1 pt-8 text-center text-xs opacity-60">
             {profile.footerText ? <p className="whitespace-pre-line">{profile.footerText}</p> : null}
             {profile.privacyPolicyContent ? (
               <a href={`/${page.slug}/privacy`} className="underline">
