@@ -1,7 +1,9 @@
 import sharp from "sharp";
 
-export async function processImage(input: Buffer, maxWidth: number): Promise<Buffer> {
-  return sharp(input)
+// animated=false (default) cuma ambil frame pertama GIF/WebP animasi; nyalain cuma buat
+// tempat yang memang mau animasinya jalan (sekarang: background theme).
+export async function processImage(input: Buffer, maxWidth: number, animated = false): Promise<Buffer> {
+  return sharp(input, { animated })
     .resize({ width: maxWidth, withoutEnlargement: true })
     .webp({ quality: 80 })
     .toBuffer();

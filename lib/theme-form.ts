@@ -65,7 +65,7 @@ export async function buildThemeTokensFromForm(current: ThemeTokens, formData: F
   const bgFile = formData.get("backgroundImage");
   if (bgFile instanceof File && bgFile.size > 0 && bgFile.type.startsWith("image/")) {
     const buffer = Buffer.from(await bgFile.arrayBuffer());
-    const webp = await processImage(buffer, MAX_BACKGROUND_WIDTH);
+    const webp = await processImage(buffer, MAX_BACKGROUND_WIDTH, true);
     backgroundImage = await saveImage(webp, "theme-backgrounds");
     if (current.backgroundImage) await deleteImage(current.backgroundImage);
   } else if (removeBackgroundImage && current.backgroundImage) {
