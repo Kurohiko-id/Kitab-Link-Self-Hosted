@@ -1,6 +1,6 @@
 # Kitab Link — Project Context
 
-Self-hosted link-in-bio platform (alternatif Linktree), terinspirasi dari aplikasi lama tapi dengan fitur tambahan. Referensi arsitektur lengkap ada di `docs/arsitektur.md` — baca itu dulu untuk keputusan desain sebelum mengerjakan fitur baru.
+Self-hosted link-in-bio platform (alternatif Linktree) dengan fitur lengkap. Referensi arsitektur lengkap ada di `docs/arsitektur.md` — baca itu dulu untuk keputusan desain sebelum mengerjakan fitur baru.
 
 ## Tech Stack
 - Framework: Next.js (App Router, Server Components)
@@ -43,7 +43,7 @@ Ikuti urutan fase di `docs/arsitektur.md` bagian 6 — jangan lompat ke fitur ad
 - Saat commit, pisah per file/concern (jangan gabung banyak perubahan tidak berhubungan dalam 1 commit).
 
 ## Catatan Deploy
-Project ini akan di-deploy bareng aplikasi lama lama di 1 VPS untuk sementara (via subdomain `dev.domain.com`, port terpisah) sebelum cutover ke domain utama. Jangan asumsikan project ini satu-satunya yang jalan di server itu.
+Project ini akan di-deploy bareng aplikasi link-in-bio lama di 1 VPS untuk sementara (via subdomain `dev.domain.com`, port terpisah) sebelum cutover ke domain utama. Jangan asumsikan project ini satu-satunya yang jalan di server itu.
 
 ## Git Workflow
 - JANGAN PERNAH menjalankan `git push` secara otomatis — user yang jalanin sendiri semua command git (add/commit/push/tag). Cukup kasih command-nya di chat.

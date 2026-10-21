@@ -3,8 +3,8 @@ import path from "node:path";
 import crypto from "node:crypto";
 
 // Ganti pendekatan "AUTH_SECRET wajib di-set manual lewat env var" -- itu melanggar prinsip
-// "docker run satu baris tanpa setup manual" di CLAUDE.md (aplikasi lama sendiri masih begini,
-// user disuruh jalanin `openssl rand -hex 32` terus paste ke compose file). Di sini secret
+// "docker run satu baris tanpa setup manual" di CLAUDE.md (user disuruh jalanin
+// `openssl rand -hex 32` terus paste ke compose file). Di sini secret
 // di-generate sendiri sekali di first boot, disimpen ke file di data dir (volume yang sama
 // kayak database), lalu dipakai ulang tiap restart. Dipakai buat sign session cookie
 // (lib/auth/hmac.ts) DAN derive key AES-256-GCM buat encrypt TOTP secret.

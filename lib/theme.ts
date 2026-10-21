@@ -88,7 +88,7 @@ export type ThemeTokens = {
   socialIconShape: AvatarShape;
   socialIconRadius: number; // px, cuma kepake pas socialIconShape "rounded"
   socialIconSurface: "filled" | "transparent";
-  // Lebar maksimum konten halaman publik (px) -- aplikasi lama nyebutnya "container width".
+  // Lebar maksimum konten halaman publik (px), alias "container width".
   // Cuma ngaruh di halaman publik beneran (components/public-page-body.tsx), preview
   // dashboard udah punya container sendiri (phone frame/panel) jadi gak kepake di situ.
   containerWidth: number;

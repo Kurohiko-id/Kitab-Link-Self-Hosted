@@ -1,14 +1,13 @@
-# Arsitektur "Link-in-Bio" Custom (mirip aplikasi lama, tapi lebih lengkap)
-
+# Arsitektur "Link-in-Bio" Custom
 ## 1. Ringkasan Keputusan Stack
 
 | Layer | Pilihan | Alasan |
 |---|---|---|
-| Framework | Next.js (App Router, Server Components) | Sama seperti aplikasi lama — cocok karena public page bisa full SSR/ISR, JS di client minim, ringan untuk VPS kecil |
+| Framework | Next.js (App Router, Server Components) | Cocok karena public page bisa full SSR/ISR, JS di client minim, ringan untuk VPS kecil |
 | Database | SQLite (better-sqlite3, WAL mode) + Drizzle ORM | Traffic 10rb/bulan itu ringan & read-heavy → SQLite pas, ga perlu proses DB terpisah yang makan RAM di VPS 2GB |
 | Auth | Cookie session HMAC + bcrypt (single-user, tapi arsitektur siap multi-user nanti) | Simpel, tanpa dependency tambahan |
-| UI | Tailwind CSS 4 + shadcn/ui | Sudah bagus di aplikasi lama, dipertahankan |
-| Drag & Drop | dnd-kit, tapi dengan **nested sortable context** | Fix masalah drag-drop groups di aplikasi lama |
+| UI | Tailwind CSS 4 + shadcn/ui | Komponen siap pakai, mudah dikustomisasi |
+| Drag & Drop | dnd-kit, tapi dengan **nested sortable context** | Drag-drop groups butuh nested context |
 | Image processing | `sharp` (server-side) | Convert semua upload jadi WebP + resize otomatis |
 | Scheduler | `node-cron` di dalam proses Next.js (atau container terpisah kecil) | Untuk auto show/hide group berbasis kondisi (live status, jadwal) |
 | Reverse proxy / TLS | Caddy | Auto-HTTPS, dan support on-demand TLS untuk custom domain per page |
@@ -59,7 +58,7 @@ scheduled_rules              -- otomatisasi show/hide
 
 themes
  ├─ id, page_id (nullable jika preset global), name
- └─ tokens_json (--lb-* CSS vars, sama sistem kayak aplikasi lama)
+ └─ tokens_json (--lb-* CSS vars)
 
 email_subscribers
  ├─ id, page_id, email, subscribed_at
@@ -87,8 +86,7 @@ webhook_queue
 - Middleware Next.js cek `Host` header dulu → kalau match `domain_value` di tabel `pages` (custom domain/subdomain), resolve ke page itu langsung tanpa perlu slug di path.
 - Dashboard punya **page switcher** di paling atas sidebar (mirip switch workspace), semua tab (Links, Theme, Settings, Analytics) scoped ke page yang aktif.
 
-### b. Link Groups yang benar (fix drag-drop aplikasi lama)
-- Gunakan dnd-kit dengan 2 level `SortableContext`:
+### b. Link Groups yang benar- Gunakan dnd-kit dengan 2 level `SortableContext`:
   1. Level luar: sortable antar-group (drag urutan group)
   2. Level dalam: sortable antar-link di dalam satu group, dan bisa `onDragEnd` pindah `group_id` link ke group lain (drag lintas kontainer, pola "multiple containers" resmi dari dnd-kit)
 - Tiap group ada toggle `is_visible` manual, plus opsi attach ke `scheduled_rules` untuk otomatis.
@@ -99,8 +97,7 @@ webhook_queue
 - Simpan `last_state` biar ga hit API sia-sia / bisa debug kalau salah update.
 - Alternatif lebih efisien: YouTube support PubSubHubbub push notification untuk video baru, tapi untuk status "live sekarang" polling tetap paling reliable — dengan traffic kamu, polling tiap 1-2 menit itu murah kok.
 
-### d. Rich preview card (fix versi yang gak jalan di aplikasi lama)
-- `display_style: 'rich'` render: thumbnail besar (rasio 16:9 atau 1:1 sesuai upload) + title + description di bawah/sebelah, mirip card OG preview.
+### d. Rich preview card- `display_style: 'rich'` render: thumbnail besar (rasio 16:9 atau 1:1 sesuai upload) + title + description di bawah/sebelah, mirip card OG preview.
 - Kalau link tidak punya thumbnail manual, fallback fetch OG image dari URL tujuan (cache hasilnya, jangan fetch tiap request).
 
 ### e. Auto-convert upload ke WebP

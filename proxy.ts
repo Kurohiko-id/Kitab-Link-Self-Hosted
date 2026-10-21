@@ -9,8 +9,7 @@ import { pages } from "@/lib/db/schema";
 
 // Admin/auth cuma boleh diakses lewat host yang BUKAN custom domain page (biasanya domain
 // utama/IP server) -- kalau salah satu custom domain kena kompromise/salah konfig DNS-nya,
-// itu gak otomatis buka akses ke dashboard. aplikasi lama sendiri (referensi arsitektur project
-// ini) eksplisit netapin "Admin and auth stay on your main domain" buat fitur yang sama.
+// itu gak otomatis buka akses ke dashboard.
 const ADMIN_PREFIXES = ["/dashboard", "/login", "/setup", "/api"];
 
 function isAdminPath(pathname: string): boolean {
